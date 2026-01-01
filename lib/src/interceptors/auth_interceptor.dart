@@ -19,7 +19,6 @@ import 'package:dio/dio.dart';
 /// **Interceptor Order**: Must run before ErrorInterceptor in response chain
 /// to enable transparent token refresh before errors are processed.
 class AuthInterceptor extends Interceptor {
-
   /// Creates an auth interceptor with the given configuration.
   ///
   /// [tokenProvider] is required for token management.
@@ -126,7 +125,8 @@ class AuthInterceptor extends Interceptor {
     }
 
     // Check if this is a retry after refresh (prevent infinite loop)
-    final isRetry = err.requestOptions.extra['_acdc_retry_after_refresh'] == true;
+    final isRetry =
+        err.requestOptions.extra['_acdc_retry_after_refresh'] == true;
     if (isRetry) {
       // Second 401 after refresh - clear tokens and fail
       await _clearTokensSafely();
@@ -217,6 +217,8 @@ class AuthInterceptor extends Interceptor {
     // Start new refresh
     _isRefreshing = true;
     _refreshCompleter = Completer<void>();
+    // Prevent unhandled exception if no one awaits the future when error is completed
+    _refreshCompleter!.future.catchError((_) {});
 
     try {
       await _performTokenRefresh();
@@ -312,7 +314,8 @@ class AuthInterceptor extends Interceptor {
       rethrow;
     } on AcdcServerException {
       // Server errors - apply exponential backoff
-      _backoffSeconds = (_backoffSeconds == 0 ? 1 : _backoffSeconds * 2).clamp(0, 30);
+      _backoffSeconds =
+          (_backoffSeconds == 0 ? 1 : _backoffSeconds * 2).clamp(0, 30);
       rethrow;
     }
   }
@@ -363,11 +366,13 @@ class AuthInterceptor extends Interceptor {
             accessExpiry = serverTime.add(Duration(seconds: expiresIn));
           } on FormatException {
             // Fall back to local time if parsing fails
-            accessExpiry = DateTime.now().toUtc().add(Duration(seconds: expiresIn));
+            accessExpiry =
+                DateTime.now().toUtc().add(Duration(seconds: expiresIn));
           }
         } else {
           // No Date header - use local time
-          accessExpiry = DateTime.now().toUtc().add(Duration(seconds: expiresIn));
+          accessExpiry =
+              DateTime.now().toUtc().add(Duration(seconds: expiresIn));
         }
       }
 
