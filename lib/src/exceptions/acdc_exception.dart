@@ -8,14 +8,14 @@ class AcdcException extends DioException {
   /// Creates an ACDC exception.
   ///
   /// [message] is a developer-focused error message with technical context.
-  /// [originalException] preserves the original [DioException] for debugging.
+  /// [originalException] preserves the original [DioException] for debugging (optional).
   /// [statusCode] is the HTTP status code if available.
   /// [responseData] is the truncated response body (max 1KB).
   /// [requestUrl] is the redacted request URL.
   AcdcException({
     required super.requestOptions,
     required this.message,
-    required this.originalException,
+    this.originalException,
     this.statusCode,
     this.responseData,
     this.requestUrl,
@@ -30,7 +30,9 @@ class AcdcException extends DioException {
   final String message;
 
   /// The original [DioException] for low-level debugging.
-  final DioException originalException;
+  ///
+  /// May be null if the exception was created internally without an underlying DioException.
+  final DioException? originalException;
 
   /// HTTP status code if available.
   final int? statusCode;

@@ -9,8 +9,8 @@ class AcdcAuthException extends AcdcException {
   AcdcAuthException({
     required super.requestOptions,
     required super.message,
-    required super.originalException,
-    required super.statusCode,
+    super.originalException,
+    super.statusCode,
     super.response,
     super.responseData,
     super.requestUrl,
@@ -21,9 +21,12 @@ class AcdcAuthException extends AcdcException {
         );
 
   /// Factory constructor from DioException with 401/403 response.
+  ///
+  /// Optionally accepts a custom [message] to override the default message.
   factory AcdcAuthException.fromDioException(
-    DioException exception,
-  ) {
+    DioException exception, {
+    String? message,
+  }) {
     final response = exception.response;
     final statusCode = response?.statusCode ?? 0;
     final url = AcdcException.redactUrl(
@@ -33,18 +36,12 @@ class AcdcAuthException extends AcdcException {
       response?.data,
     );
 
-    String message;
-    if (statusCode == 401) {
-      message = 'Authentication failed: Invalid or expired token';
-    } else if (statusCode == 403) {
-      message = 'Authorization failed: Insufficient permissions';
-    } else {
-      message = 'Authentication error (HTTP $statusCode)';
-    }
+    // Use custom message if provided, otherwise generate default
+    final errorMessage = message ?? _defaultMessage(statusCode);
 
     return AcdcAuthException(
       requestOptions: exception.requestOptions,
-      message: message,
+      message: errorMessage,
       originalException: exception,
       statusCode: statusCode,
       response: response,
@@ -53,5 +50,16 @@ class AcdcAuthException extends AcdcException {
       error: exception.error,
       stackTrace: exception.stackTrace,
     );
+  }
+
+  /// Generates default error message based on status code.
+  static String _defaultMessage(int statusCode) {
+    if (statusCode == 401) {
+      return 'Authentication failed: Invalid or expired token';
+    } else if (statusCode == 403) {
+      return 'Authorization failed: Insufficient permissions';
+    } else {
+      return 'Authentication error (HTTP $statusCode)';
+    }
   }
 }

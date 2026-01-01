@@ -17,6 +17,10 @@ dart pub global run coverage:format_coverage \
   --report-on=lib
 
 echo ""
+echo "Generating HTML coverage report..."
+genhtml coverage/lcov.info -o coverage/html
+
+echo ""
 echo "Coverage Summary:"
 echo "================"
 

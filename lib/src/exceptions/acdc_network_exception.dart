@@ -34,7 +34,7 @@ class AcdcNetworkException extends AcdcException {
   AcdcNetworkException({
     required super.requestOptions,
     required super.message,
-    required super.originalException,
+    required DioException super.originalException,
     required this.networkErrorType,
     super.error,
     super.stackTrace,
