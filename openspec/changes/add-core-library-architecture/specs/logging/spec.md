@@ -39,8 +39,17 @@ The library SHALL support configurable log levels for explicit control over logg
 #### Scenario: None log level
 
 - **WHEN** log level is set to `LogLevel.none`
-- **THEN** no HTTP logging occurs
+- **THEN** no HTTP request/response logging occurs
 - **AND** the logging interceptor is not added to the chain
+- **BUT** error and warning logs are still emitted
+
+#### Scenario: Configuration priority
+
+- **WHEN** both `kDebugMode` and explicit `LogLevel` are specified
+- **THEN** the explicit `LogLevel` takes precedence over the environment default
+- **AND** developers can override debug mode behavior if needed
+
+**Example:** Setting `LogLevel.none` in debug mode will disable logging despite `kDebugMode == true`
 
 ### Requirement: Sensitive Data Redaction
 
