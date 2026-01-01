@@ -51,9 +51,11 @@ The library SHALL configure Dio interceptors in a specific order to ensure corre
 - **WHEN** a response is received
 - **THEN** interceptors execute in this order:
   1. Cache interceptor (stores response in cache)
-  2. Error interceptor (normalizes errors)
-  3. Auth interceptor (handles 401 with token refresh)
+  2. Auth interceptor (handles 401 with token refresh)
+  3. Error interceptor (normalizes errors after auth retry)
   4. Logging interceptor (logs response)
+- **AND** this order ensures 401 responses are handled by auth interceptor before error conversion
+- **AND** the error interceptor only converts errors that auth interceptor cannot handle
 
 ### Requirement: OpenAPI Generator Compatibility
 
