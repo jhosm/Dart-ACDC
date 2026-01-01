@@ -66,6 +66,19 @@ The library SHALL enable caching by default with sensible settings that work for
 - **THEN** caching is enabled with default settings
 - **AND** the cache TTL is 1 hour for cacheable responses
 - **AND** the maximum cache size is 10 MB
+- **AND** authenticated requests ARE cached by default with user-based isolation
+- **AND** only GET requests are cached by default
+
+#### Scenario: Cacheable response criteria
+
+- **WHEN** evaluating if a response is cacheable with default settings
+- **THEN** the response is cacheable if ALL of the following are true:
+  - HTTP method is GET or HEAD
+  - Response status code is 200
+  - Cache-Control header does not include `no-cache` or `no-store`
+  - If request includes Authorization header, user ID can be extracted from JWT
+  - Response is not explicitly marked as uncacheable
+- **AND** responses not meeting these criteria are never cached
 
 #### Scenario: Cache opt-out
 
@@ -73,9 +86,41 @@ The library SHALL enable caching by default with sensible settings that work for
 - **THEN** no cache interceptor is added
 - **AND** all requests bypass caching
 
+#### Scenario: Cache TTL and token expiry interaction
+
+- **WHEN** cache TTL is configured
+- **THEN** the library recommends cache TTL ≤ access token TTL for optimal token refresh behavior
+- **AND** cached responses may be served even if the access token has expired
+- **AND** this is safe because cached data was fetched when the user was authenticated
+- **AND** the next non-cached request will trigger token refresh if the token has expired
+- **AND** developers can configure shorter cache TTL for frequently changing data
+
 ### Requirement: Cache Policy Configuration
 
 The library SHALL allow developers to configure cache behavior with custom policies.
+
+```dart
+// Comprehensive cache configuration example
+final dio = AcdcClientBuilder()
+  .withCache(CacheConfig(
+    // Basic settings
+    ttl: Duration(hours: 24),
+    maxSize: 50 * 1024 * 1024, // 50 MB
+
+    // Advanced features
+    inMemory: true,
+    inMemoryMaxSize: 5 * 1024 * 1024,
+    staleWhileRevalidate: true,
+    staleIfError: true,
+
+    // Security
+    cacheAuthenticatedRequests: true,  // Default: true (with user-based isolation)
+    userIdProvider: () async => await myAuthService.getUserId(),  // Optional: for non-JWT tokens
+    encrypted: true,
+    requireEncryption: false,
+  ))
+  .build();
+```
 
 #### Scenario: Custom TTL configuration
 
@@ -116,17 +161,17 @@ final dio = AcdcClientBuilder()
 
 ### Requirement: Cache Invalidation
 
-The library SHALL provide methods to clear cached responses when needed.
+The library SHALL provide methods to clear cached responses when needed via the auth extension.
 
 #### Scenario: Clear all cache
 
-- **WHEN** a developer calls `clearCache()` on the cache manager
+- **WHEN** a developer calls `dio.auth.clearCache()`
 - **THEN** all cached responses are removed
 - **AND** subsequent requests hit the network
 
 #### Scenario: Clear specific URL cache
 
-- **WHEN** a developer calls `clearCacheForUrl(url)`
+- **WHEN** a developer calls `dio.auth.clearCacheForUrl(url)`
 - **THEN** cached responses for that URL are removed
 - **AND** other cached responses remain intact
 
@@ -138,6 +183,14 @@ The library SHALL provide methods to clear cached responses when needed.
 - **AND** the persistent disk cache is cleared
 - **AND** subsequent login starts with a fresh cache
 
+#### Scenario: Cache cleanup after failed logout
+
+- **WHEN** logout failed or app crashed during logout
+- **AND** the app restarts
+- **THEN** the library detects the incomplete logout state
+- **AND** all cached responses are cleared automatically on startup
+- **AND** this prevents stale authenticated data from persisting
+
 #### Scenario: Cache clear on app version change
 
 - **WHEN** the app version changes (detected on startup)
@@ -148,6 +201,15 @@ The library SHALL provide methods to clear cached responses when needed.
 ### Requirement: Stale-While-Revalidate Support
 
 The library SHALL support serving stale cache data while revalidating in the background.
+
+```dart
+final dio = AcdcClientBuilder()
+  .withCache(CacheConfig(
+    staleWhileRevalidate: true,  // Enable stale-while-revalidate
+    staleIfError: true,  // Serve stale on network error
+  ))
+  .build();
+```
 
 #### Scenario: Stale cache served immediately
 
@@ -172,14 +234,17 @@ The library SHALL serve cached responses when the network is unavailable to enab
 - **WHEN** a request fails due to network unavailability
 - **AND** a cached response exists (even if expired)
 - **THEN** the cached response is returned
-- **AND** response metadata indicates the data is from offline cache
+- **AND** response headers include `X-ACDC-From-Cache: offline`
+- **AND** developers can check `response.extra['fromOfflineCache'] == true`
+- **AND** the cache timestamp is available in response metadata
 
 #### Scenario: Network unavailable with no cache
 
 - **WHEN** a request fails due to network unavailability
 - **AND** no cached response exists
-- **THEN** a NetworkUnavailableError is thrown
-- **AND** the error message indicates offline state
+- **THEN** an AcdcNetworkException is thrown
+- **AND** the exception message indicates offline state
+- **AND** the exception type is specifically network unavailability
 
 #### Scenario: Network quality detection
 
@@ -205,9 +270,53 @@ The library SHALL store cached responses persistently to disk for offline access
 - **THEN** cache files are stored in the app's cache directory
 - **AND** the cache directory is excluded from app backups
 
+### Requirement: Encrypted Cache Storage (Optional)
+
+The library SHALL provide optional encryption for cached responses to protect sensitive data at rest.
+
+#### Scenario: Enable encrypted cache
+
+- **WHEN** a developer enables encrypted caching
+- **THEN** cached responses are encrypted before writing to disk
+- **AND** responses are automatically decrypted on cache reads
+- **AND** encryption keys are stored in platform secure storage (iOS Keychain, Android Keystore)
+- **AND** cache remains functional if encryption is unavailable
+
+```dart
+final dio = AcdcClientBuilder()
+  .withCache(CacheConfig(
+    encrypted: true,  // Enables encryption at rest
+  ))
+  .build();
+```
+
+#### Scenario: Encryption key rotation
+
+- **WHEN** the encryption key is rotated (e.g., after user re-authentication)
+- **THEN** existing cache entries are invalidated
+- **AND** new cache entries use the new encryption key
+- **AND** old encrypted entries are cleared
+
+#### Scenario: Encryption unavailable fallback
+
+- **WHEN** encrypted caching is enabled
+- **AND** platform secure storage is unavailable
+- **THEN** a warning is logged
+- **AND** caching continues without encryption
+- **OR** caching is disabled entirely if `requireEncryption: true` is set
+
 ### Requirement: In-Memory Cache Layer
 
 The library SHALL provide an optional in-memory cache layer for fast access to frequently requested data.
+
+```dart
+final dio = AcdcClientBuilder()
+  .withCache(CacheConfig(
+    inMemory: true,  // Enable in-memory cache layer
+    inMemoryMaxSize: 5 * 1024 * 1024,  // 5 MB memory cache
+  ))
+  .build();
+```
 
 #### Scenario: In-memory cache for fast access
 
@@ -231,14 +340,92 @@ The library SHALL provide an optional in-memory cache layer for fast access to f
 
 ### Requirement: Secure Cache for Sensitive Data
 
-The library SHALL provide options to exclude sensitive data from caching.
+The library SHALL cache authenticated requests by default using user-based cache isolation to provide both security and performance.
 
-#### Scenario: No-cache for authenticated requests
+#### Scenario: Unauthenticated requests cached normally
 
-- **WHEN** a request includes an Authorization header
-- **AND** sensitive data caching is disabled
-- **THEN** the response is not cached
-- **AND** the request always hits the network
+- **WHEN** a request does NOT include an Authorization header
+- **THEN** the response is cached normally (if other criteria are met)
+- **AND** the cache key does NOT include a user ID
+- **AND** all users share the same cache for unauthenticated endpoints
+- **AND** this is safe because unauthenticated endpoints return public data
+
+#### Scenario: Authenticated requests cached with user isolation
+
+- **WHEN** a request includes an Authorization header with a JWT access token
+- **THEN** the response IS cached by default
+- **AND** the user ID (from JWT claims `sub` or `user_id`) is included in the cache key
+- **AND** each user has isolated cache entries
+- **AND** cache persists across token refreshes (same user, new token)
+- **AND** this prevents cross-user cache contamination while enabling performance
+
+#### Scenario: User ID extraction from JWT
+
+- **WHEN** processing an authenticated request for caching
+- **THEN** the library attempts to decode the JWT access token (without signature verification)
+- **AND** user ID is obtained from standard claims: `sub`, `user_id`, or `uid` (in that order)
+- **AND** if JWT decoding fails (malformed token), the request is not cached
+- **AND** if JWT is valid but user ID claims are missing, the request is not cached
+- **AND** extraction failures are logged with the specific reason
+- **AND** failed requests proceed to the network normally (caching failure does not block requests)
+
+#### Scenario: Cache cleared on user change
+
+- **WHEN** the user ID from the current token differs from the previous session
+- **THEN** all cached responses are automatically cleared
+- **AND** the new user starts with a fresh cache
+- **AND** this prevents data leakage between different users on the same device
+
+#### Scenario: Multiple users on same device
+
+- **WHEN** User A logs in and uses the app
+- **AND** User A logs out
+- **AND** User B logs in on the same device
+- **THEN** all of User A's cached responses are cleared (due to user change detection)
+- **AND** User B starts with an empty cache
+- **AND** User B cannot access any of User A's cached data
+- **AND** this ensures complete data isolation on shared devices
+
+#### Scenario: Opt-out of authenticated request caching
+
+- **WHEN** a developer disables caching of authenticated requests
+- **THEN** requests with Authorization headers are never cached
+- **AND** all authenticated requests hit the network
+
+```dart
+final dio = AcdcClientBuilder()
+  .withCache(CacheConfig(
+    cacheAuthenticatedRequests: false,  // Disable if needed
+  ))
+  .build();
+```
+
+#### Scenario: Non-JWT token fallback
+
+- **WHEN** the Authorization header contains a non-JWT token (e.g., opaque token)
+- **AND** user ID cannot be extracted
+- **THEN** the request is NOT cached
+- **AND** a warning is logged suggesting to provide a userIdProvider
+- **AND** developer can provide a custom user ID provider for non-JWT auth schemes
+
+```dart
+final dio = AcdcClientBuilder()
+  .withCache(CacheConfig(
+    userIdProvider: () async => await myAuthService.getCurrentUserId(),
+  ))
+  .build();
+```
+
+#### Scenario: Cache isolation example
+
+- **WHEN** User A (ID: "user-123") requests `/api/profile`
+- **AND** the response is cached with cache key: `GET:/api/profile:user-123`
+- **AND** User A's access token refreshes (new token, same user ID)
+- **THEN** subsequent requests by User A still use the cached response
+- **AND** the cache persists across token refreshes
+- **WHEN** User B (ID: "user-456") requests `/api/profile` on the same device
+- **THEN** User B gets a separate cache entry with key: `GET:/api/profile:user-456`
+- **AND** User A and User B never see each other's cached data
 
 #### Scenario: Default cache key generation
 
@@ -246,7 +433,9 @@ The library SHALL provide options to exclude sensitive data from caching.
 - **THEN** the cache key includes the HTTP method and full URL
 - **AND** all query parameters are included in the cache key
 - **AND** request headers are excluded from the cache key
-- **AND** requests with identical method and URL share the same cache entry
+- **AND** if the request includes an Authorization header, the user ID is included in the cache key
+- **AND** requests from the same user with identical method and URL share the same cache entry
+- **AND** requests from different users with identical method and URL have separate cache entries
 
 #### Scenario: Query parameters in cache keys
 
@@ -305,3 +494,13 @@ The library SHALL integrate `dio_cache_interceptor` for cache implementation.
 - **THEN** `dio_cache_interceptor` is added to the interceptor chain
 - **AND** cache options are configured based on `CacheConfig`
 - **AND** cache store is initialized with persistent storage
+
+#### Scenario: Cache and auth interceptor interaction
+
+- **WHEN** caching is enabled alongside authentication
+- **THEN** the cache interceptor is placed after the auth interceptor in the request phase
+- **AND** access tokens are injected before the cache is checked
+- **AND** cache hits return immediately without reaching the network
+- **AND** cache hits bypass token refresh logic (token refresh only happens on network requests)
+- **AND** this is expected behavior - cached data validity is independent of current token validity
+- **AND** expired tokens are refreshed on the next cache miss or non-cacheable request
