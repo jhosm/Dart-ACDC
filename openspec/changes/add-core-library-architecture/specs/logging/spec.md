@@ -43,6 +43,30 @@ The library SHALL support configurable log levels for explicit control over logg
 - **AND** the logging interceptor is not added to the chain
 - **BUT** error and warning logs are still emitted
 
+#### Scenario: Explicit log level configuration
+
+- **WHEN** a developer configures a log level via `withLogLevel()`
+- **THEN** the specified log level is used instead of the environment default
+- **AND** the configuration overrides `kDebugMode` detection
+- **AND** developers have explicit control over logging verbosity
+
+```dart
+// Override default to use info level even in debug mode
+final dio = AcdcClientBuilder()
+  .withLogLevel(LogLevel.info)
+  .build();
+
+// Disable all HTTP logging in debug mode
+final dio = AcdcClientBuilder()
+  .withLogLevel(LogLevel.none)
+  .build();
+
+// Force debug logging even in release mode (not recommended)
+final dio = AcdcClientBuilder()
+  .withLogLevel(LogLevel.debug)
+  .build();
+```
+
 #### Scenario: Configuration priority
 
 - **WHEN** both `kDebugMode` and explicit `LogLevel` are specified
