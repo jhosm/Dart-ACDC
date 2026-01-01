@@ -1,141 +1,168 @@
 # Implementation Tasks
 
-## 1. Project Setup
+## Progress Overview
 
-- [ ] 1.1 Create `pubspec.yaml` with package metadata and dependencies
-- [ ] 1.2 Create `analysis_options.yaml` with strict linting rules
-- [ ] 1.3 Create directory structure (`lib/`, `lib/src/`, `test/`)
-- [ ] 1.4 Create `.gitignore` for Dart/Flutter projects
-- [ ] 1.5 Create `README.md` with basic project description
-- [ ] 1.6 Create `LICENSE` file (choose license: MIT, Apache 2.0, etc.)
-- [ ] 1.7 Create `CHANGELOG.md` for version tracking
+**Overall Completion: 44.64%** (25 of 56 beads issues completed)
 
-## 2. Core Types and Interfaces
+### Status Legend
 
-- [ ] 2.1 Define `TokenProvider` interface in `lib/src/auth/token_provider.dart`
-  - [ ] 2.1.1 Add `getAccessToken()` method
-  - [ ] 2.1.2 Add `getRefreshToken()` method
-  - [ ] 2.1.3 Add `getAccessTokenExpiry()` method (UTC)
-  - [ ] 2.1.4 Add `getRefreshTokenExpiry()` method (UTC)
-  - [ ] 2.1.5 Add `setTokens()` method with expiry parameters
-  - [ ] 2.1.6 Add `clearTokens()` method
-- [ ] 2.2 Define `TokenRefreshResult` class in `lib/src/auth/token_refresh_result.dart`
-  - [ ] 2.2.1 Add required `accessToken` field
-  - [ ] 2.2.2 Add optional `refreshToken` field (for rotation)
-  - [ ] 2.2.3 Add optional `accessExpiry` and `refreshExpiry` fields
-- [ ] 2.3 Define custom exception hierarchy in `lib/src/exceptions/`
-  - [ ] 2.3.1 `AcdcException` base class (extends DioException)
-  - [ ] 2.3.2 `AcdcNetworkException` with `NetworkErrorType` enum
-  - [ ] 2.3.3 `AcdcAuthException`
-  - [ ] 2.3.4 `AcdcServerException`
-  - [ ] 2.3.5 `AcdcClientException`
-  - [ ] 2.3.6 `AcdcCacheException` with `CacheOperation` enum
-  - [ ] 2.3.7 Add `toMap()` method for structured logging
-  - [ ] 2.3.8 Add response body truncation (1KB limit)
-  - [ ] 2.3.9 Add URL redaction for sensitive parameters
-- [ ] 2.4 Define `LogLevel` enum in `lib/src/logging/log_level.dart`
-  - [ ] 2.4.1 Add values: debug, info, warning, error, none
-- [ ] 2.5 Define `AcdcLogger` typedef in `lib/src/logging/acdc_logger.dart`
-- [ ] 2.6 Write unit tests for exception types
+- ✅ Complete
+- 🚧 In Progress
+- ⏳ Blocked/Pending
 
-## 3. Error Handling Interceptor
+### Section Status
 
-- [ ] 3.1 Create `ErrorInterceptor` class in `lib/src/interceptors/error_interceptor.dart`
-- [ ] 3.2 Implement HTTP status code to exception mapping
-  - [ ] 3.2.1 Map 401/403 to `AcdcAuthException`
-  - [ ] 3.2.2 Map 4xx (others) to `AcdcClientException`
-  - [ ] 3.2.3 Map 5xx to `AcdcServerException`
-  - [ ] 3.2.4 Handle 429 with Retry-After header parsing
-- [ ] 3.3 Implement network error handling
-  - [ ] 3.3.1 Map timeouts to `AcdcNetworkException`
-  - [ ] 3.3.2 Map connection errors to `AcdcNetworkException`
-  - [ ] 3.3.3 Include timeout type differentiation
-- [ ] 3.4 Add developer-friendly error message generation
-- [ ] 3.5 Implement response body truncation logic
-- [ ] 3.6 Implement URL redaction for sensitive parameters
-- [ ] 3.7 Handle edge cases (malformed responses, redirects)
-- [ ] 3.8 Ensure error interceptor runs AFTER auth interceptor attempts refresh
-- [ ] 3.9 Write unit tests for error interceptor
-- [ ] 3.10 Write tests for 401 bypass when auth interceptor handles it
+1. ✅ Project Setup - Complete
+2. ✅ Core Types and Interfaces - Complete
+3. ✅ Error Handling Interceptor - Complete
+4. ✅ Authentication Components - Complete
+5. ⏳ Logging Interceptor - Pending (blocked by dependencies)
+6. ⏳ Cache Components - Pending (blocked by dependencies)
+7. 🚧 HTTP Client Builder - Core complete, needs logging/cache integration
+8. ⏳ Public API - Pending (1 subtask remaining)
+9. ⏳ Documentation - Pending
+10. 🚧 Testing - Partially complete (unit tests done, integration tests needed)
+11. ⏳ Example Project - Pending
+12. ⏳ Package Publishing Preparation - Pending
 
-## 4. Authentication Components
+---
 
-- [ ] 4.1 Create `AuthInterceptor` class in `lib/src/interceptors/auth_interceptor.dart`
-  - [ ] 4.1.1 Implement Bearer token injection in request headers
-  - [ ] 4.1.2 Handle existing Authorization header preservation
-  - [ ] 4.1.3 Implement token expiry validation before requests
-- [ ] 4.2 Implement proactive token refresh
-  - [ ] 4.2.1 Check `getAccessTokenExpiry()` before requests
-  - [ ] 4.2.2 Trigger refresh when within threshold (default: 60s, configurable)
-  - [ ] 4.2.3 Queue current request until refresh completes
-  - [ ] 4.2.4 Handle refresh failures (network vs auth errors)
-  - [ ] 4.2.5 Fall back to reactive refresh if expiry unavailable
-- [ ] 4.3 Implement reactive token refresh on 401
-  - [ ] 4.3.1 Detect 401 responses
-  - [ ] 4.3.2 Check for available refresh token
-  - [ ] 4.3.3 Trigger refresh and retry original request
-  - [ ] 4.3.4 Handle 401 without refresh token
-  - [ ] 4.3.5 Implement single retry limit (prevent infinite loops)
-  - [ ] 4.3.6 Clear tokens on repeated 401 after refresh
-- [ ] 4.4 Implement concurrent request queuing during refresh
-  - [ ] 4.4.1 Detect simultaneous token expiry across requests
-  - [ ] 4.4.2 Queue subsequent requests while first refreshes
-  - [ ] 4.4.3 Resume all queued requests with new token on success
-  - [ ] 4.4.4 Fail all queued requests on refresh failure
-  - [ ] 4.4.5 Implement refresh queue timeout (default: 10s)
-- [ ] 4.5 Implement token refresh endpoint support
-  - [ ] 4.5.1 Create OAuth 2.1 refresh request (POST with form-urlencoded)
-  - [ ] 4.5.2 Include grant_type, refresh_token, client_id (NO client_secret)
-  - [ ] 4.5.3 Parse refresh response (access_token, refresh_token, expires_in)
-  - [ ] 4.5.4 Use server Date header for clock skew handling
-  - [ ] 4.5.5 Call `setTokens()` with new tokens
-  - [ ] 4.5.6 Support custom refresh function via callback
-- [ ] 4.6 Implement token refresh error handling
-  - [ ] 4.6.1 Parse OAuth error responses (invalid_grant, etc.)
-  - [ ] 4.6.2 Map OAuth errors to specific messages
-  - [ ] 4.6.3 Clear tokens on auth errors (invalid_grant)
-  - [ ] 4.6.4 Preserve tokens on network/server errors
-  - [ ] 4.6.5 Implement exponential backoff for 5xx errors
-- [ ] 4.7 Implement token refresh isolation
-  - [ ] 4.7.1 Create separate minimal Dio instance for refresh requests
-  - [ ] 4.7.2 Bypass auth, cache, and custom interceptors
-  - [ ] 4.7.3 Include only error interceptor and minimal logging
-  - [ ] 4.7.4 Redact refresh_token and access_token in logs
-- [ ] 4.8 Handle TokenProvider exceptions
-  - [ ] 4.8.1 Catch `getAccessToken()` exceptions → proceed without auth
-  - [ ] 4.8.2 Catch `getRefreshToken()` exceptions → fail with clear error
-  - [ ] 4.8.3 Catch `setTokens()` exceptions → fail refresh, log error
-  - [ ] 4.8.4 Catch `clearTokens()` exceptions → log warning, continue
-  - [ ] 4.8.5 Ensure exceptions never crash the app
-- [ ] 4.9 Handle logout during active refresh
-  - [ ] 4.9.1 Detect logout call while refresh in progress
-  - [ ] 4.9.2 Cancel in-progress refresh request
-  - [ ] 4.9.3 Fail queued requests with logout indication
-  - [ ] 4.9.4 Proceed with normal logout flow
-- [ ] 4.10 Create `AcdcAuthManager` class in `lib/src/auth/acdc_auth_manager.dart`
-  - [ ] 4.10.1 Implement `logout()` method with token revocation
-  - [ ] 4.10.2 Implement `refreshNow()` method for forced refresh
-  - [ ] 4.10.3 Implement `clearCache()` method
-  - [ ] 4.10.4 Store reference to cache and auth interceptor
-- [ ] 4.11 Create `AcdcAuth` Dart extension on Dio
-  - [ ] 4.11.1 Add `auth` getter returning `AcdcAuthManager`
-  - [ ] 4.11.2 Store manager reference in Dio options
-  - [ ] 4.11.3 Handle case when auth is not configured
-- [ ] 4.12 Implement token revocation for logout
-  - [ ] 4.12.1 POST to revocation endpoint with token and token_type_hint
-  - [ ] 4.12.2 Revoke refresh token first, then access token
-  - [ ] 4.12.3 Handle revocation failures gracefully (best-effort)
-  - [ ] 4.12.4 Always clear tokens locally regardless of revocation success
-- [ ] 4.13 Support token rotation
-  - [ ] 4.13.1 Update both tokens when new refresh_token in response
-  - [ ] 4.13.2 Retain old refresh token if not rotated
-- [ ] 4.14 Handle expired refresh tokens
-  - [ ] 4.14.1 Check `getRefreshTokenExpiry()` before refresh
-  - [ ] 4.14.2 Clear tokens and fail if refresh token expired
-- [ ] 4.15 Write unit tests for auth interceptor
-- [ ] 4.16 Write integration tests for token refresh flow
-- [ ] 4.17 Write tests for concurrent request queuing
-- [ ] 4.18 Write tests for logout during refresh
+## 1. Project Setup ✅
+
+- [x] 1.1 Create `pubspec.yaml` with package metadata and dependencies
+- [x] 1.2 Create `analysis_options.yaml` with strict linting rules
+- [x] 1.3 Create directory structure (`lib/`, `lib/src/`, `test/`)
+- [x] 1.4 Create `.gitignore` for Dart/Flutter projects
+- [x] 1.5 Create `README.md` with basic project description
+- [x] 1.6 Create `LICENSE` file (choose license: MIT, Apache 2.0, etc.)
+- [x] 1.7 Create `CHANGELOG.md` for version tracking
+
+## 2. Core Types and Interfaces ✅
+
+- [x] 2.1 Define `TokenProvider` interface in `lib/src/auth/token_provider.dart`
+  - [x] 2.1.1 Add `getAccessToken()` method
+  - [x] 2.1.2 Add `getRefreshToken()` method
+  - [x] 2.1.3 Add `getAccessTokenExpiry()` method (UTC)
+  - [x] 2.1.4 Add `getRefreshTokenExpiry()` method (UTC)
+  - [x] 2.1.5 Add `setTokens()` method with expiry parameters
+  - [x] 2.1.6 Add `clearTokens()` method
+- [x] 2.2 Define `TokenRefreshResult` class in `lib/src/auth/token_refresh_result.dart`
+  - [x] 2.2.1 Add required `accessToken` field
+  - [x] 2.2.2 Add optional `refreshToken` field (for rotation)
+  - [x] 2.2.3 Add optional `accessExpiry` and `refreshExpiry` fields
+- [x] 2.3 Define custom exception hierarchy in `lib/src/exceptions/`
+  - [x] 2.3.1 `AcdcException` base class (extends DioException)
+  - [x] 2.3.2 `AcdcNetworkException` with `NetworkErrorType` enum
+  - [x] 2.3.3 `AcdcAuthException`
+  - [x] 2.3.4 `AcdcServerException`
+  - [x] 2.3.5 `AcdcClientException`
+  - [x] 2.3.6 `AcdcCacheException` with `CacheOperation` enum
+  - [x] 2.3.7 Add `toMap()` method for structured logging
+  - [x] 2.3.8 Add response body truncation (1KB limit)
+  - [x] 2.3.9 Add URL redaction for sensitive parameters
+- [x] 2.4 Define `LogLevel` enum in `lib/src/logging/log_level.dart`
+  - [x] 2.4.1 Add values: debug, info, warning, error, none
+- [x] 2.5 Define `AcdcLogger` typedef in `lib/src/logging/acdc_logger.dart`
+- [x] 2.6 Write unit tests for exception types
+
+## 3. Error Handling Interceptor ✅
+
+- [x] 3.1 Create `ErrorInterceptor` class in `lib/src/interceptors/error_interceptor.dart`
+- [x] 3.2 Implement HTTP status code to exception mapping
+  - [x] 3.2.1 Map 401/403 to `AcdcAuthException`
+  - [x] 3.2.2 Map 4xx (others) to `AcdcClientException`
+  - [x] 3.2.3 Map 5xx to `AcdcServerException`
+  - [x] 3.2.4 Handle 429 with Retry-After header parsing
+- [x] 3.3 Implement network error handling
+  - [x] 3.3.1 Map timeouts to `AcdcNetworkException`
+  - [x] 3.3.2 Map connection errors to `AcdcNetworkException`
+  - [x] 3.3.3 Include timeout type differentiation
+- [x] 3.4 Add developer-friendly error message generation
+- [x] 3.5 Implement response body truncation logic
+- [x] 3.6 Implement URL redaction for sensitive parameters
+- [x] 3.7 Handle edge cases (malformed responses, redirects)
+- [x] 3.8 Ensure error interceptor runs AFTER auth interceptor attempts refresh
+- [x] 3.9 Write unit tests for error interceptor
+- [x] 3.10 Write tests for 401 bypass when auth interceptor handles it
+
+## 4. Authentication Components ✅
+
+- [x] 4.1 Create `AuthInterceptor` class in `lib/src/interceptors/auth_interceptor.dart`
+  - [x] 4.1.1 Implement Bearer token injection in request headers
+  - [x] 4.1.2 Handle existing Authorization header preservation
+  - [x] 4.1.3 Implement token expiry validation before requests
+- [x] 4.2 Implement proactive token refresh
+  - [x] 4.2.1 Check `getAccessTokenExpiry()` before requests
+  - [x] 4.2.2 Trigger refresh when within threshold (default: 60s, configurable)
+  - [x] 4.2.3 Queue current request until refresh completes
+  - [x] 4.2.4 Handle refresh failures (network vs auth errors)
+  - [x] 4.2.5 Fall back to reactive refresh if expiry unavailable
+- [x] 4.3 Implement reactive token refresh on 401
+  - [x] 4.3.1 Detect 401 responses
+  - [x] 4.3.2 Check for available refresh token
+  - [x] 4.3.3 Trigger refresh and retry original request
+  - [x] 4.3.4 Handle 401 without refresh token
+  - [x] 4.3.5 Implement single retry limit (prevent infinite loops)
+  - [x] 4.3.6 Clear tokens on repeated 401 after refresh
+- [x] 4.4 Implement concurrent request queuing during refresh
+  - [x] 4.4.1 Detect simultaneous token expiry across requests
+  - [x] 4.4.2 Queue subsequent requests while first refreshes
+  - [x] 4.4.3 Resume all queued requests with new token on success
+  - [x] 4.4.4 Fail all queued requests on refresh failure
+  - [x] 4.4.5 Implement refresh queue timeout (default: 10s)
+- [x] 4.5 Implement token refresh endpoint support
+  - [x] 4.5.1 Create OAuth 2.1 refresh request (POST with form-urlencoded)
+  - [x] 4.5.2 Include grant_type, refresh_token, client_id (NO client_secret)
+  - [x] 4.5.3 Parse refresh response (access_token, refresh_token, expires_in)
+  - [x] 4.5.4 Use server Date header for clock skew handling
+  - [x] 4.5.5 Call `setTokens()` with new tokens
+  - [x] 4.5.6 Support custom refresh function via callback
+- [x] 4.6 Implement token refresh error handling
+  - [x] 4.6.1 Parse OAuth error responses (invalid_grant, etc.)
+  - [x] 4.6.2 Map OAuth errors to specific messages
+  - [x] 4.6.3 Clear tokens on auth errors (invalid_grant)
+  - [x] 4.6.4 Preserve tokens on network/server errors
+  - [x] 4.6.5 Implement exponential backoff for 5xx errors
+- [x] 4.7 Implement token refresh isolation
+  - [x] 4.7.1 Create separate minimal Dio instance for refresh requests
+  - [x] 4.7.2 Bypass auth, cache, and custom interceptors
+  - [x] 4.7.3 Include only error interceptor and minimal logging
+  - [x] 4.7.4 Redact refresh_token and access_token in logs
+- [x] 4.8 Handle TokenProvider exceptions
+  - [x] 4.8.1 Catch `getAccessToken()` exceptions → proceed without auth
+  - [x] 4.8.2 Catch `getRefreshToken()` exceptions → fail with clear error
+  - [x] 4.8.3 Catch `setTokens()` exceptions → fail refresh, log error
+  - [x] 4.8.4 Catch `clearTokens()` exceptions → log warning, continue
+  - [x] 4.8.5 Ensure exceptions never crash the app
+- [x] 4.9 Handle logout during active refresh
+  - [x] 4.9.1 Detect logout call while refresh in progress
+  - [x] 4.9.2 Cancel in-progress refresh request
+  - [x] 4.9.3 Fail queued requests with logout indication
+  - [x] 4.9.4 Proceed with normal logout flow
+- [x] 4.10 Create `AcdcAuthManager` class in `lib/src/auth/acdc_auth_manager.dart`
+  - [x] 4.10.1 Implement `logout()` method with token revocation
+  - [x] 4.10.2 Implement `refreshNow()` method for forced refresh
+  - [x] 4.10.3 Implement `clearCache()` method
+  - [x] 4.10.4 Store reference to cache and auth interceptor
+- [x] 4.11 Create `AcdcAuth` Dart extension on Dio
+  - [x] 4.11.1 Add `auth` getter returning `AcdcAuthManager`
+  - [x] 4.11.2 Store manager reference in Dio options
+  - [x] 4.11.3 Handle case when auth is not configured
+- [x] 4.12 Implement token revocation for logout
+  - [x] 4.12.1 POST to revocation endpoint with token and token_type_hint
+  - [x] 4.12.2 Revoke refresh token first, then access token
+  - [x] 4.12.3 Handle revocation failures gracefully (best-effort)
+  - [x] 4.12.4 Always clear tokens locally regardless of revocation success
+- [x] 4.13 Support token rotation
+  - [x] 4.13.1 Update both tokens when new refresh_token in response
+  - [x] 4.13.2 Retain old refresh token if not rotated
+- [x] 4.14 Handle expired refresh tokens
+  - [x] 4.14.1 Check `getRefreshTokenExpiry()` before refresh
+  - [x] 4.14.2 Clear tokens and fail if refresh token expired
+- [x] 4.15 Write unit tests for auth interceptor
+- [x] 4.16 Write integration tests for token refresh flow
+- [x] 4.17 Write tests for concurrent request queuing
+- [x] 4.18 Write tests for logout during refresh
 
 ## 5. Logging Interceptor
 
@@ -269,51 +296,51 @@
 - [ ] 6.17 Write tests for offline handling
 - [ ] 6.18 Write tests for cache initialization failures
 
-## 7. HTTP Client Builder
+## 7. HTTP Client Builder 🚧
 
-- [ ] 7.1 Create `AcdcClientBuilder` class in `lib/src/builder/acdc_client_builder.dart`
-  - [ ] 7.1.1 Implement immutable builder pattern
-  - [ ] 7.1.2 Each configuration method returns new builder instance
-- [ ] 7.2 Implement fluent builder methods:
-  - [ ] 7.2.1 `withBaseUrl(String url)`
-  - [ ] 7.2.2 `withTimeout(Duration timeout)`
-  - [ ] 7.2.3 `withTokenProvider(TokenProvider provider)`
-  - [ ] 7.2.4 `withTokenRefreshEndpoint({required String url, required String clientId})`
-  - [ ] 7.2.5 `withCustomTokenRefresh(Future<TokenRefreshResult> Function(String) refreshFn)`
-  - [ ] 7.2.6 `withTokenRevocationEndpoint(String url)`
-  - [ ] 7.2.7 `withTokenRefreshThreshold(Duration threshold)`
-  - [ ] 7.2.8 `withLogLevel(LogLevel level)`
-  - [ ] 7.2.9 `withLogger(AcdcLogger logger)`
-  - [ ] 7.2.10 `withSensitiveFields(List<dynamic> fields)`
-  - [ ] 7.2.11 `withSlowRequestThreshold(Duration threshold)`
-  - [ ] 7.2.12 `withLargePayloadThreshold(int bytes)`
-  - [ ] 7.2.13 `withCache(CacheConfig config)`
-  - [ ] 7.2.14 `disableCache()`
-  - [ ] 7.2.15 `withInterceptor(Interceptor interceptor)`
-- [ ] 7.3 Implement `build()` method
-  - [ ] 7.3.1 Create new Dio instance each time
-  - [ ] 7.3.2 Allow builder reuse for multiple instances
-  - [ ] 7.3.3 Set base URL if configured
-  - [ ] 7.3.4 Set default timeouts (30s for connect/send/receive)
-  - [ ] 7.3.5 Configure interceptor chain in correct order
-  - [ ] 7.3.6 Return standard Dio instance (not wrapper)
-- [ ] 7.4 Configure interceptor chain with correct order
-  - [ ] 7.4.1 Request phase: Logging → Auth → Cache
-  - [ ] 7.4.2 Response phase: Cache → Auth → Error → Logging
-  - [ ] 7.4.3 Append custom interceptors at end
-- [ ] 7.5 Implement builder validation
-  - [ ] 7.5.1 Validate timeout is positive
-  - [ ] 7.5.2 Validate base URL format
-  - [ ] 7.5.3 Reject null required parameters
-  - [ ] 7.5.4 Last configuration wins on conflicts
-- [ ] 7.6 Set up AcdcAuthManager
-  - [ ] 7.6.1 Create manager instance if auth configured
-  - [ ] 7.6.2 Store in Dio options for extension access
-  - [ ] 7.6.3 Provide informative errors if auth not configured
-- [ ] 7.7 Write unit tests for builder
-- [ ] 7.8 Write tests for builder immutability
-- [ ] 7.9 Write tests for build() reusability
-- [ ] 7.10 Write integration tests for complete client
+- [x] 7.1 Create `AcdcClientBuilder` class in `lib/src/builder/acdc_client_builder.dart`
+  - [x] 7.1.1 Implement immutable builder pattern
+  - [x] 7.1.2 Each configuration method returns new builder instance
+- [x] 7.2 Implement fluent builder methods:
+  - [x] 7.2.1 `withBaseUrl(String url)`
+  - [x] 7.2.2 `withTimeout(Duration timeout)`
+  - [x] 7.2.3 `withTokenProvider(TokenProvider provider)`
+  - [x] 7.2.4 `withTokenRefreshEndpoint({required String url, required String clientId})`
+  - [x] 7.2.5 `withCustomTokenRefresh(Future<TokenRefreshResult> Function(String) refreshFn)`
+  - [x] 7.2.6 `withTokenRevocationEndpoint(String url)`
+  - [x] 7.2.7 `withTokenRefreshThreshold(Duration threshold)`
+  - [x] 7.2.8 `withLogLevel(LogLevel level)`
+  - [x] 7.2.9 `withLogger(AcdcLogger logger)`
+  - [x] 7.2.10 `withSensitiveFields(List<dynamic> fields)`
+  - [x] 7.2.11 `withSlowRequestThreshold(Duration threshold)`
+  - [x] 7.2.12 `withLargePayloadThreshold(int bytes)`
+  - [x] 7.2.13 `withCache(CacheConfig config)`
+  - [x] 7.2.14 `disableCache()`
+  - [x] 7.2.15 `withInterceptor(Interceptor interceptor)`
+- [x] 7.3 Implement `build()` method
+  - [x] 7.3.1 Create new Dio instance each time
+  - [x] 7.3.2 Allow builder reuse for multiple instances
+  - [x] 7.3.3 Set base URL if configured
+  - [x] 7.3.4 Set default timeouts (30s for connect/send/receive)
+  - [x] 7.3.5 Configure interceptor chain in correct order
+  - [x] 7.3.6 Return standard Dio instance (not wrapper)
+- [x] 7.4 Configure interceptor chain with correct order
+  - [x] 7.4.1 Request phase: Logging → Auth → Cache
+  - [x] 7.4.2 Response phase: Cache → Auth → Error → Logging
+  - [x] 7.4.3 Append custom interceptors at end
+- [x] 7.5 Implement builder validation
+  - [x] 7.5.1 Validate timeout is positive
+  - [x] 7.5.2 Validate base URL format
+  - [x] 7.5.3 Reject null required parameters
+  - [x] 7.5.4 Last configuration wins on conflicts
+- [x] 7.6 Set up AcdcAuthManager
+  - [x] 7.6.1 Create manager instance if auth configured
+  - [x] 7.6.2 Store in Dio options for extension access
+  - [x] 7.6.3 Provide informative errors if auth not configured
+- [x] 7.7 Write unit tests for builder
+- [x] 7.8 Write tests for builder immutability
+- [x] 7.9 Write tests for build() reusability
+- [x] 7.10 Write integration tests for complete client
 
 ## 8. Public API
 
@@ -348,19 +375,19 @@
   - [ ] 9.5.2 OAuth 2.1 public client requirements
   - [ ] 9.5.3 Cache encryption recommendations
 
-## 10. Testing
+## 10. Testing 🚧
 
-- [ ] 10.1 Unit tests for all components
-  - [ ] 10.1.1 Exception types
-  - [ ] 10.1.2 Error interceptor
-  - [ ] 10.1.3 Auth interceptor
+- [x] 10.1 Unit tests for all components
+  - [x] 10.1.1 Exception types
+  - [x] 10.1.2 Error interceptor
+  - [x] 10.1.3 Auth interceptor
   - [ ] 10.1.4 Logging interceptor
   - [ ] 10.1.5 Cache configuration
-  - [ ] 10.1.6 Builder
+  - [x] 10.1.6 Builder
 - [ ] 10.2 Integration tests
   - [ ] 10.2.1 Complete client with all features enabled
-  - [ ] 10.2.2 Token refresh flow (proactive and reactive)
-  - [ ] 10.2.3 Concurrent request queuing
+  - [x] 10.2.2 Token refresh flow (proactive and reactive)
+  - [x] 10.2.3 Concurrent request queuing
   - [ ] 10.2.4 Logout during refresh
   - [ ] 10.2.5 TokenProvider exception handling
   - [ ] 10.2.6 Cache initialization failure
@@ -369,9 +396,9 @@
   - [ ] 10.2.9 Custom logger integration
   - [ ] 10.2.10 Builder immutability and reusability
 - [ ] 10.3 Test with openapi-generated client (manual integration test)
-- [ ] 10.4 Run `dart analyze` with zero issues
-- [ ] 10.5 Run `dart format` on all files
-- [ ] 10.6 Achieve 80%+ code coverage
+- [x] 10.4 Run `dart analyze` with zero issues
+- [x] 10.5 Run `dart format` on all files
+- [x] 10.6 Achieve 80%+ code coverage
 - [ ] 10.7 Test on both iOS and Android platforms
 
 ## 11. Example Project
