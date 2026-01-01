@@ -48,8 +48,8 @@ The library SHALL define a `TokenProvider` interface for managing authentication
 - **THEN** they MUST provide methods:
   - `Future<String?> getAccessToken()` - Returns stored access token (may be expired)
   - `Future<String?> getRefreshToken()` - Returns stored refresh token
-  - `Future<DateTime?> getAccessTokenExpiry()` - Returns access token expiry time in UTC
-  - `Future<DateTime?> getRefreshTokenExpiry()` - Returns refresh token expiry time in UTC
+  - `Future<DateTime?> getAccessTokenExpiry()` - Returns access token expiry time in UTC (not local time)
+  - `Future<DateTime?> getRefreshTokenExpiry()` - Returns refresh token expiry time in UTC (not local time)
   - `Future<void> setTokens({required String accessToken, String? refreshToken, DateTime? accessExpiry, DateTime? refreshExpiry})` - Stores tokens with expiry
   - `Future<void> clearTokens()` - Removes all stored tokens
 
@@ -60,7 +60,7 @@ The library SHALL define a `TokenProvider` interface for managing authentication
   - iOS: Keychain Services
   - Android: EncryptedSharedPreferences or Keystore
 - **AND** tokens MUST NOT be stored in plain text (SharedPreferences, UserDefaults, etc.)
-- **AND** tokens MUST be cleared from memory immediately after use
+- **AND** implementations SHOULD clear tokens from memory after use (avoid keeping references)
 - **AND** the library MUST provide example implementations for both platforms in documentation
 
 #### Scenario: Token provider is not responsible for expiry validation
@@ -108,12 +108,16 @@ The library SHALL proactively refresh access tokens before they expire to preven
 - **THEN** the auth interceptor triggers token refresh before proceeding
 - **AND** queues the current request until refresh completes
 - **AND** proceeds with the new token
+- **AND** if proactive refresh fails due to network/server error, the request fails with the refresh error
+- **AND** if proactive refresh fails due to auth error (invalid_grant), tokens are cleared and request fails with AcdcAuthException
 
 #### Scenario: Configurable refresh threshold
 
 - **WHEN** a developer configures the refresh threshold
 - **THEN** they can specify a custom duration via `withTokenRefreshThreshold(Duration threshold)`
 - **AND** the library uses this threshold for proactive refresh decisions
+- **AND** the threshold MUST be a positive duration (minimum: 1 second)
+- **AND** if threshold is zero or negative, the library throws ArgumentError
 
 ```dart
 final dio = AcdcClientBuilder()
@@ -150,6 +154,22 @@ The library SHALL automatically attempt to refresh expired tokens when a 401 Una
 - **THEN** no refresh attempt is made
 - **AND** `AcdcAuthException` is thrown immediately
 - **AND** the application should initiate re-authentication (login flow)
+
+#### Scenario: Expired refresh token detection
+
+- **WHEN** token refresh is about to be triggered
+- **AND** `getRefreshTokenExpiry()` returns a time in the past
+- **THEN** no refresh attempt is made
+- **AND** tokens are cleared via `clearTokens()`
+- **AND** `AcdcAuthException` is thrown with message "Refresh token expired. Please log in again."
+
+#### Scenario: Single retry attempt per request
+
+- **WHEN** a refreshed token is used to retry a failed request
+- **AND** the retry also returns 401
+- **THEN** no additional refresh is attempted
+- **AND** `AcdcAuthException` is thrown with message "Authentication failed after token refresh"
+- **AND** tokens are cleared (likely server-side session invalidation)
 
 ### Requirement: Concurrent Request Queuing During Refresh
 
@@ -225,7 +245,7 @@ final dio = AcdcClientBuilder()
   - `grant_type=refresh_token` (required)
   - `refresh_token=<current-refresh-token>` (required)
   - `client_id=<configured-client-id>` (required)
-- **AND** does NOT include client_secret (mobile apps are public clients)
+- **AND** does NOT include `client_secret` parameter (mobile apps are public clients per OAuth 2.1)
 
 #### Scenario: Refresh response parsing with clock skew handling
 
@@ -299,6 +319,14 @@ The library SHALL provide detailed error handling for token refresh failures wit
 - **AND** the error message is "Token refresh failed due to server error"
 - **AND** the application can retry with exponential backoff
 
+#### Scenario: Exponential backoff for repeated server errors
+
+- **WHEN** token refresh fails with a 5xx error
+- **AND** subsequent requests also require refresh
+- **THEN** the library applies exponential backoff (1s, 2s, 4s, max 30s)
+- **AND** queued requests wait during backoff period
+- **AND** backoff resets after successful refresh
+
 ### Requirement: Token Refresh Isolation
 
 The library SHALL execute token refresh requests independently from the configured Dio interceptor chain to prevent recursion and sensitive data leakage.
@@ -370,6 +398,14 @@ await dio.auth.logout(); // Revokes tokens and clears local storage
 - **AND** tokens are still cleared locally
 - **AND** logout completes successfully
 - **AND** the application considers the user logged out
+
+#### Scenario: Logout without revocation endpoint
+
+- **WHEN** no revocation endpoint is configured
+- **AND** `dio.auth.logout()` is called
+- **THEN** tokens are cleared locally via `clearTokens()`
+- **AND** no network requests are made
+- **AND** logout completes successfully
 
 ### Requirement: Token Rotation Support
 
