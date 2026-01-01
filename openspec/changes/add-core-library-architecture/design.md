@@ -74,9 +74,11 @@ final dio = AcdcClientBuilder()
 
 **Interceptor Order** (response phase):
 1. Cache interceptor (store response)
-2. Error interceptor (normalize errors)
-3. Auth interceptor (refresh token on 401)
+2. Auth interceptor (refresh token on 401)
+3. Error interceptor (normalize errors after auth retry)
 4. Logging interceptor (log response)
+
+**Rationale**: Auth interceptor must run before error interceptor to enable transparent token refresh. The error interceptor only converts errors that the auth interceptor cannot handle.
 
 **Alternatives Considered**:
 - Custom middleware system - unnecessary reinvention
@@ -99,24 +101,48 @@ final dio = AcdcClientBuilder()
 
 ### Decision 4: Exception Hierarchy
 
-**What**: Define custom exception types that wrap DioException.
+**What**: Define custom exception types that extend DioException while preserving the original exception.
 
 **Why**:
-- Provides user-friendly error categorization
+
+- Provides developer-friendly error categorization
 - Enables type-safe error handling
-- Includes actionable error messages
+- Includes actionable error messages for debugging
+- Backward compatible: code catching `DioException` still works
+- Preserves original exception via `originalException` property for low-level debugging
 
 **Exception Types**:
-- `AcdcException` (base)
+
+- `AcdcException extends DioException` (base)
   - `AcdcNetworkException` - Network errors (no connection, timeout)
   - `AcdcAuthException` - Authentication errors (401, 403)
   - `AcdcServerException` - Server errors (5xx)
   - `AcdcClientException` - Client errors (4xx except 401)
   - `AcdcCacheException` - Cache-related errors
 
+**Implementation Pattern**:
+
+```dart
+class AcdcException extends DioException {
+  final DioException originalException; // Preserved for low-level debugging
+  final int? statusCode;
+  final dynamic responseData; // Truncated to 1KB for safety
+  final String? requestUrl; // Redacted if contains sensitive params
+  // ... constructor and methods
+}
+```
+
+**Error Message Philosophy**:
+
+- Messages are developer-focused (include technical context, status codes, URLs)
+- Applications should translate these to user-friendly UI messages based on their UX needs
+- This separation enables better i18n/localization at the app layer
+
 **Alternatives Considered**:
-- Use DioException directly - loses user-friendly categorization
+
+- Use DioException directly - loses developer-friendly categorization
 - Custom error codes - less type-safe than exceptions
+- Pure wrapping (composition only) - breaks backward compatibility with `DioException` catchers
 
 ### Decision 5: Environment-Aware Logging
 
