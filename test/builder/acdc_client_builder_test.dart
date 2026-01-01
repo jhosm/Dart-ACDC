@@ -39,49 +39,49 @@ void main() {
   group('AcdcClientBuilder', () {
     group('Immutability', () {
       test('withBaseUrl returns new instance', () {
-        final builder1 = AcdcClientBuilder();
+        const builder1 = AcdcClientBuilder();
         final builder2 = builder1.withBaseUrl('https://api.example.com');
 
         expect(builder1, isNot(same(builder2)));
       });
 
       test('withTimeout returns new instance', () {
-        final builder1 = AcdcClientBuilder();
-        final builder2 = builder1.withTimeout(Duration(seconds: 30));
+        const builder1 = AcdcClientBuilder();
+        final builder2 = builder1.withTimeout(const Duration(seconds: 30));
 
         expect(builder1, isNot(same(builder2)));
       });
 
       test('withTokenProvider returns new instance', () {
-        final builder1 = AcdcClientBuilder();
+        const builder1 = AcdcClientBuilder();
         final builder2 = builder1.withTokenProvider(MockTokenProvider());
 
         expect(builder1, isNot(same(builder2)));
       });
 
       test('withLogLevel returns new instance', () {
-        final builder1 = AcdcClientBuilder();
+        const builder1 = AcdcClientBuilder();
         final builder2 = builder1.withLogLevel(LogLevel.debug);
 
         expect(builder1, isNot(same(builder2)));
       });
 
       test('withCache returns new instance', () {
-        final builder1 = AcdcClientBuilder();
-        final builder2 = builder1.withCache(CacheConfig());
+        const builder1 = AcdcClientBuilder();
+        final builder2 = builder1.withCache(const CacheConfig());
 
         expect(builder1, isNot(same(builder2)));
       });
 
       test('disableCache returns new instance', () {
-        final builder1 = AcdcClientBuilder();
+        const builder1 = AcdcClientBuilder();
         final builder2 = builder1.disableCache();
 
         expect(builder1, isNot(same(builder2)));
       });
 
       test('withInterceptor returns new instance', () {
-        final builder1 = AcdcClientBuilder();
+        const builder1 = AcdcClientBuilder();
         final builder2 = builder1.withInterceptor(
           InterceptorsWrapper(),
         );
@@ -92,20 +92,20 @@ void main() {
 
     group('Validation', () {
       test('withTimeout throws on negative duration', () {
-        final builder = AcdcClientBuilder();
+        const builder = AcdcClientBuilder();
 
         expect(
-          () => builder.withTimeout(Duration(seconds: -1)),
+          () => builder.withTimeout(const Duration(seconds: -1)),
           throwsA(isA<ArgumentError>().having(
             (e) => e.message,
             'message',
             contains('Timeout duration must be positive'),
-          )),
+          ),),
         );
       });
 
       test('withTimeout throws on zero duration', () {
-        final builder = AcdcClientBuilder();
+        const builder = AcdcClientBuilder();
 
         expect(
           () => builder.withTimeout(Duration.zero),
@@ -113,63 +113,63 @@ void main() {
             (e) => e.message,
             'message',
             contains('Timeout duration must be positive'),
-          )),
+          ),),
         );
       });
 
       test('withTimeout accepts positive duration', () {
-        final builder = AcdcClientBuilder();
+        const builder = AcdcClientBuilder();
 
         expect(
-          () => builder.withTimeout(Duration(seconds: 30)),
+          () => builder.withTimeout(const Duration(seconds: 30)),
           returnsNormally,
         );
       });
 
       test('build throws on invalid base URL format', () {
-        final builder = AcdcClientBuilder()
+        final builder = const AcdcClientBuilder()
             .withBaseUrl('not-a-valid-url');
 
         expect(
-          () => builder.build(),
+          builder.build,
           throwsA(isA<ArgumentError>().having(
             (e) => e.message,
             'message',
             contains('Invalid base URL format'),
-          )),
+          ),),
         );
       });
 
       test('build throws on base URL without scheme', () {
-        final builder = AcdcClientBuilder()
+        final builder = const AcdcClientBuilder()
             .withBaseUrl('api.example.com');
 
         expect(
-          () => builder.build(),
+          builder.build,
           throwsA(isA<ArgumentError>().having(
             (e) => e.message,
             'message',
             contains('Invalid base URL format'),
-          )),
+          ),),
         );
       });
 
       test('build throws on base URL with invalid scheme', () {
-        final builder = AcdcClientBuilder()
+        final builder = const AcdcClientBuilder()
             .withBaseUrl('ftp://api.example.com');
 
         expect(
-          () => builder.build(),
+          builder.build,
           throwsA(isA<ArgumentError>().having(
             (e) => e.message,
             'message',
             contains('Invalid base URL format'),
-          )),
+          ),),
         );
       });
 
       test('build accepts valid http URL', () {
-        final dio = AcdcClientBuilder()
+        final dio = const AcdcClientBuilder()
             .withBaseUrl('http://api.example.com')
             .build();
 
@@ -178,7 +178,7 @@ void main() {
       });
 
       test('build accepts valid https URL', () {
-        final dio = AcdcClientBuilder()
+        final dio = const AcdcClientBuilder()
             .withBaseUrl('https://api.example.com')
             .build();
 
@@ -189,7 +189,7 @@ void main() {
 
     group('Method Chaining', () {
       test('supports chaining multiple configuration methods', () {
-        final builder = AcdcClientBuilder()
+        final builder = const AcdcClientBuilder()
             .withBaseUrl('https://api.example.com')
             .withTimeout(Duration(seconds: 45))
             .withLogLevel(LogLevel.debug)
@@ -200,7 +200,7 @@ void main() {
       });
 
       test('last configuration wins on conflicts - timeout', () {
-        final builder = AcdcClientBuilder()
+        final builder = const AcdcClientBuilder()
             .withTimeout(Duration(seconds: 30))
             .withTimeout(Duration(seconds: 60));
 
@@ -210,7 +210,7 @@ void main() {
       });
 
       test('last configuration wins on conflicts - base URL', () {
-        final builder = AcdcClientBuilder()
+        final builder = const AcdcClientBuilder()
             .withBaseUrl('https://api1.example.com')
             .withBaseUrl('https://api2.example.com');
 
@@ -218,7 +218,7 @@ void main() {
       });
 
       test('last configuration wins on conflicts - log level', () {
-        final builder = AcdcClientBuilder()
+        final builder = const AcdcClientBuilder()
             .withLogLevel(LogLevel.debug)
             .withLogLevel(LogLevel.error);
 
@@ -226,7 +226,7 @@ void main() {
       });
 
       test('disableCache overrides withCache', () {
-        final builder = AcdcClientBuilder()
+        final builder = const AcdcClientBuilder()
             .withCache(CacheConfig())
             .disableCache();
 
@@ -236,28 +236,28 @@ void main() {
 
     group('Fluent API Methods', () {
       test('withBaseUrl creates builder with base URL', () {
-        final builder = AcdcClientBuilder()
+        final builder = const AcdcClientBuilder()
             .withBaseUrl('https://api.example.com');
 
         expect(builder, isA<AcdcClientBuilder>());
       });
 
       test('withTimeout creates builder with custom timeout', () {
-        final builder = AcdcClientBuilder()
+        final builder = const AcdcClientBuilder()
             .withTimeout(Duration(seconds: 45));
 
         expect(builder, isA<AcdcClientBuilder>());
       });
 
       test('withTokenProvider creates builder with token provider', () {
-        final builder = AcdcClientBuilder()
+        final builder = const AcdcClientBuilder()
             .withTokenProvider(MockTokenProvider());
 
         expect(builder, isA<AcdcClientBuilder>());
       });
 
       test('withTokenRefreshEndpoint creates builder with refresh config', () {
-        final builder = AcdcClientBuilder()
+        final builder = const AcdcClientBuilder()
             .withTokenRefreshEndpoint(
           url: 'https://auth.example.com/oauth/token',
           clientId: 'my-client-id',
@@ -267,40 +267,38 @@ void main() {
       });
 
       test('withCustomTokenRefresh creates builder with custom refresh', () {
-        final builder = AcdcClientBuilder()
-            .withCustomTokenRefresh((refreshToken) async {
-          return TokenRefreshResult(
+        final builder = const AcdcClientBuilder()
+            .withCustomTokenRefresh((refreshToken) async => TokenRefreshResult(
             accessToken: 'new_access_token',
             refreshToken: 'new_refresh_token',
-          );
-        });
+          ));
 
         expect(builder, isA<AcdcClientBuilder>());
       });
 
       test('withTokenRevocationEndpoint creates builder with revocation URL', () {
-        final builder = AcdcClientBuilder()
+        final builder = const AcdcClientBuilder()
             .withTokenRevocationEndpoint('https://auth.example.com/revoke');
 
         expect(builder, isA<AcdcClientBuilder>());
       });
 
       test('withTokenRefreshThreshold creates builder with custom threshold', () {
-        final builder = AcdcClientBuilder()
+        final builder = const AcdcClientBuilder()
             .withTokenRefreshThreshold(Duration(seconds: 120));
 
         expect(builder, isA<AcdcClientBuilder>());
       });
 
       test('withLogLevel creates builder with log level', () {
-        final builder = AcdcClientBuilder()
+        final builder = const AcdcClientBuilder()
             .withLogLevel(LogLevel.warning);
 
         expect(builder, isA<AcdcClientBuilder>());
       });
 
       test('withLogger creates builder with custom logger', () {
-        final builder = AcdcClientBuilder()
+        final builder = const AcdcClientBuilder()
             .withLogger((message, level, metadata) {
           // Custom logger implementation
         });
@@ -309,51 +307,51 @@ void main() {
       });
 
       test('withSensitiveFields creates builder with sensitive fields', () {
-        final builder = AcdcClientBuilder()
+        final builder = const AcdcClientBuilder()
             .withSensitiveFields(['password', 'ssn', 'credit_card']);
 
         expect(builder, isA<AcdcClientBuilder>());
       });
 
       test('withSlowRequestThreshold creates builder with slow request threshold', () {
-        final builder = AcdcClientBuilder()
+        final builder = const AcdcClientBuilder()
             .withSlowRequestThreshold(Duration(seconds: 5));
 
         expect(builder, isA<AcdcClientBuilder>());
       });
 
       test('withLargePayloadThreshold creates builder with payload threshold', () {
-        final builder = AcdcClientBuilder()
+        final builder = const AcdcClientBuilder()
             .withLargePayloadThreshold(1024 * 1024); // 1 MB
 
         expect(builder, isA<AcdcClientBuilder>());
       });
 
       test('withCache creates builder with cache config', () {
-        final builder = AcdcClientBuilder()
+        final builder = const AcdcClientBuilder()
             .withCache(CacheConfig(
           ttl: Duration(hours: 2),
           maxSize: 20 * 1024 * 1024,
-        ));
+        ),);
 
         expect(builder, isA<AcdcClientBuilder>());
       });
 
       test('disableCache creates builder with caching disabled', () {
-        final builder = AcdcClientBuilder().disableCache();
+        final builder = const AcdcClientBuilder().disableCache();
 
         expect(builder, isA<AcdcClientBuilder>());
       });
 
       test('withInterceptor creates builder with custom interceptor', () {
-        final builder = AcdcClientBuilder()
+        final builder = const AcdcClientBuilder()
             .withInterceptor(InterceptorsWrapper());
 
         expect(builder, isA<AcdcClientBuilder>());
       });
 
       test('withInterceptor supports multiple interceptors', () {
-        final builder = AcdcClientBuilder()
+        final builder = const AcdcClientBuilder()
             .withInterceptor(InterceptorsWrapper())
             .withInterceptor(InterceptorsWrapper())
             .withInterceptor(InterceptorsWrapper());
@@ -364,17 +362,17 @@ void main() {
 
     group('Build Method', () {
       test('build creates Dio instance with zero configuration', () {
-        final dio = AcdcClientBuilder().build();
+        final dio = const AcdcClientBuilder().build();
 
         expect(dio, isA<Dio>());
         expect(dio.options.baseUrl, isEmpty);
-        expect(dio.options.connectTimeout, Duration(seconds: 30));
-        expect(dio.options.sendTimeout, Duration(seconds: 30));
-        expect(dio.options.receiveTimeout, Duration(seconds: 30));
+        expect(dio.options.connectTimeout, const Duration(seconds: 30));
+        expect(dio.options.sendTimeout, const Duration(seconds: 30));
+        expect(dio.options.receiveTimeout, const Duration(seconds: 30));
       });
 
       test('build sets base URL when configured', () {
-        final dio = AcdcClientBuilder()
+        final dio = const AcdcClientBuilder()
             .withBaseUrl('https://api.example.com')
             .build();
 
@@ -382,17 +380,17 @@ void main() {
       });
 
       test('build sets custom timeout when configured', () {
-        final dio = AcdcClientBuilder()
+        final dio = const AcdcClientBuilder()
             .withTimeout(Duration(seconds: 45))
             .build();
 
-        expect(dio.options.connectTimeout, Duration(seconds: 45));
-        expect(dio.options.sendTimeout, Duration(seconds: 45));
-        expect(dio.options.receiveTimeout, Duration(seconds: 45));
+        expect(dio.options.connectTimeout, const Duration(seconds: 45));
+        expect(dio.options.sendTimeout, const Duration(seconds: 45));
+        expect(dio.options.receiveTimeout, const Duration(seconds: 45));
       });
 
       test('build creates new instances each time', () {
-        final builder = AcdcClientBuilder()
+        final builder = const AcdcClientBuilder()
             .withBaseUrl('https://api.example.com');
 
         final dio1 = builder.build();
@@ -403,7 +401,7 @@ void main() {
       });
 
       test('build adds error interceptor', () {
-        final dio = AcdcClientBuilder().build();
+        final dio = const AcdcClientBuilder().build();
 
         final hasErrorInterceptor = dio.interceptors
             .any((interceptor) => interceptor is ErrorInterceptor);
@@ -412,7 +410,7 @@ void main() {
       });
 
       test('build adds auth interceptor when token provider configured', () {
-        final dio = AcdcClientBuilder()
+        final dio = const AcdcClientBuilder()
             .withTokenProvider(MockTokenProvider())
             .withTokenRefreshEndpoint(
               url: 'https://auth.example.com/token',
@@ -427,7 +425,7 @@ void main() {
       });
 
       test('build does not add auth interceptor when token provider not configured', () {
-        final dio = AcdcClientBuilder().build();
+        final dio = const AcdcClientBuilder().build();
 
         final hasAuthInterceptor = dio.interceptors
             .any((interceptor) => interceptor is AuthInterceptor);
@@ -439,7 +437,7 @@ void main() {
         final customInterceptor1 = InterceptorsWrapper();
         final customInterceptor2 = InterceptorsWrapper();
 
-        final dio = AcdcClientBuilder()
+        final dio = const AcdcClientBuilder()
             .withInterceptor(customInterceptor1)
             .withInterceptor(customInterceptor2)
             .build();
@@ -458,7 +456,7 @@ void main() {
       });
 
       test('build creates auth manager when auth configured', () {
-        final dio = AcdcClientBuilder()
+        final dio = const AcdcClientBuilder()
             .withTokenProvider(MockTokenProvider())
             .withTokenRefreshEndpoint(
               url: 'https://auth.example.com/token',
@@ -470,7 +468,7 @@ void main() {
       });
 
       test('build stores auth manager in dio options', () {
-        final dio = AcdcClientBuilder()
+        final dio = const AcdcClientBuilder()
             .withTokenProvider(MockTokenProvider())
             .withTokenRefreshEndpoint(
               url: 'https://auth.example.com/token',
@@ -483,7 +481,7 @@ void main() {
       });
 
       test('auth extension throws when no token provider configured', () {
-        final dio = AcdcClientBuilder().build();
+        final dio = const AcdcClientBuilder().build();
 
         expect(
           () => dio.auth,
@@ -491,7 +489,7 @@ void main() {
             (e) => e.message,
             'message',
             contains('No TokenProvider configured'),
-          )),
+          ),),
         );
       });
     });
@@ -499,9 +497,9 @@ void main() {
 
   group('CacheConfig', () {
     test('creates with default values', () {
-      final config = CacheConfig();
+      const config = CacheConfig();
 
-      expect(config.ttl, Duration(hours: 1));
+      expect(config.ttl, const Duration(hours: 1));
       expect(config.maxSize, 10 * 1024 * 1024);
       expect(config.cacheAuthenticatedRequests, true);
       expect(config.encrypted, false);
@@ -514,7 +512,7 @@ void main() {
     });
 
     test('creates with custom values', () {
-      final config = CacheConfig(
+      const config = CacheConfig(
         ttl: Duration(hours: 2),
         maxSize: 20 * 1024 * 1024,
         cacheAuthenticatedRequests: false,
@@ -526,7 +524,7 @@ void main() {
         staleIfError: false,
       );
 
-      expect(config.ttl, Duration(hours: 2));
+      expect(config.ttl, const Duration(hours: 2));
       expect(config.maxSize, 20 * 1024 * 1024);
       expect(config.cacheAuthenticatedRequests, false);
       expect(config.encrypted, true);
@@ -538,7 +536,7 @@ void main() {
     });
 
     test('toString includes all configuration', () {
-      final config = CacheConfig();
+      const config = CacheConfig();
       final string = config.toString();
 
       expect(string, contains('CacheConfig'));

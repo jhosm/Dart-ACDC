@@ -134,8 +134,7 @@ class AcdcClientBuilder {
   /// Configures the token provider for authentication.
   ///
   /// When configured, enables automatic token injection and refresh.
-  AcdcClientBuilder withTokenProvider(TokenProvider provider) {
-    return AcdcClientBuilder(
+  AcdcClientBuilder withTokenProvider(TokenProvider provider) => AcdcClientBuilder(
       baseUrl: _baseUrl,
       timeout: _timeout,
       tokenProvider: provider,
@@ -153,7 +152,6 @@ class AcdcClientBuilder {
       cacheDisabled: _cacheDisabled,
       customInterceptors: _customInterceptors,
     );
-  }
 
   /// Configures the OAuth 2.1 token refresh endpoint.
   ///
@@ -170,8 +168,7 @@ class AcdcClientBuilder {
   AcdcClientBuilder withTokenRefreshEndpoint({
     required String url,
     required String clientId,
-  }) {
-    return AcdcClientBuilder(
+  }) => AcdcClientBuilder(
       baseUrl: _baseUrl,
       timeout: _timeout,
       tokenProvider: _tokenProvider,
@@ -189,7 +186,6 @@ class AcdcClientBuilder {
       cacheDisabled: _cacheDisabled,
       customInterceptors: _customInterceptors,
     );
-  }
 
   /// Configures a custom token refresh function.
   ///
@@ -211,8 +207,7 @@ class AcdcClientBuilder {
   /// ```
   AcdcClientBuilder withCustomTokenRefresh(
     Future<TokenRefreshResult> Function(String) refreshFn,
-  ) {
-    return AcdcClientBuilder(
+  ) => AcdcClientBuilder(
       baseUrl: _baseUrl,
       timeout: _timeout,
       tokenProvider: _tokenProvider,
@@ -230,15 +225,13 @@ class AcdcClientBuilder {
       cacheDisabled: _cacheDisabled,
       customInterceptors: _customInterceptors,
     );
-  }
 
   /// Configures the OAuth 2.1 token revocation endpoint.
   ///
   /// Used during logout to revoke tokens server-side.
   ///
   /// Example: `https://auth.example.com/oauth/revoke`
-  AcdcClientBuilder withTokenRevocationEndpoint(String url) {
-    return AcdcClientBuilder(
+  AcdcClientBuilder withTokenRevocationEndpoint(String url) => AcdcClientBuilder(
       baseUrl: _baseUrl,
       timeout: _timeout,
       tokenProvider: _tokenProvider,
@@ -256,7 +249,6 @@ class AcdcClientBuilder {
       cacheDisabled: _cacheDisabled,
       customInterceptors: _customInterceptors,
     );
-  }
 
   /// Configures the token refresh threshold.
   ///
@@ -267,8 +259,7 @@ class AcdcClientBuilder {
   /// ```dart
   /// builder.withTokenRefreshThreshold(Duration(seconds: 120))
   /// ```
-  AcdcClientBuilder withTokenRefreshThreshold(Duration threshold) {
-    return AcdcClientBuilder(
+  AcdcClientBuilder withTokenRefreshThreshold(Duration threshold) => AcdcClientBuilder(
       baseUrl: _baseUrl,
       timeout: _timeout,
       tokenProvider: _tokenProvider,
@@ -286,7 +277,6 @@ class AcdcClientBuilder {
       cacheDisabled: _cacheDisabled,
       customInterceptors: _customInterceptors,
     );
-  }
 
   /// Configures the logging verbosity level.
   ///
@@ -294,8 +284,7 @@ class AcdcClientBuilder {
   /// disable HTTP logging entirely.
   ///
   /// Defaults to [LogLevel.info] for production builds.
-  AcdcClientBuilder withLogLevel(LogLevel level) {
-    return AcdcClientBuilder(
+  AcdcClientBuilder withLogLevel(LogLevel level) => AcdcClientBuilder(
       baseUrl: _baseUrl,
       timeout: _timeout,
       tokenProvider: _tokenProvider,
@@ -313,7 +302,6 @@ class AcdcClientBuilder {
       cacheDisabled: _cacheDisabled,
       customInterceptors: _customInterceptors,
     );
-  }
 
   /// Configures a custom logger function.
   ///
@@ -328,8 +316,7 @@ class AcdcClientBuilder {
   ///   }
   /// })
   /// ```
-  AcdcClientBuilder withLogger(AcdcLogger logger) {
-    return AcdcClientBuilder(
+  AcdcClientBuilder withLogger(AcdcLogger logger) => AcdcClientBuilder(
       baseUrl: _baseUrl,
       timeout: _timeout,
       tokenProvider: _tokenProvider,
@@ -347,7 +334,6 @@ class AcdcClientBuilder {
       cacheDisabled: _cacheDisabled,
       customInterceptors: _customInterceptors,
     );
-  }
 
   /// Configures sensitive fields to redact from logs.
   ///
@@ -358,8 +344,7 @@ class AcdcClientBuilder {
   /// ```dart
   /// builder.withSensitiveFields(['password', 'ssn', 'credit_card'])
   /// ```
-  AcdcClientBuilder withSensitiveFields(List<dynamic> fields) {
-    return AcdcClientBuilder(
+  AcdcClientBuilder withSensitiveFields(List<dynamic> fields) => AcdcClientBuilder(
       baseUrl: _baseUrl,
       timeout: _timeout,
       tokenProvider: _tokenProvider,
@@ -377,7 +362,6 @@ class AcdcClientBuilder {
       cacheDisabled: _cacheDisabled,
       customInterceptors: _customInterceptors,
     );
-  }
 
   /// Configures the threshold for slow request warnings.
   ///
@@ -388,8 +372,7 @@ class AcdcClientBuilder {
   /// ```dart
   /// builder.withSlowRequestThreshold(Duration(seconds: 5))
   /// ```
-  AcdcClientBuilder withSlowRequestThreshold(Duration threshold) {
-    return AcdcClientBuilder(
+  AcdcClientBuilder withSlowRequestThreshold(Duration threshold) => AcdcClientBuilder(
       baseUrl: _baseUrl,
       timeout: _timeout,
       tokenProvider: _tokenProvider,
@@ -407,7 +390,6 @@ class AcdcClientBuilder {
       cacheDisabled: _cacheDisabled,
       customInterceptors: _customInterceptors,
     );
-  }
 
   /// Configures the threshold for large payload warnings.
   ///
@@ -418,8 +400,7 @@ class AcdcClientBuilder {
   /// ```dart
   /// builder.withLargePayloadThreshold(1024 * 1024) // 1 MB
   /// ```
-  AcdcClientBuilder withLargePayloadThreshold(int bytes) {
-    return AcdcClientBuilder(
+  AcdcClientBuilder withLargePayloadThreshold(int bytes) => AcdcClientBuilder(
       baseUrl: _baseUrl,
       timeout: _timeout,
       tokenProvider: _tokenProvider,
@@ -437,7 +418,6 @@ class AcdcClientBuilder {
       cacheDisabled: _cacheDisabled,
       customInterceptors: _customInterceptors,
     );
-  }
 
   /// Configures HTTP caching with custom settings.
   ///
@@ -452,8 +432,7 @@ class AcdcClientBuilder {
   ///   encrypted: true,
   /// ))
   /// ```
-  AcdcClientBuilder withCache(CacheConfig config) {
-    return AcdcClientBuilder(
+  AcdcClientBuilder withCache(CacheConfig config) => AcdcClientBuilder(
       baseUrl: _baseUrl,
       timeout: _timeout,
       tokenProvider: _tokenProvider,
@@ -471,7 +450,6 @@ class AcdcClientBuilder {
       cacheDisabled: false,
       customInterceptors: _customInterceptors,
     );
-  }
 
   /// Disables HTTP caching.
   ///
@@ -481,8 +459,7 @@ class AcdcClientBuilder {
   /// ```dart
   /// builder.disableCache()
   /// ```
-  AcdcClientBuilder disableCache() {
-    return AcdcClientBuilder(
+  AcdcClientBuilder disableCache() => AcdcClientBuilder(
       baseUrl: _baseUrl,
       timeout: _timeout,
       tokenProvider: _tokenProvider,
@@ -499,7 +476,6 @@ class AcdcClientBuilder {
       cacheDisabled: true,
       customInterceptors: _customInterceptors,
     );
-  }
 
   /// Adds a custom interceptor to the interceptor chain.
   ///

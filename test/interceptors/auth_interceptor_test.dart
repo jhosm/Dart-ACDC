@@ -37,14 +37,10 @@ class MockTokenProvider implements TokenProvider {
   }
 
   @override
-  Future<DateTime?> getAccessTokenExpiry() async {
-    return _accessExpiry;
-  }
+  Future<DateTime?> getAccessTokenExpiry() async => _accessExpiry;
 
   @override
-  Future<DateTime?> getRefreshTokenExpiry() async {
-    return _refreshExpiry;
-  }
+  Future<DateTime?> getRefreshTokenExpiry() async => _refreshExpiry;
 
   @override
   Future<void> setTokens({
@@ -120,7 +116,7 @@ void main() {
         expect(
           () => AuthInterceptor(
             tokenProvider: tokenProvider,
-            customRefreshFn: (token) async => TokenRefreshResult(
+            customRefreshFn: (token) async => const TokenRefreshResult(
               accessToken: 'new-token',
             ),
           ),
@@ -140,7 +136,7 @@ void main() {
 
       test('injects Bearer token when token is available', () async {
         tokenProvider._accessToken = 'test-token';
-        tokenProvider._accessExpiry = DateTime.now().toUtc().add(Duration(hours: 1));
+        tokenProvider._accessExpiry = DateTime.now().toUtc().add(const Duration(hours: 1));
 
         final options = RequestOptions(path: '/test');
         final handler = _MockRequestHandler();
@@ -195,15 +191,15 @@ void main() {
           tokenProvider: tokenProvider,
           customRefreshFn: (token) async {
             refreshCalled = true;
-            return TokenRefreshResult(accessToken: 'new-token');
+            return const TokenRefreshResult(accessToken: 'new-token');
           },
-          refreshThreshold: Duration(minutes: 5),
+          refreshThreshold: const Duration(minutes: 5),
         );
 
         // Token expires in 4 minutes (within threshold)
         tokenProvider._accessToken = 'old-token';
         tokenProvider._refreshToken = 'refresh-token';
-        tokenProvider._accessExpiry = DateTime.now().toUtc().add(Duration(minutes: 4));
+        tokenProvider._accessExpiry = DateTime.now().toUtc().add(const Duration(minutes: 4));
 
         final options = RequestOptions(path: '/test');
         final handler = _MockRequestHandler();
@@ -221,7 +217,7 @@ void main() {
           tokenProvider: tokenProvider,
           customRefreshFn: (token) async {
             refreshCalled = true;
-            return TokenRefreshResult(accessToken: 'new-token');
+            return const TokenRefreshResult(accessToken: 'new-token');
           },
         );
 
@@ -245,15 +241,15 @@ void main() {
           tokenProvider: tokenProvider,
           customRefreshFn: (token) async {
             refreshCalled = true;
-            return TokenRefreshResult(accessToken: 'new-token');
+            return const TokenRefreshResult(accessToken: 'new-token');
           },
-          refreshThreshold: Duration(minutes: 5),
+          refreshThreshold: const Duration(minutes: 5),
         );
 
         // Token expires in 10 minutes (outside threshold)
         tokenProvider._accessToken = 'test-token';
         tokenProvider._refreshToken = 'refresh-token';
-        tokenProvider._accessExpiry = DateTime.now().toUtc().add(Duration(minutes: 10));
+        tokenProvider._accessExpiry = DateTime.now().toUtc().add(const Duration(minutes: 10));
 
         final options = RequestOptions(path: '/test');
         final handler = _MockRequestHandler();
@@ -269,16 +265,16 @@ void main() {
       test('stores new tokens when refresh succeeds', () async {
         interceptor = AuthInterceptor(
           tokenProvider: tokenProvider,
-          customRefreshFn: (token) async => TokenRefreshResult(
+          customRefreshFn: (token) async => const TokenRefreshResult(
             accessToken: 'new-token',
             refreshToken: 'new-refresh',
           ),
-          refreshThreshold: Duration(minutes: 5),
+          refreshThreshold: const Duration(minutes: 5),
         );
 
         tokenProvider._accessToken = 'old-token';
         tokenProvider._refreshToken = 'old-refresh';
-        tokenProvider._accessExpiry = DateTime.now().toUtc().add(Duration(minutes: 1));
+        tokenProvider._accessExpiry = DateTime.now().toUtc().add(const Duration(minutes: 1));
 
         final options = RequestOptions(path: '/test');
         final handler = _MockRequestHandler();
@@ -295,7 +291,7 @@ void main() {
       setUp(() {
         interceptor = AuthInterceptor(
           tokenProvider: tokenProvider,
-          customRefreshFn: (token) async => TokenRefreshResult(
+          customRefreshFn: (token) async => const TokenRefreshResult(
             accessToken: 'refreshed-token',
             refreshToken: 'refreshed-refresh',
           ),
@@ -374,7 +370,7 @@ void main() {
           customRefreshFn: (token) async {
             // Refresh succeeds but returns null refresh token
             // and we won't actually store anything
-            return TokenRefreshResult(accessToken: 'new-token');
+            return const TokenRefreshResult(accessToken: 'new-token');
           },
         );
 
@@ -409,7 +405,7 @@ void main() {
 
         tokenProvider._refreshToken = 'expired-refresh-token';
         tokenProvider._accessToken = 'old-token';
-        tokenProvider._accessExpiry = DateTime.now().toUtc().subtract(Duration(hours: 1));
+        tokenProvider._accessExpiry = DateTime.now().toUtc().subtract(const Duration(hours: 1));
 
         // Simulate OAuth error response
         // This is tricky to test without a real server, so we'll test the error mapping function indirectly
@@ -428,14 +424,14 @@ void main() {
           customRefreshFn: (token) async {
             callCount++;
             // Succeed immediately for simplicity
-            return TokenRefreshResult(accessToken: 'new-token');
+            return const TokenRefreshResult(accessToken: 'new-token');
           },
-          refreshThreshold: Duration(minutes: 5),
+          refreshThreshold: const Duration(minutes: 5),
         );
 
         tokenProvider._accessToken = 'old-token';
         tokenProvider._refreshToken = 'refresh-token';
-        tokenProvider._accessExpiry = DateTime.now().toUtc().add(Duration(minutes: 1));
+        tokenProvider._accessExpiry = DateTime.now().toUtc().add(const Duration(minutes: 1));
 
         final options = RequestOptions(path: '/test');
         final handler = _MockRequestHandler();
@@ -458,12 +454,12 @@ void main() {
             refreshCallCount++;
             return completer.future;
           },
-          refreshThreshold: Duration(minutes: 5),
+          refreshThreshold: const Duration(minutes: 5),
         );
 
         tokenProvider._accessToken = 'old-token';
         tokenProvider._refreshToken = 'refresh-token';
-        tokenProvider._accessExpiry = DateTime.now().toUtc().add(Duration(minutes: 1));
+        tokenProvider._accessExpiry = DateTime.now().toUtc().add(const Duration(minutes: 1));
 
         // Start three concurrent requests
         final futures = <Future<void>>[];
@@ -474,10 +470,10 @@ void main() {
         }
 
         // Wait a bit to ensure all requests are queued
-        await Future<void>.delayed(Duration(milliseconds: 50));
+        await Future<void>.delayed(const Duration(milliseconds: 50));
 
         // Complete the refresh
-        completer.complete(TokenRefreshResult(accessToken: 'new-token'));
+        completer.complete(const TokenRefreshResult(accessToken: 'new-token'));
 
         // All requests should complete
         await Future.wait(futures);
@@ -499,7 +495,7 @@ void main() {
 
         interceptor = AuthInterceptor(
           tokenProvider: throwingProvider,
-          customRefreshFn: (token) async => TokenRefreshResult(
+          customRefreshFn: (token) async => const TokenRefreshResult(
             accessToken: 'new-token',
           ),
         );
@@ -517,7 +513,7 @@ void main() {
         // This test just verifies that cancelRefresh can be called without error
         interceptor = AuthInterceptor(
           tokenProvider: tokenProvider,
-          customRefreshFn: (token) async => TokenRefreshResult(
+          customRefreshFn: (token) async => const TokenRefreshResult(
             accessToken: 'new-token',
           ),
         );
@@ -532,7 +528,7 @@ void main() {
       test('handles DioException during retry after refresh', () async {
         interceptor = AuthInterceptor(
           tokenProvider: tokenProvider,
-          customRefreshFn: (token) async => TokenRefreshResult(
+          customRefreshFn: (token) async => const TokenRefreshResult(
             accessToken: 'new-token',
           ),
         );

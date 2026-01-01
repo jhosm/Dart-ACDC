@@ -32,7 +32,7 @@ void main() {
   group('Public API Exports', () {
     test('AcdcClientBuilder is exported and accessible', () {
       expect(AcdcClientBuilder, isNotNull);
-      final builder = AcdcClientBuilder();
+      const builder = AcdcClientBuilder();
       expect(builder, isA<AcdcClientBuilder>());
     });
 
@@ -42,7 +42,7 @@ void main() {
     });
 
     test('TokenRefreshResult is exported and accessible', () {
-      final result = TokenRefreshResult(
+      const result = TokenRefreshResult(
         accessToken: 'new_token',
         refreshToken: 'new_refresh',
       );
@@ -52,7 +52,7 @@ void main() {
     });
 
     test('AcdcAuthManager and AcdcAuth extension are exported', () {
-      final dio = AcdcClientBuilder()
+      final dio = const AcdcClientBuilder()
           .withTokenProvider(MockTokenProvider())
           .withTokenRefreshEndpoint(
             url: 'https://auth.example.com/token',
@@ -90,12 +90,12 @@ void main() {
     });
 
     test('CacheConfig is exported and accessible', () {
-      final config = CacheConfig(
+      const config = CacheConfig(
         ttl: Duration(hours: 2),
         maxSize: 20 * 1024 * 1024,
       );
       expect(config, isA<CacheConfig>());
-      expect(config.ttl, Duration(hours: 2));
+      expect(config.ttl, const Duration(hours: 2));
     });
 
     test('LogLevel enum is exported', () {
@@ -108,15 +108,15 @@ void main() {
 
     test('AcdcLogger typedef is exported', () {
       // Type check that AcdcLogger function signature is correct
-      AcdcLogger logger = (String message, LogLevel level,
-          Map<String, dynamic>? metadata) {
+      var logger = (message, level,
+          metadata,) {
         // Mock logger
       };
       expect(logger, isNotNull);
     });
 
     test('Builder can be used with all exported types', () {
-      final builder = AcdcClientBuilder()
+      final builder = const AcdcClientBuilder()
           .withBaseUrl('https://api.example.com')
           .withTimeout(Duration(seconds: 30))
           .withTokenProvider(MockTokenProvider())
@@ -130,7 +130,7 @@ void main() {
       }).withCache(CacheConfig(
             ttl: Duration(hours: 1),
             encrypted: true,
-          ));
+          ),);
 
       final dio = builder.build();
       expect(dio, isA<Dio>());
@@ -151,7 +151,7 @@ void main() {
 
   group('Public API Usage Examples', () {
     test('Zero-config client creation works', () {
-      final dio = AcdcClientBuilder()
+      final dio = const AcdcClientBuilder()
           .withBaseUrl('https://api.example.com')
           .build();
 
@@ -160,7 +160,7 @@ void main() {
     });
 
     test('Authenticated client creation works', () {
-      final dio = AcdcClientBuilder()
+      final dio = const AcdcClientBuilder()
           .withBaseUrl('https://api.example.com')
           .withTokenProvider(MockTokenProvider())
           .withTokenRefreshEndpoint(
@@ -177,7 +177,7 @@ void main() {
     });
 
     test('Custom configured client creation works', () {
-      final dio = AcdcClientBuilder()
+      final dio = const AcdcClientBuilder()
           .withBaseUrl('https://api.example.com')
           .withTimeout(Duration(seconds: 45))
           .withLogLevel(LogLevel.warning)
@@ -185,11 +185,11 @@ void main() {
             ttl: Duration(hours: 2),
             encrypted: true,
             staleWhileRevalidate: true,
-          ))
+          ),)
           .build();
 
       expect(dio, isA<Dio>());
-      expect(dio.options.connectTimeout, Duration(seconds: 45));
+      expect(dio.options.connectTimeout, const Duration(seconds: 45));
     });
   });
 }

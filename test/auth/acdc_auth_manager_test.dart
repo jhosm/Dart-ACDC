@@ -35,14 +35,10 @@ class MockTokenProvider implements TokenProvider {
   }
 
   @override
-  Future<DateTime?> getAccessTokenExpiry() async {
-    return _accessExpiry;
-  }
+  Future<DateTime?> getAccessTokenExpiry() async => _accessExpiry;
 
   @override
-  Future<DateTime?> getRefreshTokenExpiry() async {
-    return _refreshExpiry;
-  }
+  Future<DateTime?> getRefreshTokenExpiry() async => _refreshExpiry;
 
   @override
   Future<void> setTokens({
@@ -74,13 +70,13 @@ class MockTokenProvider implements TokenProvider {
 
 /// Mock AuthInterceptor for testing.
 class MockAuthInterceptor extends AuthInterceptor {
-  bool cancelRefreshCalled = false;
 
   MockAuthInterceptor({
     required super.tokenProvider,
     required super.refreshEndpointUrl,
     required super.clientId,
   });
+  bool cancelRefreshCalled = false;
 
   @override
   void cancelRefresh() {

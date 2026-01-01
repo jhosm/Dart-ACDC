@@ -19,19 +19,6 @@ import 'package:dio/dio.dart';
 /// **Interceptor Order**: Must run before ErrorInterceptor in response chain
 /// to enable transparent token refresh before errors are processed.
 class AuthInterceptor extends Interceptor {
-  final TokenProvider _tokenProvider;
-  final String? _refreshEndpointUrl;
-  final String? _clientId;
-  final Future<TokenRefreshResult> Function(String)? _customRefreshFn;
-  final Duration _refreshThreshold;
-  final Duration _refreshQueueTimeout;
-  final Dio? _httpClient;
-
-  // Refresh state management
-  Completer<void>? _refreshCompleter;
-  bool _isRefreshing = false;
-  DateTime? _lastRefreshAttempt;
-  int _backoffSeconds = 0;
 
   /// Creates an auth interceptor with the given configuration.
   ///
@@ -67,6 +54,19 @@ class AuthInterceptor extends Interceptor {
       );
     }
   }
+  final TokenProvider _tokenProvider;
+  final String? _refreshEndpointUrl;
+  final String? _clientId;
+  final Future<TokenRefreshResult> Function(String)? _customRefreshFn;
+  final Duration _refreshThreshold;
+  final Duration _refreshQueueTimeout;
+  final Dio? _httpClient;
+
+  // Refresh state management
+  Completer<void>? _refreshCompleter;
+  bool _isRefreshing = false;
+  DateTime? _lastRefreshAttempt;
+  int _backoffSeconds = 0;
 
   @override
   Future<void> onRequest(

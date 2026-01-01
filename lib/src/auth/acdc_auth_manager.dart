@@ -11,11 +11,6 @@ import 'package:dio/dio.dart';
 ///
 /// Accessible via `dio.auth` extension.
 class AcdcAuthManager {
-  final TokenProvider _tokenProvider;
-  final AuthInterceptor _authInterceptor;
-  final String? _revocationEndpointUrl;
-  final String? _clientId;
-  final Dio? _httpClient;
 
   /// Internal constructor.
   ///
@@ -32,6 +27,11 @@ class AcdcAuthManager {
         _revocationEndpointUrl = revocationEndpointUrl,
         _clientId = clientId,
         _httpClient = httpClient;
+  final TokenProvider _tokenProvider;
+  final AuthInterceptor _authInterceptor;
+  final String? _revocationEndpointUrl;
+  final String? _clientId;
+  final Dio? _httpClient;
 
   /// Logs out the user by revoking tokens and clearing local storage.
   ///
