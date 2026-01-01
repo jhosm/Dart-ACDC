@@ -453,6 +453,17 @@ final dio = AcdcClientBuilder()
 
 The library SHALL handle cache storage failures gracefully without disrupting request processing.
 
+#### Scenario: Cache initialization failure at startup
+
+- **WHEN** the cache storage cannot be initialized at app startup
+- **AND** the failure is due to disk permissions, corrupted state, or missing dependencies
+- **THEN** the error is logged with details
+- **AND** caching is automatically disabled for the session
+- **AND** all requests proceed normally without caching (direct network calls)
+- **AND** no cache reads or writes are attempted
+- **AND** the application does not crash or show errors to users
+- **AND** on next app restart, cache initialization is retried
+
 #### Scenario: Cache write failure is transparent
 
 - **WHEN** writing to the cache fails due to disk errors

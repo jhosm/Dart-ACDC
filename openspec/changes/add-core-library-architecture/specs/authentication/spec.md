@@ -70,6 +70,47 @@ The library SHALL define a `TokenProvider` interface for managing authentication
 - **AND** the provider does NOT validate token expiry
 - **AND** expiry validation is the library's responsibility (via interceptors)
 
+#### Scenario: TokenProvider getAccessToken() throws exception
+
+- **WHEN** `getAccessToken()` throws an exception during token retrieval
+- **THEN** the exception is caught by the auth interceptor
+- **AND** the request proceeds without authentication (no Authorization header)
+- **AND** an error is logged indicating the token retrieval failure
+- **AND** if the endpoint requires authentication, it will return 401 (handled normally)
+- **AND** the exception does NOT crash the application
+
+#### Scenario: TokenProvider setTokens() throws exception during refresh
+
+- **WHEN** token refresh succeeds
+- **AND** `setTokens()` throws an exception while storing the new tokens
+- **THEN** the exception is caught by the auth interceptor
+- **AND** an `AcdcAuthException` is thrown with message "Failed to store refreshed tokens"
+- **AND** tokens are NOT cleared (old tokens remain in storage)
+- **AND** the original request fails
+- **AND** the error is logged with the storage exception details
+- **AND** subsequent requests will retry the refresh (using old tokens)
+
+#### Scenario: TokenProvider clearTokens() throws exception during logout
+
+- **WHEN** `dio.auth.logout()` is called
+- **AND** token revocation succeeds
+- **AND** `clearTokens()` throws an exception
+- **THEN** the exception is caught
+- **AND** a warning is logged but logout is considered successful
+- **AND** the library makes best-effort attempt to clear tokens despite storage failure
+- **AND** the application treats the user as logged out
+- **AND** subsequent requests will attempt to retrieve tokens (likely returning null)
+
+#### Scenario: TokenProvider getRefreshToken() throws exception
+
+- **WHEN** a 401 response triggers token refresh
+- **AND** `getRefreshToken()` throws an exception
+- **THEN** the exception is caught by the auth interceptor
+- **AND** no refresh attempt is made (cannot retrieve refresh token)
+- **AND** `AcdcAuthException` is thrown with message "Failed to retrieve refresh token"
+- **AND** tokens are NOT cleared (may be temporary storage issue)
+- **AND** the error is logged with the exception details
+
 ### Requirement: Bearer Token Injection
 
 The library SHALL automatically inject Bearer tokens into request headers when a TokenProvider is configured and tokens are valid.
@@ -189,6 +230,17 @@ The library SHALL queue concurrent requests while a token refresh is in progress
 - **THEN** all waiting requests fail with `AcdcAuthException`
 - **AND** the error message indicates "Token refresh timeout"
 - **AND** tokens are cleared via `clearTokens()`
+
+#### Scenario: Logout called during active token refresh
+
+- **WHEN** a token refresh is in progress
+- **AND** `dio.auth.logout()` is called
+- **THEN** the logout operation takes priority
+- **AND** the in-progress refresh request is cancelled
+- **AND** all queued requests waiting for refresh fail with `AcdcAuthException` indicating logout
+- **AND** tokens are revoked and cleared via the normal logout flow
+- **AND** the logout completes successfully
+- **AND** subsequent requests will not have authentication
 
 ### Requirement: App Lifecycle Handling
 

@@ -214,6 +214,7 @@ enum LogLevel {
   info,     // General informational messages
   warning,  // Warning messages (e.g., slow requests)
   error,    // Error messages (e.g., network failures)
+  none,     // No HTTP request/response logging
 }
 ```
 
