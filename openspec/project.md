@@ -80,10 +80,10 @@
 
 #### 1. Security & Authentication
 
-- **OAuth 2.1/OIDC with PKCE** - Prevent authorization code interception
-- **Token Management** - Short-lived access tokens + secure refresh tokens
-- **Auto-Refresh** - Intercept 401s and automatically refresh tokens
+- **OAuth 2.1 Token Management** - Automatic token injection and refresh (OAuth login flow handled by external library like flutter_appauth)
+- **Token Auto-Refresh** - Proactive refresh before expiry + reactive refresh on 401
 - **Secure Storage** - Use platform-specific secure storage (iOS Keychain, Android Keystore)
+- **Token Revocation** - Logout with server-side token invalidation
 - **HTTPS/TLS 1.2+ only** - No plain HTTP allowed
 - **Certificate validation** - Strict certificate checking
 - **Optional certificate pinning** - For high-security apps

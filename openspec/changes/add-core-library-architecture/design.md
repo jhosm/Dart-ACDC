@@ -135,12 +135,13 @@ final dio = AcdcClientBuilder()
 
 ### Decision 6: Token Storage Abstraction
 
-**What**: Provide a `TokenProvider` interface for auth token management.
+**What**: Provide a `TokenProvider` interface for auth token management with expiry tracking.
 
 **Why**:
 - Decouples token storage from HTTP client
 - Enables platform-specific secure storage (Keychain, Keystore)
 - Testable with mock implementations
+- Supports proactive token refresh via expiry tracking
 
 **Interface**:
 
@@ -148,14 +149,62 @@ final dio = AcdcClientBuilder()
 abstract class TokenProvider {
   Future<String?> getAccessToken();
   Future<String?> getRefreshToken();
-  Future<void> setTokens(String accessToken, String? refreshToken);
+  Future<DateTime?> getAccessTokenExpiry();
+  Future<DateTime?> getRefreshTokenExpiry();
+  Future<void> setTokens({
+    required String accessToken,
+    String? refreshToken,
+    DateTime? accessExpiry,
+    DateTime? refreshExpiry,
+  });
   Future<void> clearTokens();
 }
 ```
 
+**Key Points**:
+
+- Provider stores tokens without validating expiry
+- Library's auth interceptor checks expiry before using tokens
+- Enables both proactive (before expiry) and reactive (on 401) refresh
+
 **Alternatives Considered**:
+
 - Callback functions - less structured, harder to test
 - Built-in storage - couples HTTP client to storage mechanism
+- Provider validates expiry - couples validation to storage, harder to test
+
+### Decision 7: Auth Extension for Logout
+
+**What**: Provide logout functionality via a Dart extension on the Dio instance.
+
+**Why**:
+
+- Keeps the main Dio API clean (returns standard Dio instance)
+- Enables logout with token revocation: `dio.auth.logout()`
+- Provides access to auth manager: `dio.auth.clearCache()`, `dio.auth.refreshNow()`
+- Maintains OpenAPI generator compatibility
+
+**Implementation**:
+
+```dart
+extension AcdcAuth on Dio {
+  AcdcAuthManager get auth => // retrieve auth manager from Dio options
+}
+
+class AcdcAuthManager {
+  Future<void> logout(); // Revoke tokens + clear locally
+  Future<void> refreshNow(); // Force refresh
+  Future<void> clearCache(); // Clear cached responses
+}
+```
+
+**Trade-off**: Extension methods aren't discovered as easily as instance methods, but this maintains compatibility with openapi-generated clients.
+
+**Alternatives Considered**:
+
+- Return custom wrapper class - breaks openapi-generator compatibility
+- Global singleton manager - hard to test, breaks with multiple Dio instances
+- Separate manager parameter - extra parameter burden on developers
 
 ## Risks / Trade-offs
 
