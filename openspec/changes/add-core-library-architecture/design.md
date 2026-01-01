@@ -49,7 +49,7 @@ Dart-ACDC aims to provide a zero-config, opinionated HTTP client for Flutter mob
 final dio = AcdcClientBuilder()
   .withBaseUrl('https://api.example.com')
   .withTimeout(Duration(seconds: 30))
-  .withLogging(LogLevel.debug)
+  .withLogLevel(LogLevel.debug)
   .build();
 ```
 
