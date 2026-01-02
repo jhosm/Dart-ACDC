@@ -1,4 +1,5 @@
 import 'package:dart_acdc/src/cache/cache_config.dart';
+import 'package:dart_acdc/src/cache/jwt_utils.dart';
 import 'package:dio/dio.dart';
 import 'package:dio_cache_interceptor/dio_cache_interceptor.dart';
 
@@ -12,7 +13,12 @@ import 'package:dio_cache_interceptor/dio_cache_interceptor.dart';
 /// - Method-based caching (GET/HEAD only)
 /// - Automatic cache invalidation on mutations
 /// - Stale-while-revalidate support
-/// - User isolation for authenticated requests
+/// - User isolation for authenticated requests (REQUIRED)
+///
+/// IMPORTANT: Caching behavior:
+/// - Unauthenticated requests: Cached normally (shared cache)
+/// - Authenticated requests with identifiable user: Cached with user isolation
+/// - Authenticated requests without identifiable user: NOT cached (security)
 class AcdcCacheInterceptor extends Interceptor {
   /// Creates a cache interceptor from configuration.
   ///
@@ -21,9 +27,11 @@ class AcdcCacheInterceptor extends Interceptor {
   /// - Configures cache policies based on config flags
   /// - Only caches GET and HEAD requests
   /// - Invalidates cache on POST/PUT/DELETE/PATCH requests
+  /// - Requires user ID extraction for caching (user isolation)
   AcdcCacheInterceptor({
     required CacheConfig config,
-  })  : _cacheOptions = CacheOptions(
+  })  : _config = config,
+        _cacheOptions = CacheOptions(
           // Use memory cache store
           store: MemCacheStore(
             maxSize: config.inMemory ? config.inMemoryMaxSize : config.maxSize,
@@ -39,6 +47,9 @@ class AcdcCacheInterceptor extends Interceptor {
 
           // Hit cache on network errors if configured
           hitCacheOnErrorExcept: config.staleIfError ? [] : [401, 403],
+
+          // Custom key builder that includes user ID for isolation
+          keyBuilder: buildCacheKeyWithUserIsolation,
         ),
         _dioCacheInterceptor = DioCacheInterceptor(
           options: CacheOptions(
@@ -51,19 +62,126 @@ class AcdcCacheInterceptor extends Interceptor {
                 : CachePolicy.request,
             maxStale: config.staleIfError ? const Duration(days: 7) : null,
             hitCacheOnErrorExcept: config.staleIfError ? [] : [401, 403],
+            keyBuilder: buildCacheKeyWithUserIsolation,
           ),
         );
 
+  final CacheConfig _config;
   final CacheOptions _cacheOptions;
   final DioCacheInterceptor _dioCacheInterceptor;
 
+  /// Builds a cache key with user isolation.
+  ///
+  /// Returns:
+  /// - Unauthenticated: Standard key `{method}:{url}` (shared cache)
+  /// - Authenticated with user ID: `{method}:{url}:{userId}` (user-isolated)
+  /// - Authenticated without user ID: Empty string (no caching)
+  ///
+  /// The user ID is stored in `options.extra['_acdc_user_id']` by onRequest.
+  /// The auth flag is stored in `options.extra['_acdc_has_auth']`.
+  ///
+  /// This method is public to enable testing but should not be called directly
+  /// by library users.
+  static String buildCacheKeyWithUserIsolation(RequestOptions options) {
+    final userId = options.extra['_acdc_user_id'] as String?;
+    final hasAuth = options.extra['_acdc_has_auth'] as bool? ?? false;
+
+    // Build base cache key
+    final baseKey = CacheOptions.defaultCacheKeyBuilder(options);
+
+    if (!hasAuth) {
+      // Unauthenticated request - use standard shared cache
+      return baseKey;
+    }
+
+    if (userId == null || userId.isEmpty) {
+      // Authenticated but no user ID - disable caching for security
+      // dio_cache_interceptor treats empty keys as non-cacheable
+      return '';
+    }
+
+    // Authenticated with user ID - use user-isolated cache
+    return '$baseKey:$userId';
+  }
+
   @override
-  void onRequest(
+  Future<void> onRequest(
     RequestOptions options,
     RequestInterceptorHandler handler,
-  ) {
+  ) async {
+    // Extract user ID from Authorization header for cache isolation
+    await _extractAndStoreUserId(options);
+
     // Delegate to dio_cache_interceptor
     _dioCacheInterceptor.onRequest(options, handler);
+  }
+
+  /// Extracts user ID from Authorization header and stores it in request extras.
+  ///
+  /// Sets two flags in options.extra:
+  /// - `_acdc_has_auth`: true if Authorization header is present
+  /// - `_acdc_user_id`: extracted user ID (if available)
+  ///
+  /// This enables proper cache key generation:
+  /// - No auth → shared cache
+  /// - Auth + user ID → user-isolated cache
+  /// - Auth but no user ID → no caching (security)
+  Future<void> _extractAndStoreUserId(RequestOptions options) async {
+    // Get Authorization header
+    final authHeader = options.headers['Authorization']?.toString();
+    if (authHeader == null || authHeader.isEmpty) {
+      // No auth header - will use shared cache
+      options.extra['_acdc_has_auth'] = false;
+      return;
+    }
+
+    // Mark as authenticated
+    options.extra['_acdc_has_auth'] = true;
+
+    // Extract token from "Bearer {token}" format
+    final token = _extractToken(authHeader);
+    if (token == null || token.isEmpty) {
+      // Has auth header but no token - no user ID
+      return;
+    }
+
+    // Try custom user ID provider first
+    if (_config.userIdProvider != null) {
+      try {
+        final userId = await _config.userIdProvider!(token);
+        if (userId != null && userId.isNotEmpty) {
+          options.extra['_acdc_user_id'] = userId;
+          return;
+        }
+      } on Exception catch (_) {
+        // Custom provider failed - fall through to JWT extraction
+      }
+    }
+
+    // Extract user ID from JWT
+    final userId = JwtUtils.extractUserId(token);
+    if (userId != null && userId.isNotEmpty) {
+      options.extra['_acdc_user_id'] = userId;
+    }
+    // If no user ID found but has auth, caching will be disabled (security)
+  }
+
+  /// Extracts the token from Authorization header.
+  ///
+  /// Handles common formats:
+  /// - "Bearer {token}"
+  /// - "{token}"
+  String? _extractToken(String authHeader) {
+    final trimmed = authHeader.trim();
+
+    // Handle "Bearer token" format
+    if (trimmed.toLowerCase().startsWith('bearer ')) {
+      final token = trimmed.substring(7).trim();
+      return token.isNotEmpty ? token : null;
+    }
+
+    // Handle direct token format
+    return trimmed.isNotEmpty ? trimmed : null;
   }
 
   @override

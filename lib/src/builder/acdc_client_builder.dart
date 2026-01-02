@@ -570,6 +570,13 @@ class AcdcClientBuilder {
     dio.options.sendTimeout = timeout;
     dio.options.receiveTimeout = timeout;
 
+    // Set up cache interceptor if caching is enabled
+    AcdcCacheInterceptor? cacheInterceptor;
+    if (!_cacheDisabled) {
+      final cacheConfig = _cacheConfig ?? const CacheConfig();
+      cacheInterceptor = AcdcCacheInterceptor(config: cacheConfig);
+    }
+
     // Set up authentication if configured
     AuthInterceptor? authInterceptor;
     if (_tokenProvider != null) {
@@ -588,6 +595,7 @@ class AcdcClientBuilder {
         authInterceptor: authInterceptor,
         revocationEndpointUrl: _tokenRevocationEndpoint,
         clientId: _tokenRefreshClientId,
+        cacheInterceptor: cacheInterceptor,
       );
 
       // Store auth manager in Dio options for extension access
@@ -605,9 +613,8 @@ class AcdcClientBuilder {
     }
 
     // Add cache interceptor if caching is enabled
-    if (!_cacheDisabled) {
-      final cacheConfig = _cacheConfig ?? const CacheConfig();
-      dio.interceptors.add(AcdcCacheInterceptor(config: cacheConfig));
+    if (cacheInterceptor != null) {
+      dio.interceptors.add(cacheInterceptor);
     }
 
     // Add error interceptor (always present)
