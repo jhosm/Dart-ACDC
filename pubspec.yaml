@@ -20,11 +20,15 @@ dependencies:
 
 dev_dependencies:
   build_runner: ^2.4.8
+  built_collection: ^5.1.1
+  built_value: ^8.4.0
   flutter_lints: ^3.0.1
   flutter_test:
     sdk: flutter
   http_mock_adapter: ^0.6.1
   mockito: ^5.4.4
+  openapi:
+    path: example/lib/api_client
   path: ^1.9.1
   shelf: ^1.4.0
   test: ^1.24.9
