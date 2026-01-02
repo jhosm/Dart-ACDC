@@ -17,9 +17,13 @@ class EncryptedCacheStore implements CacheStore {
   ///
   /// [maxSize]: Maximum cache size in bytes (default: 10 MB)
   /// [storage]: Custom secure storage instance (mainly for testing)
+  /// [version]: Cache version string (invalidation trigger)
+  /// [onError]: Callback for internal errors
   EncryptedCacheStore({
     this.maxSize = 10 * 1024 * 1024, // 10 MB
     FlutterSecureStorage? storage,
+    this.version,
+    this.onError,
   }) : _storage = storage ?? const FlutterSecureStorage();
 
   final FlutterSecureStorage _storage;
@@ -27,8 +31,15 @@ class EncryptedCacheStore implements CacheStore {
   /// Maximum cache size in bytes.
   final int maxSize;
 
+  /// Cache version string.
+  final String? version;
+
+  /// Error callback.
+  final void Function(Object error, StackTrace stackTrace)? onError;
+
   static const String _keyPrefix = 'acdc_cache_';
   static const String _metadataKey = 'acdc_cache_metadata';
+  static const String _versionKey = 'acdc_cache_version';
 
   /// Metadata for tracking cache entries (for LRU eviction).
   final Map<String, _CacheMetadata> _metadata = {};
@@ -60,7 +71,8 @@ class EncryptedCacheStore implements CacheStore {
       }
 
       await _saveMetadata();
-    } on Exception catch (_) {
+    } on Exception catch (e, stack) {
+      onError?.call(e, stack);
       // Silently fail on clean errors
     }
   }
@@ -89,7 +101,8 @@ class EncryptedCacheStore implements CacheStore {
 
       await _deleteEntry(key);
       await _saveMetadata();
-    } on Exception catch (_) {
+    } on Exception catch (e, stack) {
+      onError?.call(e, stack);
       // Silently fail on delete errors
     }
   }
@@ -117,7 +130,8 @@ class EncryptedCacheStore implements CacheStore {
       }
 
       await _saveMetadata();
-    } on Exception catch (_) {
+    } on Exception catch (e, stack) {
+      onError?.call(e, stack);
       // Silently fail on delete errors
     }
   }
@@ -127,7 +141,8 @@ class EncryptedCacheStore implements CacheStore {
     try {
       await _loadMetadata();
       return _metadata.containsKey(key);
-    } on Exception catch (_) {
+    } on Exception catch (e, stack) {
+      onError?.call(e, stack);
       return false;
     }
   }
@@ -164,8 +179,9 @@ class EncryptedCacheStore implements CacheStore {
       await _saveMetadata();
 
       return response;
-    } on Exception catch (_) {
+    } on Exception catch (e, stack) {
       // Return null on any error (encryption failure, deserialization, etc.)
+      onError?.call(e, stack);
       return null;
     }
   }
@@ -188,7 +204,8 @@ class EncryptedCacheStore implements CacheStore {
       }
 
       return responses;
-    } on Exception catch (_) {
+    } on Exception catch (e, stack) {
+      onError?.call(e, stack);
       return [];
     }
   }
@@ -218,7 +235,8 @@ class EncryptedCacheStore implements CacheStore {
       );
 
       await _saveMetadata();
-    } on Exception catch (_) {
+    } on Exception catch (e, stack) {
+      onError?.call(e, stack);
       // Silently fail on encryption errors
       // This allows graceful degradation when encryption is unavailable
     }
@@ -254,18 +272,38 @@ class EncryptedCacheStore implements CacheStore {
       final storageKey = _getStorageKey(key);
       await _storage.delete(key: storageKey);
       _metadata.remove(key);
-    } on Exception catch (_) {
+    } on Exception catch (e, stack) {
+      onError?.call(e, stack);
       // Ignore delete errors
     }
   }
 
   /// Loads metadata from secure storage.
+  ///
+  /// Also checks for version mismatch and invalidates cache if version changed.
   Future<void> _loadMetadata() async {
     if (_metadataLoaded) {
       return;
     }
 
     try {
+      // Check version first
+      final storedVersion = await _storage.read(key: _versionKey);
+
+      // If version mismatch, clear everything
+      if (version != null && storedVersion != version) {
+        await _storage.deleteAll();
+        await _storage.write(key: _versionKey, value: version);
+        _metadata.clear();
+        _metadataLoaded = true;
+        return;
+      }
+
+      // Also write version if not present (first run with versioning)
+      if (version != null && storedVersion == null) {
+        await _storage.write(key: _versionKey, value: version);
+      }
+
       final data = await _storage.read(key: _metadataKey);
       if (data != null) {
         final json = jsonDecode(data) as Map<String, dynamic>;
@@ -277,8 +315,9 @@ class EncryptedCacheStore implements CacheStore {
         }
       }
       _metadataLoaded = true;
-    } on Exception catch (_) {
-      // If metadata can't be loaded, start fresh
+    } on Exception catch (e, stack) {
+      // If metadata loading fails, start fresh but report error
+      onError?.call(e, stack);
       _metadata.clear();
       _metadataLoaded = true;
     }
@@ -293,7 +332,8 @@ class EncryptedCacheStore implements CacheStore {
       }
       final data = jsonEncode(json);
       await _storage.write(key: _metadataKey, value: data);
-    } on Exception catch (_) {
+    } on Exception catch (e, stack) {
+      onError?.call(e, stack);
       // Ignore metadata save errors
     }
   }

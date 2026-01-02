@@ -87,6 +87,8 @@ class AcdcCacheInterceptor extends Interceptor {
       try {
         persistentStore = EncryptedCacheStore(
           maxSize: config.maxSize,
+          version: config.version,
+          onError: config.onError,
         );
       } on Exception catch (e) {
         if (config.requireEncryption) {

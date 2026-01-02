@@ -27,6 +27,8 @@ class CacheConfig {
     this.staleWhileRevalidate = false,
     this.staleIfError = true,
     this.userIdProvider,
+    this.version,
+    this.onError,
   });
 
   /// Cache entry time-to-live.
@@ -92,6 +94,18 @@ class CacheConfig {
   /// If null, user ID is extracted from JWT claims (sub, user_id, uid).
   final Future<String?> Function(String accessToken)? userIdProvider;
 
+  /// Cache version string.
+  ///
+  /// Changing this value invalidates the entire cache.
+  /// Used for handling breaking changes or major updates.
+  final String? version;
+
+  /// Callback for cache errors.
+  ///
+  /// Called when internal cache operations fail (e.g., encryption errors,
+  /// storage failures).
+  final void Function(Object error, StackTrace stackTrace)? onError;
+
   @override
   String toString() => 'CacheConfig('
       'ttl: $ttl, '
@@ -103,5 +117,6 @@ class CacheConfig {
       'inMemoryMaxSize: $inMemoryMaxSize, '
       'staleWhileRevalidate: $staleWhileRevalidate, '
       'staleIfError: $staleIfError, '
-      'hasUserIdProvider: ${userIdProvider != null})';
+      'hasUserIdProvider: ${userIdProvider != null}, '
+      'version: $version)';
 }
