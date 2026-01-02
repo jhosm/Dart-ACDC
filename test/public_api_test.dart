@@ -108,17 +108,17 @@ void main() {
 
     test('AcdcLogger typedef is exported', () {
       // Type check that AcdcLogger function signature is correct
-      var logger = (message, level,
+      void logger(message, level,
           metadata,) {
         // Mock logger
-      };
+      }
       expect(logger, isNotNull);
     });
 
     test('Builder can be used with all exported types', () {
       final builder = const AcdcClientBuilder()
           .withBaseUrl('https://api.example.com')
-          .withTimeout(Duration(seconds: 30))
+          .withTimeout(const Duration(seconds: 30))
           .withTokenProvider(MockTokenProvider())
           .withTokenRefreshEndpoint(
             url: 'https://auth.example.com/token',
@@ -127,8 +127,7 @@ void main() {
           .withLogLevel(LogLevel.debug)
           .withLogger((message, level, metadata) {
         // Custom logger
-      }).withCache(CacheConfig(
-            ttl: Duration(hours: 1),
+      }).withCache(const CacheConfig(
             encrypted: true,
           ),);
 
@@ -179,9 +178,9 @@ void main() {
     test('Custom configured client creation works', () {
       final dio = const AcdcClientBuilder()
           .withBaseUrl('https://api.example.com')
-          .withTimeout(Duration(seconds: 45))
+          .withTimeout(const Duration(seconds: 45))
           .withLogLevel(LogLevel.warning)
-          .withCache(CacheConfig(
+          .withCache(const CacheConfig(
             ttl: Duration(hours: 2),
             encrypted: true,
             staleWhileRevalidate: true,

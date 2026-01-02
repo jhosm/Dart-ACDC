@@ -70,7 +70,6 @@ class MockTokenProvider implements TokenProvider {
 
 /// Mock AuthInterceptor for testing.
 class MockAuthInterceptor extends AuthInterceptor {
-
   MockAuthInterceptor({
     required super.tokenProvider,
     required super.refreshEndpointUrl,
@@ -127,7 +126,8 @@ void main() {
         expect(tokenProvider._refreshToken, null);
       });
 
-      test('completes successfully even if clearTokens throws exception', () async {
+      test('completes successfully even if clearTokens throws exception',
+          () async {
         tokenProvider.throwOnClearTokens = true;
 
         authManager = AcdcAuthManager(
@@ -139,7 +139,8 @@ void main() {
         await expectLater(authManager.logout(), completes);
       });
 
-      test('skips revocation when revocation endpoint is not configured', () async {
+      test('skips revocation when revocation endpoint is not configured',
+          () async {
         tokenProvider._accessToken = 'test-access-token';
         tokenProvider._refreshToken = 'test-refresh-token';
 
@@ -156,7 +157,8 @@ void main() {
         expect(tokenProvider._refreshToken, null);
       });
 
-      test('skips revocation when only revocation endpoint is configured', () async {
+      test('skips revocation when only revocation endpoint is configured',
+          () async {
         authManager = AcdcAuthManager(
           tokenProvider: tokenProvider,
           authInterceptor: authInterceptor,
@@ -186,7 +188,8 @@ void main() {
     });
 
     group('Token revocation (best-effort)', () {
-      test('continues logout even if getRefreshToken throws exception', () async {
+      test('continues logout even if getRefreshToken throws exception',
+          () async {
         tokenProvider.throwOnGetRefreshToken = true;
 
         authManager = AcdcAuthManager(
@@ -200,7 +203,8 @@ void main() {
         await expectLater(authManager.logout(), completes);
       });
 
-      test('continues logout even if getAccessToken throws exception', () async {
+      test('continues logout even if getAccessToken throws exception',
+          () async {
         tokenProvider.throwOnGetAccessToken = true;
 
         authManager = AcdcAuthManager(
@@ -215,8 +219,9 @@ void main() {
       });
 
       test('skips revocation if no tokens are available', () async {
-        tokenProvider._accessToken = null;
-        tokenProvider._refreshToken = null;
+        tokenProvider
+          .._accessToken = null
+          .._refreshToken = null;
 
         authManager = AcdcAuthManager(
           tokenProvider: tokenProvider,

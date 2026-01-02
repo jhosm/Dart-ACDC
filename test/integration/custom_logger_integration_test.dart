@@ -14,7 +14,7 @@ void main() {
 
       // Define custom logger
       void customLogger(
-          String message, LogLevel level, Map<String, dynamic>? metadata) {
+          String message, LogLevel level, Map<String, dynamic>? metadata,) {
         logs.add('[$level] $message');
         if (metadata != null && metadata.isNotEmpty) {
           logs.add('Metadata: $metadata');
@@ -22,7 +22,7 @@ void main() {
       }
 
       // Build client with custom logger
-      dio = AcdcClientBuilder()
+      dio = const AcdcClientBuilder()
           .withBaseUrl('https://api.example.com')
           .withLogger(customLogger)
           .withLogLevel(LogLevel.info)
@@ -44,11 +44,11 @@ void main() {
       expect(
           logs,
           contains(contains(
-              '[LogLevel.info] Request: GET https://api.example.com/test')));
+              '[LogLevel.info] Request: GET https://api.example.com/test',),),);
       expect(
           logs,
           contains(contains(
-              '[LogLevel.info] Response: 200 https://api.example.com/test')));
+              '[LogLevel.info] Response: 200 https://api.example.com/test',),),);
     });
 
     test('logs errors with custom logger', () async {
@@ -67,7 +67,7 @@ void main() {
       expect(
           logs,
           contains(contains(
-              '[LogLevel.error] Error: 500 https://api.example.com/error')));
+              '[LogLevel.error] Error: 500 https://api.example.com/error',),),);
     });
   });
 }

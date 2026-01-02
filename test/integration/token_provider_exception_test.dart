@@ -5,7 +5,6 @@ import 'package:dart_acdc/dart_acdc.dart';
 import 'package:shelf/shelf.dart' as shelf;
 import 'package:shelf/shelf_io.dart' as shelf_io;
 import 'package:test/test.dart';
-import 'package:dio/dio.dart';
 
 import '../helpers/fake_oauth_server.dart';
 
@@ -115,13 +114,12 @@ void main() {
         dio.get<Map<String, dynamic>>('/test'),
         throwsA(isA<AcdcAuthException>()),
       );
-      
+
       // Verify no refresh was attempted (couldn't get refresh token)
       expect(oauthServer.refreshCallCount, 0);
     });
 
-    test('token storage failure degrades gracefully during refresh',
-        () async {
+    test('token storage failure degrades gracefully during refresh', () async {
       // Set expiring token to trigger proactive refresh
       final expiry = DateTime.now().toUtc().add(const Duration(seconds: 30));
       tokenProvider

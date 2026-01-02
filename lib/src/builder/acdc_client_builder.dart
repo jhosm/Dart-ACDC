@@ -618,7 +618,7 @@ class AcdcClientBuilder {
       dio.interceptors.add(LoggingInterceptor(
         level: logLevel,
         logger: _logger,
-      ));
+      ),);
     }
     // TODO(cache): Add cache interceptor when implemented
 

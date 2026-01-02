@@ -105,7 +105,7 @@ class FakeOAuthServer {
 
     // Add delay if configured
     if (_responseDelay > Duration.zero) {
-      await Future.delayed(_responseDelay);
+      await Future<void>.delayed(_responseDelay);
     }
 
     // Route to appropriate handler

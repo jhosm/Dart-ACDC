@@ -44,7 +44,7 @@ class LoggingInterceptor extends Interceptor {
 
   @override
   void onResponse(
-      Response<dynamic> response, ResponseInterceptorHandler handler) {
+      Response<dynamic> response, ResponseInterceptorHandler handler,) {
     if (level == LogLevel.none) {
       return handler.next(response);
     }

@@ -10,7 +10,7 @@ void main() {
     setUp(() {
       builder = const AcdcClientBuilder()
           .withBaseUrl('https://api.example.com')
-          .withTimeout(Duration(seconds: 5));
+          .withTimeout(const Duration(seconds: 5));
     });
 
     test('builds independent Dio instances', () async {
@@ -31,7 +31,7 @@ void main() {
       // Verify client2 is unaffected
       expect(client2.options.baseUrl, 'https://api.example.com');
       expect(client2.interceptors.length,
-          isNot(equals(client1.interceptors.length)));
+          isNot(equals(client1.interceptors.length)),);
     });
 
     test('clients work independently', () async {

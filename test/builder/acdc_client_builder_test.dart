@@ -191,18 +191,18 @@ void main() {
       test('supports chaining multiple configuration methods', () {
         final builder = const AcdcClientBuilder()
             .withBaseUrl('https://api.example.com')
-            .withTimeout(Duration(seconds: 45))
+            .withTimeout(const Duration(seconds: 45))
             .withLogLevel(LogLevel.debug)
             .withTokenProvider(MockTokenProvider())
-            .withCache(CacheConfig(ttl: Duration(hours: 2)));
+            .withCache(const CacheConfig(ttl: Duration(hours: 2)));
 
         expect(builder, isA<AcdcClientBuilder>());
       });
 
       test('last configuration wins on conflicts - timeout', () {
         final builder = const AcdcClientBuilder()
-            .withTimeout(Duration(seconds: 30))
-            .withTimeout(Duration(seconds: 60));
+            .withTimeout(const Duration(seconds: 30))
+            .withTimeout(const Duration(seconds: 60));
 
         // Since we can't access private fields, we verify the builder
         // was created successfully with the last value
@@ -227,7 +227,7 @@ void main() {
 
       test('disableCache overrides withCache', () {
         final builder = const AcdcClientBuilder()
-            .withCache(CacheConfig())
+            .withCache(const CacheConfig())
             .disableCache();
 
         expect(builder, isA<AcdcClientBuilder>());
@@ -244,7 +244,7 @@ void main() {
 
       test('withTimeout creates builder with custom timeout', () {
         final builder = const AcdcClientBuilder()
-            .withTimeout(Duration(seconds: 45));
+            .withTimeout(const Duration(seconds: 45));
 
         expect(builder, isA<AcdcClientBuilder>());
       });
@@ -268,10 +268,10 @@ void main() {
 
       test('withCustomTokenRefresh creates builder with custom refresh', () {
         final builder = const AcdcClientBuilder()
-            .withCustomTokenRefresh((refreshToken) async => TokenRefreshResult(
+            .withCustomTokenRefresh((refreshToken) async => const TokenRefreshResult(
             accessToken: 'new_access_token',
             refreshToken: 'new_refresh_token',
-          ));
+          ),);
 
         expect(builder, isA<AcdcClientBuilder>());
       });
@@ -285,7 +285,7 @@ void main() {
 
       test('withTokenRefreshThreshold creates builder with custom threshold', () {
         final builder = const AcdcClientBuilder()
-            .withTokenRefreshThreshold(Duration(seconds: 120));
+            .withTokenRefreshThreshold(const Duration(seconds: 120));
 
         expect(builder, isA<AcdcClientBuilder>());
       });
@@ -315,7 +315,7 @@ void main() {
 
       test('withSlowRequestThreshold creates builder with slow request threshold', () {
         final builder = const AcdcClientBuilder()
-            .withSlowRequestThreshold(Duration(seconds: 5));
+            .withSlowRequestThreshold(const Duration(seconds: 5));
 
         expect(builder, isA<AcdcClientBuilder>());
       });
@@ -329,7 +329,7 @@ void main() {
 
       test('withCache creates builder with cache config', () {
         final builder = const AcdcClientBuilder()
-            .withCache(CacheConfig(
+            .withCache(const CacheConfig(
           ttl: Duration(hours: 2),
           maxSize: 20 * 1024 * 1024,
         ),);
@@ -381,7 +381,7 @@ void main() {
 
       test('build sets custom timeout when configured', () {
         final dio = const AcdcClientBuilder()
-            .withTimeout(Duration(seconds: 45))
+            .withTimeout(const Duration(seconds: 45))
             .build();
 
         expect(dio.options.connectTimeout, const Duration(seconds: 45));

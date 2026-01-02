@@ -5,7 +5,7 @@ import 'package:dart_acdc/src/auth/token_refresh_result.dart';
 import 'package:dart_acdc/src/exceptions/acdc_auth_exception.dart';
 import 'package:dart_acdc/src/interceptors/auth_interceptor.dart';
 import 'package:dio/dio.dart';
-import 'package:http_mock_adapter/http_mock_adapter.dart';
+
 import 'package:test/test.dart';
 
 /// Mock TokenProvider for testing.
@@ -92,7 +92,9 @@ void main() {
         );
       });
 
-      test('throws ArgumentError if neither refresh endpoint nor custom function provided', () {
+      test(
+          'throws ArgumentError if neither refresh endpoint nor custom function provided',
+          () {
         expect(
           () => AuthInterceptor(
             tokenProvider: tokenProvider,
@@ -135,15 +137,20 @@ void main() {
       });
 
       test('injects Bearer token when token is available', () async {
-        tokenProvider._accessToken = 'test-token';
-        tokenProvider._accessExpiry = DateTime.now().toUtc().add(const Duration(hours: 1));
+        tokenProvider
+          .._accessToken = 'test-token'
+          .._accessExpiry =
+              DateTime.now().toUtc().add(const Duration(hours: 1));
 
         final options = RequestOptions(path: '/test');
         final handler = _MockRequestHandler();
 
         await interceptor.onRequest(options, handler);
 
-        expect(handler.nextOptions?.headers['Authorization'], 'Bearer test-token');
+        expect(
+          handler.nextOptions?.headers['Authorization'],
+          'Bearer test-token',
+        );
       });
 
       test('proceeds without auth when no token available', () async {
@@ -154,7 +161,10 @@ void main() {
 
         await interceptor.onRequest(options, handler);
 
-        expect(handler.nextOptions?.headers.containsKey('Authorization'), false);
+        expect(
+          handler.nextOptions?.headers.containsKey('Authorization'),
+          false,
+        );
       });
 
       test('preserves existing Authorization header', () async {
@@ -171,7 +181,8 @@ void main() {
         expect(handler.nextOptions?.headers['Authorization'], 'Custom auth');
       });
 
-      test('proceeds without auth when TokenProvider throws exception', () async {
+      test('proceeds without auth when TokenProvider throws exception',
+          () async {
         tokenProvider.throwOnGetAccessToken = true;
 
         final options = RequestOptions(path: '/test');
@@ -179,7 +190,10 @@ void main() {
 
         await interceptor.onRequest(options, handler);
 
-        expect(handler.nextOptions?.headers.containsKey('Authorization'), false);
+        expect(
+          handler.nextOptions?.headers.containsKey('Authorization'),
+          false,
+        );
       });
     });
 
@@ -197,9 +211,11 @@ void main() {
         );
 
         // Token expires in 4 minutes (within threshold)
-        tokenProvider._accessToken = 'old-token';
-        tokenProvider._refreshToken = 'refresh-token';
-        tokenProvider._accessExpiry = DateTime.now().toUtc().add(const Duration(minutes: 4));
+        tokenProvider
+          .._accessToken = 'old-token'
+          .._refreshToken = 'refresh-token'
+          .._accessExpiry =
+              DateTime.now().toUtc().add(const Duration(minutes: 4));
 
         final options = RequestOptions(path: '/test');
         final handler = _MockRequestHandler();
@@ -221,9 +237,10 @@ void main() {
           },
         );
 
-        tokenProvider._accessToken = 'test-token';
-        tokenProvider._refreshToken = 'refresh-token';
-        tokenProvider._accessExpiry = null; // No expiry info
+        tokenProvider
+          .._accessToken = 'test-token'
+          .._refreshToken = 'refresh-token'
+          .._accessExpiry = null; // No expiry info
 
         final options = RequestOptions(path: '/test');
         final handler = _MockRequestHandler();
@@ -231,7 +248,10 @@ void main() {
         await interceptor.onRequest(options, handler);
 
         expect(refreshCalled, false);
-        expect(handler.nextOptions?.headers['Authorization'], 'Bearer test-token');
+        expect(
+          handler.nextOptions?.headers['Authorization'],
+          'Bearer test-token',
+        );
       });
 
       test('uses token without refresh when not expiring soon', () async {
@@ -247,9 +267,11 @@ void main() {
         );
 
         // Token expires in 10 minutes (outside threshold)
-        tokenProvider._accessToken = 'test-token';
-        tokenProvider._refreshToken = 'refresh-token';
-        tokenProvider._accessExpiry = DateTime.now().toUtc().add(const Duration(minutes: 10));
+        tokenProvider
+          .._accessToken = 'test-token'
+          .._refreshToken = 'refresh-token'
+          .._accessExpiry =
+              DateTime.now().toUtc().add(const Duration(minutes: 10));
 
         final options = RequestOptions(path: '/test');
         final handler = _MockRequestHandler();
@@ -257,7 +279,10 @@ void main() {
         await interceptor.onRequest(options, handler);
 
         expect(refreshCalled, false);
-        expect(handler.nextOptions?.headers['Authorization'], 'Bearer test-token');
+        expect(
+          handler.nextOptions?.headers['Authorization'],
+          'Bearer test-token',
+        );
       });
     });
 
@@ -272,9 +297,11 @@ void main() {
           refreshThreshold: const Duration(minutes: 5),
         );
 
-        tokenProvider._accessToken = 'old-token';
-        tokenProvider._refreshToken = 'old-refresh';
-        tokenProvider._accessExpiry = DateTime.now().toUtc().add(const Duration(minutes: 1));
+        tokenProvider
+          .._accessToken = 'old-token'
+          .._refreshToken = 'old-refresh'
+          .._accessExpiry =
+              DateTime.now().toUtc().add(const Duration(minutes: 1));
 
         final options = RequestOptions(path: '/test');
         final handler = _MockRequestHandler();
@@ -299,8 +326,9 @@ void main() {
       });
 
       test('refreshes token and retries request on 401', () async {
-        tokenProvider._accessToken = 'old-token';
-        tokenProvider._refreshToken = 'refresh-token';
+        tokenProvider
+          .._accessToken = 'old-token'
+          .._refreshToken = 'refresh-token';
 
         final err = DioException(
           requestOptions: RequestOptions(path: '/api/data'),
@@ -317,12 +345,16 @@ void main() {
         expect(tokenProvider._accessToken, 'refreshed-token');
         // Handler should have either resolved or passed through an error
         // (depends on whether the retry succeeds, which it won't without a real server)
-        expect(handler.resolvedResponse != null || handler.nextError != null, true);
+        expect(
+          handler.resolvedResponse != null || handler.nextError != null,
+          true,
+        );
       });
 
       test('clears tokens and fails after second 401', () async {
-        tokenProvider._accessToken = 'old-token';
-        tokenProvider._refreshToken = 'refresh-token';
+        tokenProvider
+          .._accessToken = 'old-token'
+          .._refreshToken = 'refresh-token';
 
         // Simulate retry after refresh (extra flag set)
         final err = DioException(
@@ -367,15 +399,13 @@ void main() {
         // Configure custom refresh that returns a token, but don't store it
         final customInterceptor = AuthInterceptor(
           tokenProvider: tokenProvider,
-          customRefreshFn: (token) async {
-            // Refresh succeeds but returns null refresh token
-            // and we won't actually store anything
-            return const TokenRefreshResult(accessToken: 'new-token');
-          },
+          customRefreshFn: (token) async =>
+              const TokenRefreshResult(accessToken: 'new-token'),
         );
 
-        tokenProvider._refreshToken = 'refresh-token';
-        tokenProvider._accessToken = null;
+        tokenProvider
+          .._refreshToken = 'refresh-token'
+          .._accessToken = null;
 
         final err = DioException(
           requestOptions: RequestOptions(path: '/api/data'),
@@ -390,22 +420,26 @@ void main() {
 
         // Should have stored the token during refresh, so this may not fail
         // Let's just verify it handles the scenario
-        expect(handler.nextError != null || handler.resolvedResponse != null, true);
+        expect(
+          handler.nextError != null || handler.resolvedResponse != null,
+          true,
+        );
       });
     });
 
     group('OAuth error handling', () {
       test('handles invalid_grant error', () async {
-        final dio = Dio();
         interceptor = AuthInterceptor(
           tokenProvider: tokenProvider,
           refreshEndpointUrl: 'https://auth.example.com/token',
           clientId: 'test-client',
         );
 
-        tokenProvider._refreshToken = 'expired-refresh-token';
-        tokenProvider._accessToken = 'old-token';
-        tokenProvider._accessExpiry = DateTime.now().toUtc().subtract(const Duration(hours: 1));
+        tokenProvider
+          .._refreshToken = 'expired-refresh-token'
+          .._accessToken = 'old-token'
+          .._accessExpiry =
+              DateTime.now().toUtc().subtract(const Duration(hours: 1));
 
         // Simulate OAuth error response
         // This is tricky to test without a real server, so we'll test the error mapping function indirectly
@@ -429,9 +463,11 @@ void main() {
           refreshThreshold: const Duration(minutes: 5),
         );
 
-        tokenProvider._accessToken = 'old-token';
-        tokenProvider._refreshToken = 'refresh-token';
-        tokenProvider._accessExpiry = DateTime.now().toUtc().add(const Duration(minutes: 1));
+        tokenProvider
+          .._accessToken = 'old-token'
+          .._refreshToken = 'refresh-token'
+          .._accessExpiry =
+              DateTime.now().toUtc().add(const Duration(minutes: 1));
 
         final options = RequestOptions(path: '/test');
         final handler = _MockRequestHandler();
@@ -457,9 +493,11 @@ void main() {
           refreshThreshold: const Duration(minutes: 5),
         );
 
-        tokenProvider._accessToken = 'old-token';
-        tokenProvider._refreshToken = 'refresh-token';
-        tokenProvider._accessExpiry = DateTime.now().toUtc().add(const Duration(minutes: 1));
+        tokenProvider
+          .._accessToken = 'old-token'
+          .._refreshToken = 'refresh-token'
+          .._accessExpiry =
+              DateTime.now().toUtc().add(const Duration(minutes: 1));
 
         // Start three concurrent requests
         final futures = <Future<void>>[];
@@ -481,11 +519,11 @@ void main() {
         // Should only refresh once
         expect(refreshCallCount, 1);
       });
-
     });
 
     group('Edge cases', () {
-      test('handles exception from getAccessTokenExpiry during proactive check', () async {
+      test('handles exception from getAccessTokenExpiry during proactive check',
+          () async {
         tokenProvider._accessToken = 'test-token';
         tokenProvider._refreshToken = 'refresh-token';
 
@@ -506,10 +544,14 @@ void main() {
         // Should proceed without proactive refresh
         await interceptor.onRequest(options, handler);
 
-        expect(handler.nextOptions?.headers['Authorization'], 'Bearer test-token');
+        expect(
+          handler.nextOptions?.headers['Authorization'],
+          'Bearer test-token',
+        );
       });
 
-      test('cancelRefresh can be called to cancel in-progress refresh', () async {
+      test('cancelRefresh can be called to cancel in-progress refresh',
+          () async {
         // This test just verifies that cancelRefresh can be called without error
         interceptor = AuthInterceptor(
           tokenProvider: tokenProvider,
@@ -533,8 +575,9 @@ void main() {
           ),
         );
 
-        tokenProvider._refreshToken = 'refresh-token';
-        tokenProvider._accessToken = 'old-token';
+        tokenProvider
+          .._refreshToken = 'refresh-token'
+          .._accessToken = 'old-token';
 
         final err = DioException(
           requestOptions: RequestOptions(path: '/api/data'),
@@ -554,7 +597,6 @@ void main() {
         expect(tokenProvider._accessToken, 'new-token');
       });
     });
-
   });
 }
 

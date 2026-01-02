@@ -53,7 +53,7 @@ void main() {
       // Build fully-configured client
       final dio = const AcdcClientBuilder()
           .withBaseUrl(apiServer.baseUrl)
-          .withTimeout(Duration(seconds: 5))
+          .withTimeout(const Duration(seconds: 5))
           .withTokenProvider(tokenProvider)
           .withTokenRefreshEndpoint(
             url: oauthServer.tokenUrl,
@@ -72,8 +72,10 @@ void main() {
       expect(response.data, {'data': 'success'});
 
       // Verify auth token was sent
-      expect(apiServer.lastRequest?.headers['authorization'],
-          'Bearer valid-access-token',);
+      expect(
+        apiServer.lastRequest?.headers['authorization'],
+        'Bearer valid-access-token',
+      );
     });
 
     test('client proactively refreshes expiring token before request',
@@ -113,8 +115,10 @@ void main() {
 
       // Verify request used new token
       expect(response.statusCode, 200);
-      expect(apiServer.lastRequest?.headers['authorization'],
-          'Bearer refreshed-token',);
+      expect(
+        apiServer.lastRequest?.headers['authorization'],
+        'Bearer refreshed-token',
+      );
     });
 
     test('client reactively refreshes token on 401 response', () async {
@@ -123,9 +127,7 @@ void main() {
         refreshToken: 'valid-refresh-token',
       );
 
-      oauthServer.respondWithSuccess(
-        refreshToken: 'new-refresh-token',
-      );
+      oauthServer.respondWithSuccess();
 
       final dio = const AcdcClientBuilder()
           .withBaseUrl(apiServer.baseUrl)
@@ -154,43 +156,52 @@ void main() {
       // Test 4xx client error
       apiServer.reset();
       apiServer.respondWith(400, {'error': 'Bad request'});
-      final dio1 = const AcdcClientBuilder().withBaseUrl(apiServer.baseUrl).build();
+      final dio1 =
+          const AcdcClientBuilder().withBaseUrl(apiServer.baseUrl).build();
 
       await expectLater(
-        dio1.get('/bad-request'),
-        throwsA(isA<AcdcClientException>().having(
-          (e) => e.statusCode,
-          'statusCode',
-          400,
-        ),),
+        dio1.get<dynamic>('/bad-request'),
+        throwsA(
+          isA<AcdcClientException>().having(
+            (e) => e.statusCode,
+            'statusCode',
+            400,
+          ),
+        ),
       );
 
       // Test 5xx server error
       apiServer.reset();
       apiServer.respondWith(500, {'error': 'Internal error'});
-      final dio2 = const AcdcClientBuilder().withBaseUrl(apiServer.baseUrl).build();
+      final dio2 =
+          const AcdcClientBuilder().withBaseUrl(apiServer.baseUrl).build();
 
       await expectLater(
-        dio2.get('/server-error'),
-        throwsA(isA<AcdcServerException>().having(
-          (e) => e.statusCode,
-          'statusCode',
-          500,
-        ),),
+        dio2.get<dynamic>('/server-error'),
+        throwsA(
+          isA<AcdcServerException>().having(
+            (e) => e.statusCode,
+            'statusCode',
+            500,
+          ),
+        ),
       );
 
       // Test 401 auth error (without auth configured)
       apiServer.reset();
       apiServer.respondWith(401, {'error': 'Unauthorized'});
-      final dio3 = const AcdcClientBuilder().withBaseUrl(apiServer.baseUrl).build();
+      final dio3 =
+          const AcdcClientBuilder().withBaseUrl(apiServer.baseUrl).build();
 
       await expectLater(
-        dio3.get('/unauthorized'),
-        throwsA(isA<AcdcAuthException>().having(
-          (e) => e.statusCode,
-          'statusCode',
-          401,
-        ),),
+        dio3.get<dynamic>('/unauthorized'),
+        throwsA(
+          isA<AcdcAuthException>().having(
+            (e) => e.statusCode,
+            'statusCode',
+            401,
+          ),
+        ),
       );
     });
 
@@ -309,11 +320,11 @@ void main() {
     test('network errors are converted to AcdcNetworkException', () async {
       final dio = const AcdcClientBuilder()
           .withBaseUrl('http://invalid-host-that-does-not-exist.test')
-          .withTimeout(Duration(milliseconds: 100))
+          .withTimeout(const Duration(milliseconds: 100))
           .build();
 
       expect(
-        () => dio.get('/test'),
+        () => dio.get<dynamic>('/test'),
         throwsA(isA<AcdcNetworkException>()),
       );
     });
