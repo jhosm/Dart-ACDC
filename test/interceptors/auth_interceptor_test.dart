@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:dart_acdc/src/auth/custom_token_refresh_strategy.dart';
 import 'package:dart_acdc/src/auth/token_provider.dart';
 import 'package:dart_acdc/src/auth/token_refresh_result.dart';
 import 'package:dart_acdc/src/exceptions/acdc_auth_exception.dart';
@@ -121,6 +122,22 @@ void main() {
             customRefreshFn: (token) async => const TokenRefreshResult(
               accessToken: 'new-token',
             ),
+          ),
+          returnsNormally,
+        );
+      });
+
+      test('accepts valid configuration with custom refresh strategy', () {
+        final strategy = CustomTokenRefreshStrategy(
+          refreshFn: (token) async => const TokenRefreshResult(
+            accessToken: 'new-token',
+          ),
+        );
+
+        expect(
+          () => AuthInterceptor(
+            tokenProvider: tokenProvider,
+            refreshStrategy: strategy,
           ),
           returnsNormally,
         );

@@ -1,7 +1,10 @@
 import 'dart:async';
 import 'package:dart_acdc/src/auth/backoff_manager.dart';
+import 'package:dart_acdc/src/auth/custom_token_refresh_strategy.dart';
+import 'package:dart_acdc/src/auth/oauth_token_refresh_strategy.dart';
 import 'package:dart_acdc/src/auth/token_provider.dart';
 import 'package:dart_acdc/src/auth/token_refresh_result.dart';
+import 'package:dart_acdc/src/auth/token_refresh_strategy.dart';
 import 'package:dart_acdc/src/exceptions/acdc_auth_exception.dart';
 import 'package:dart_acdc/src/exceptions/acdc_network_exception.dart';
 import 'package:dart_acdc/src/exceptions/acdc_server_exception.dart';
@@ -24,13 +27,19 @@ class AuthInterceptor extends Interceptor {
   /// Creates an auth interceptor with the given configuration.
   ///
   /// [tokenProvider] is required for token management.
-  /// Either [refreshEndpointUrl] + [clientId] OR [customRefreshFn] must be provided.
+  ///
+  /// **Token Refresh Strategy** (choose one):
+  /// - [refreshStrategy]: Provide a custom [TokenRefreshStrategy] implementation
+  /// - [refreshEndpointUrl] + [clientId]: Uses built-in OAuth 2.1 refresh
+  /// - [customRefreshFn]: Uses custom refresh function (wrapped in strategy)
+  ///
   /// [refreshThreshold] determines when to proactively refresh (default: 60s before expiry).
   /// [refreshQueueTimeout] sets the max wait time for queued requests (default: 10s).
   /// [httpClient] is optional and primarily used for testing OAuth refresh/revocation.
   ///   If not provided, a separate Dio instance will be created to avoid interceptor loops.
   AuthInterceptor({
     required TokenProvider tokenProvider,
+    TokenRefreshStrategy? refreshStrategy,
     String? refreshEndpointUrl,
     String? clientId,
     Future<TokenRefreshResult> Function(String)? customRefreshFn,
@@ -38,30 +47,37 @@ class AuthInterceptor extends Interceptor {
     Duration refreshQueueTimeout = const Duration(seconds: 10),
     Dio? httpClient,
   })  : _tokenProvider = tokenProvider,
-        _refreshEndpointUrl = refreshEndpointUrl,
-        _clientId = clientId,
-        _customRefreshFn = customRefreshFn,
         _refreshThreshold = refreshThreshold,
-        _refreshQueueTimeout = refreshQueueTimeout,
-        _httpClient = httpClient {
+        _refreshQueueTimeout = refreshQueueTimeout {
     // Validate configuration
     if (refreshThreshold.inSeconds <= 0) {
       throw ArgumentError('refreshThreshold must be positive');
     }
-    if ((refreshEndpointUrl == null || clientId == null) &&
-        customRefreshFn == null) {
+
+    // Determine and set the refresh strategy
+    if (refreshStrategy != null) {
+      _refreshStrategy = refreshStrategy;
+    } else if (refreshEndpointUrl != null && clientId != null) {
+      _refreshStrategy = OAuthTokenRefreshStrategy(
+        refreshEndpointUrl: refreshEndpointUrl,
+        clientId: clientId,
+        httpClient: httpClient,
+      );
+    } else if (customRefreshFn != null) {
+      _refreshStrategy = CustomTokenRefreshStrategy(
+        refreshFn: customRefreshFn,
+      );
+    } else {
       throw ArgumentError(
-        'Either refreshEndpointUrl+clientId OR customRefreshFn must be provided',
+        'Either refreshStrategy, refreshEndpointUrl+clientId, OR customRefreshFn must be provided',
       );
     }
   }
+
   final TokenProvider _tokenProvider;
-  final String? _refreshEndpointUrl;
-  final String? _clientId;
-  final Future<TokenRefreshResult> Function(String)? _customRefreshFn;
+  late final TokenRefreshStrategy _refreshStrategy;
   final Duration _refreshThreshold;
   final Duration _refreshQueueTimeout;
-  final Dio? _httpClient;
 
   // Refresh state management
   Completer<void>? _refreshCompleter;
@@ -272,10 +288,8 @@ class AuthInterceptor extends Interceptor {
         );
       }
 
-      // Perform refresh
-      final result = _customRefreshFn != null
-          ? await _customRefreshFn!(refreshToken)
-          : await _performOAuthRefresh(refreshToken);
+      // Perform refresh using the strategy
+      final result = await _refreshStrategy.refresh(refreshToken);
 
       // Store new tokens
       try {
@@ -305,105 +319,6 @@ class AuthInterceptor extends Interceptor {
       // Server errors - apply exponential backoff
       _backoffManager.increment();
       rethrow;
-    }
-  }
-
-  /// Performs OAuth 2.1 token refresh.
-  Future<TokenRefreshResult> _performOAuthRefresh(String refreshToken) async {
-    // Use injected client or create a separate instance to avoid interceptor loops
-    final dio = _httpClient ?? Dio();
-    final refreshUrl = _refreshEndpointUrl!; // Promote to non-nullable
-
-    try {
-      final response = await dio.post<Map<String, dynamic>>(
-        refreshUrl,
-        data: {
-          'grant_type': 'refresh_token',
-          'refresh_token': refreshToken,
-          'client_id': _clientId,
-        },
-        options: Options(
-          contentType: 'application/x-www-form-urlencoded',
-          headers: {'Accept': 'application/json'},
-        ),
-      );
-
-      final data = response.data!;
-
-      // Extract tokens
-      final accessToken = data['access_token'] as String?;
-      if (accessToken == null) {
-        throw AcdcAuthException(
-          requestOptions: RequestOptions(path: refreshUrl),
-          message: 'Refresh response missing access_token',
-        );
-      }
-
-      final newRefreshToken = data['refresh_token'] as String?;
-      final expiresIn = data['expires_in'] as int?;
-
-      // Calculate expiry with clock skew handling
-      DateTime? accessExpiry;
-      if (expiresIn != null) {
-        // Try to use server time from Date header
-        final dateHeader = response.headers.value('date');
-        if (dateHeader != null) {
-          try {
-            // Parse HTTP date format (RFC 1123)
-            final serverTime = DateTime.parse(dateHeader);
-            accessExpiry = serverTime.add(Duration(seconds: expiresIn));
-          } on FormatException {
-            // Fall back to local time if parsing fails
-            accessExpiry =
-                DateTime.now().toUtc().add(Duration(seconds: expiresIn));
-          }
-        } else {
-          // No Date header - use local time
-          accessExpiry =
-              DateTime.now().toUtc().add(Duration(seconds: expiresIn));
-        }
-      }
-
-      return TokenRefreshResult(
-        accessToken: accessToken,
-        refreshToken: newRefreshToken,
-        accessExpiry: accessExpiry,
-      );
-    } on DioException catch (e) {
-      // Handle OAuth error responses
-      if (e.response?.statusCode == 400) {
-        final data = e.response?.data;
-        if (data is Map<String, dynamic>) {
-          final error = data['error'] as String?;
-          final errorDescription = data['error_description'] as String?;
-
-          var message = _mapOAuthError(error);
-          if (errorDescription != null) {
-            message += ': $errorDescription';
-          }
-
-          throw AcdcAuthException.fromDioException(e, message: message);
-        }
-      }
-
-      // Network or server errors
-      rethrow;
-    }
-  }
-
-  /// Maps OAuth error codes to user-friendly messages.
-  String _mapOAuthError(String? error) {
-    switch (error) {
-      case 'invalid_grant':
-        return 'Refresh token expired or invalid. Please log in again.';
-      case 'invalid_client':
-        return 'Client authentication failed. Check client configuration.';
-      case 'unauthorized_client':
-        return 'Client not authorized for token refresh.';
-      case 'unsupported_grant_type':
-        return 'Server does not support refresh token grant.';
-      default:
-        return 'Token refresh failed';
     }
   }
 
