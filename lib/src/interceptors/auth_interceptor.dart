@@ -84,6 +84,9 @@ class AuthInterceptor extends Interceptor {
   bool _isRefreshing = false;
   final _backoffManager = BackoffManager();
 
+  // Retry client (lazy-initialized to avoid interceptor loops)
+  Dio? _retryClient;
+
   @override
   Future<void> onRequest(
     RequestOptions options,
@@ -176,9 +179,9 @@ class AuthInterceptor extends Interceptor {
       AuthRequestHelper.injectBearerToken(requestOptions, newToken);
       AuthRequestHelper.markAsRetry(requestOptions);
 
-      // Make the retry request
-      final dio = Dio();
-      final response = await dio.fetch<dynamic>(requestOptions);
+      // Make the retry request (reuse client to avoid creating new instances)
+      _retryClient ??= Dio();
+      final response = await _retryClient!.fetch<dynamic>(requestOptions);
       handler.resolve(response);
     } on DioException catch (e) {
       // Refresh failed - pass error through
@@ -188,6 +191,12 @@ class AuthInterceptor extends Interceptor {
       handler.next(err);
     }
   }
+
+  /// Creates an auth exception with an empty request context.
+  AcdcAuthException _createAuthException(String message) => AcdcAuthException(
+        requestOptions: AuthRequestHelper.createEmptyRequestOptions(),
+        message: message,
+      );
 
   /// Checks if proactive token refresh is needed.
   Future<bool> _needsProactiveRefresh() async {
@@ -218,12 +227,7 @@ class AuthInterceptor extends Interceptor {
       if (completer != null) {
         await completer.future.timeout(
           _refreshQueueTimeout,
-          onTimeout: () {
-            throw AcdcAuthException(
-              requestOptions: AuthRequestHelper.createEmptyRequestOptions(),
-              message: 'Token refresh timeout',
-            );
-          },
+          onTimeout: () => throw _createAuthException('Token refresh timeout'),
         );
       }
       return;
@@ -254,57 +258,16 @@ class AuthInterceptor extends Interceptor {
       await _backoffManager.waitIfNeeded();
 
       // Get refresh token
-      String? refreshToken;
-      try {
-        refreshToken = await _tokenProvider.getRefreshToken();
-      } on Exception catch (e) {
-        throw AcdcAuthException(
-          requestOptions: AuthRequestHelper.createEmptyRequestOptions(),
-          message: 'Failed to retrieve refresh token: $e',
-        );
-      }
-
-      if (refreshToken == null) {
-        throw AcdcAuthException(
-          requestOptions: AuthRequestHelper.createEmptyRequestOptions(),
-          message: 'No refresh token available',
-        );
-      }
+      final refreshToken = await _getRefreshToken();
 
       // Check if refresh token is expired
-      DateTime? refreshExpiry;
-      try {
-        refreshExpiry = await _tokenProvider.getRefreshTokenExpiry();
-      } on Exception {
-        // Ignore expiry check errors, proceed with refresh
-      }
-
-      if (refreshExpiry != null &&
-          refreshExpiry.isBefore(DateTime.now().toUtc())) {
-        await _clearTokensSafely();
-        throw AcdcAuthException(
-          requestOptions: AuthRequestHelper.createEmptyRequestOptions(),
-          message: 'Refresh token expired. Please log in again.',
-        );
-      }
+      await _validateRefreshTokenExpiry();
 
       // Perform refresh using the strategy
       final result = await _refreshStrategy.refresh(refreshToken);
 
       // Store new tokens
-      try {
-        await _tokenProvider.setTokens(
-          accessToken: result.accessToken,
-          refreshToken: result.refreshToken,
-          accessExpiry: result.accessExpiry,
-          refreshExpiry: result.refreshExpiry,
-        );
-      } on Exception catch (e) {
-        throw AcdcAuthException(
-          requestOptions: AuthRequestHelper.createEmptyRequestOptions(),
-          message: 'Failed to store refreshed tokens: $e',
-        );
-      }
+      await _storeRefreshedTokens(result);
 
       // Reset backoff on success
       _backoffManager.reset();
@@ -322,6 +285,50 @@ class AuthInterceptor extends Interceptor {
     }
   }
 
+  /// Retrieves refresh token from provider, throwing if unavailable.
+  Future<String> _getRefreshToken() async {
+    try {
+      final token = await _tokenProvider.getRefreshToken();
+      if (token == null) {
+        throw _createAuthException('No refresh token available');
+      }
+      return token;
+    } on Exception catch (e) {
+      if (e is AcdcAuthException) rethrow;
+      throw _createAuthException('Failed to retrieve refresh token: $e');
+    }
+  }
+
+  /// Validates that the refresh token hasn't expired.
+  Future<void> _validateRefreshTokenExpiry() async {
+    try {
+      final refreshExpiry = await _tokenProvider.getRefreshTokenExpiry();
+      if (refreshExpiry != null &&
+          refreshExpiry.isBefore(DateTime.now().toUtc())) {
+        await _clearTokensSafely();
+        throw _createAuthException('Refresh token expired. Please log in again.');
+      }
+    } on AcdcAuthException {
+      rethrow;
+    } on Exception {
+      // Ignore expiry check errors, proceed with refresh
+    }
+  }
+
+  /// Stores refreshed tokens in the provider.
+  Future<void> _storeRefreshedTokens(TokenRefreshResult result) async {
+    try {
+      await _tokenProvider.setTokens(
+        accessToken: result.accessToken,
+        refreshToken: result.refreshToken,
+        accessExpiry: result.accessExpiry,
+        refreshExpiry: result.refreshExpiry,
+      );
+    } on Exception catch (e) {
+      throw _createAuthException('Failed to store refreshed tokens: $e');
+    }
+  }
+
   /// Safely clears tokens, catching exceptions.
   Future<void> _clearTokensSafely() async {
     try {
@@ -335,12 +342,7 @@ class AuthInterceptor extends Interceptor {
   /// Cancels any in-progress refresh operation.
   void cancelRefresh() {
     if (_isRefreshing && _refreshCompleter != null) {
-      _refreshCompleter!.completeError(
-        AcdcAuthException(
-          requestOptions: AuthRequestHelper.createEmptyRequestOptions(),
-          message: 'Token refresh cancelled',
-        ),
-      );
+      _refreshCompleter!.completeError(_createAuthException('Token refresh cancelled'));
       _isRefreshing = false;
       _refreshCompleter = null;
     }
