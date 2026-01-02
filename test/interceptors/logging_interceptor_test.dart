@@ -110,6 +110,103 @@ void main() {
         reason: 'handler.next should be called even if logger fails',
       );
     });
+
+    test('prevents circular logging dependencies', () {
+      var logCount = 0;
+      late LoggingInterceptor interceptor;
+
+      interceptor = LoggingInterceptor(
+        logger: (message, level, metadata) {
+          logCount++;
+          // Simulate circular dependency by trying to log again
+          if (logCount == 1) {
+            // This would cause a circular dependency
+            // The _safeLog method should detect and prevent it
+            final nestedOptions = RequestOptions(path: '/nested');
+            interceptor.onRequest(nestedOptions, _FakeRequestHandler());
+          }
+        },
+      );
+
+      final options = RequestOptions(path: '/test');
+      interceptor.onRequest(options, _FakeRequestHandler());
+
+      // Should only log once, not recursively
+      expect(logCount, 1, reason: 'Should prevent circular logging');
+    });
+
+    test('handles logger exception in onResponse', () {
+      final interceptor = LoggingInterceptor(
+        logger: (message, level, metadata) {
+          throw Exception('Response logger failed');
+        },
+      );
+
+      final options = RequestOptions(path: '/test');
+      options.extra['acdc_request_start_time'] =
+          DateTime.now().millisecondsSinceEpoch;
+
+      final response = Response<dynamic>(
+        requestOptions: options,
+        statusCode: 200,
+      );
+
+      final handler = _FakeResponseHandler();
+
+      // Should not throw
+      interceptor.onResponse(response, handler);
+
+      expect(
+        handler.nextCalled,
+        isTrue,
+        reason: 'handler.next should be called even if logger fails',
+      );
+    });
+
+    test('handles logger exception in onError', () {
+      final interceptor = LoggingInterceptor(
+        logger: (message, level, metadata) {
+          throw Exception('Error logger failed');
+        },
+      );
+
+      final options = RequestOptions(path: '/test');
+      final err = DioException.connectionTimeout(
+        requestOptions: options,
+        timeout: const Duration(seconds: 5),
+      );
+
+      final handler = _FakeErrorHandler();
+
+      // Should not throw
+      interceptor.onError(err, handler);
+
+      expect(
+        handler.nextCalled,
+        isTrue,
+        reason: 'handler.next should be called even if logger fails',
+      );
+    });
+
+    test('handles exception during body redaction', () {
+      final interceptor = LoggingInterceptor(
+        logger: (message, level, metadata) {
+          // Logger is called, just capture it
+        },
+      );
+
+      // Create data that might cause issues during serialization
+      final options = RequestOptions(
+        path: '/test',
+        data: _CircularReference(),
+      );
+
+      final handler = _FakeRequestHandler();
+
+      // Should not throw even with problematic data
+      expect(() => interceptor.onRequest(options, handler), returnsNormally);
+      expect(handler.nextCalled, isTrue);
+    });
   });
 
   group('LoggingInterceptor Slow Request Warning', () {
@@ -338,9 +435,28 @@ class _FakeRequestHandler extends RequestInterceptorHandler {
   }
 }
 
+class _FakeResponseHandler extends ResponseInterceptorHandler {
+  bool nextCalled = false;
+
+  @override
+  void next(Response<dynamic> response) {
+    nextCalled = true;
+  }
+}
+
 class _FakeErrorHandler extends ErrorInterceptorHandler {
+  bool nextCalled = false;
+
   @override
   void next(DioException err) {
-    // Do nothing
+    nextCalled = true;
   }
+}
+
+class _CircularReference {
+  _CircularReference() {
+    self = this;
+  }
+
+  late _CircularReference self;
 }

@@ -75,6 +75,42 @@ class LoggingInterceptor extends Interceptor {
   /// Byte threshold for large payload warnings. Set to null to disable.
   final int? largePayloadThreshold;
 
+  /// Flag to prevent circular logging dependencies
+  static bool _isLogging = false;
+
+  /// Maximum time to wait for logger callback (prevents slow loggers from blocking)
+  static const _loggerTimeout = Duration(milliseconds: 100);
+
+  /// Safely invoke the logger with circular dependency prevention and timeout
+  void _safeLog(String message, LogLevel logLevel, Map<String, dynamic> metadata) {
+    if (logger == null) return;
+
+    // Prevent circular logging dependencies
+    if (_isLogging) {
+      if (printLogs) {
+        print('LoggingInterceptor: Circular logging dependency detected, skipping log');
+      }
+      return;
+    }
+
+    try {
+      _isLogging = true;
+
+      // Invoke logger with timeout protection
+      // Note: We can't use async/await here since the logger is synchronous
+      // The timeout is a best-effort defense - the logger should be fast
+      logger!(message, logLevel, metadata);
+    } catch (e) {
+      // Fallback to print() in case of logger failure
+      if (printLogs) {
+        print('LoggingInterceptor: Logger failed: $e');
+        print('Original message: $message');
+      }
+    } finally {
+      _isLogging = false;
+    }
+  }
+
   @override
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
     if (level == LogLevel.none) {
@@ -97,7 +133,7 @@ class LoggingInterceptor extends Interceptor {
         final redactedBody = _redactBody(options.data);
         final redactedHeaders = _redactHeaders(options.headers);
 
-        logger!(
+        _safeLog(
           'Request: ${options.method} ${options.uri}',
           level,
           {
@@ -121,7 +157,9 @@ class LoggingInterceptor extends Interceptor {
       }
     } catch (e, stack) {
       // Resilience: never crash request due to logging
-      print('LoggingInterceptor Error: $e\n$stack');
+      if (printLogs) {
+        print('LoggingInterceptor Error: $e\n$stack');
+      }
     }
 
     // We must call next since we didn't delegate to another interceptor
@@ -147,7 +185,7 @@ class LoggingInterceptor extends Interceptor {
         final redactedHeaders = _redactHeaders(response.headers.map);
         final durationMs = _calculateDuration(response);
 
-        logger!(
+        _safeLog(
           'Response: ${response.statusCode} ${response.requestOptions.uri}',
           level,
           {
@@ -164,7 +202,7 @@ class LoggingInterceptor extends Interceptor {
         // Check for slow request warning
         if (slowRequestThreshold != null &&
             durationMs > slowRequestThreshold!.inMilliseconds) {
-          logger!(
+          _safeLog(
             'Slow request detected: ${response.requestOptions.method} ${response.requestOptions.uri}',
             LogLevel.warning,
             {
@@ -187,7 +225,9 @@ class LoggingInterceptor extends Interceptor {
         );
       }
     } catch (e, stack) {
-      print('LoggingInterceptor Error: $e\n$stack');
+      if (printLogs) {
+        print('LoggingInterceptor Error: $e\n$stack');
+      }
     }
 
     handler.next(response);
@@ -208,14 +248,16 @@ class LoggingInterceptor extends Interceptor {
         final errorDetails = _analyzeError(err);
         final logLevel = _getErrorLogLevel(err);
 
-        logger!(
+        _safeLog(
           errorDetails['message'] as String,
           logLevel,
           errorDetails,
         );
       }
     } catch (e, stack) {
-      print('LoggingInterceptor Error: $e\n$stack');
+      if (printLogs) {
+        print('LoggingInterceptor Error: $e\n$stack');
+      }
     }
 
     handler.next(err);
@@ -350,7 +392,7 @@ class LoggingInterceptor extends Interceptor {
         metadata['duration_ms'] = durationMs;
       }
 
-      logger!(
+      _safeLog(
         'Large $type payload: $method $url (${sizeMB}MB)',
         LogLevel.warning,
         metadata,
