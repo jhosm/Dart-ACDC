@@ -36,6 +36,8 @@ class _MyHomePageState extends State<MyHomePage> {
   bool _isLoading = false;
   String? _error;
   List<Post> _posts = [];
+  final List<String> _logs = [];
+  final ScrollController _logScrollController = ScrollController();
 
   @override
   void initState() {
@@ -43,23 +45,79 @@ class _MyHomePageState extends State<MyHomePage> {
     _initializeClient();
   }
 
+  @override
+  void dispose() {
+    _logScrollController.dispose();
+    super.dispose();
+  }
+
+  void _addLog(String message, LogLevel level, Map<String, dynamic>? metadata) {
+    final timestamp = DateTime.now().toIso8601String().substring(11, 23);
+    final metaStr = metadata != null ? ' ${_formatMetadata(metadata)}' : '';
+
+    setState(() {
+      _logs.add('[$timestamp] [$level] $message$metaStr');
+
+      // Auto-scroll to bottom
+      if (_logScrollController.hasClients) {
+        Future.delayed(const Duration(milliseconds: 100), () {
+          _logScrollController.animateTo(
+            _logScrollController.position.maxScrollExtent,
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeOut,
+          );
+        });
+      }
+    });
+
+    // Also print to console for debugging
+    debugPrint('[$level] $message $metaStr');
+  }
+
+  String _formatMetadata(Map<String, dynamic> metadata) {
+    // Format specific metadata types for better readability
+    final type = metadata['type'];
+    switch (type) {
+      case 'request':
+        return '{${metadata['method']} ${metadata['url']}}';
+      case 'response':
+        return '{${metadata['statusCode']} in ${metadata['duration_ms']}ms}';
+      case 'error':
+        return '{${metadata['error_type']}: ${metadata['statusCode'] ?? 'N/A'}}';
+      case 'slow_request':
+        return '{${metadata['duration_ms']}ms > ${metadata['threshold_ms']}ms}';
+      case 'large_payload':
+        return '{${metadata['payload_type']}: ${metadata['size_mb']}MB}';
+      default:
+        return metadata.toString();
+    }
+  }
+
   void _initializeClient() {
     // 1. Create a Dio instance using Dart ACDC Builder
     // This automatically configures:
     // - Token management (if configured)
-    // - Logging
+    // - Logging with custom logger
     // - Error handling
     // - Timeouts
     final dio = AcdcClientBuilder()
         .withBaseUrl('https://jsonplaceholder.typicode.com')
-        .withLogger((message, level, metadata) {
-          debugPrint('[$level] $message ${metadata ?? ''}');
-        })
+        .withLogger(_addLog)
         .withLogLevel(LogLevel.info)
         .build();
 
     // 2. Inject Dio into the generated OpenAPI client
     _client = Openapi(dio: dio);
+
+    _addLog('ACDC Client initialized', LogLevel.info, {
+      'base_url': 'https://jsonplaceholder.typicode.com',
+    });
+  }
+
+  void _clearLogs() {
+    setState(() {
+      _logs.clear();
+    });
   }
 
   Future<void> _fetchPosts() async {
@@ -124,59 +182,134 @@ class _MyHomePageState extends State<MyHomePage> {
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         title: Text(widget.title),
       ),
-      body: Center(
-        child: Column(
-          children: [
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                ElevatedButton(
+                  onPressed: _isLoading ? null : _fetchPosts,
+                  child: const Text('Fetch Posts'),
+                ),
+                const SizedBox(width: 16),
+                ElevatedButton(
+                  onPressed: _isLoading ? null : _triggerError,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Theme.of(
+                      context,
+                    ).colorScheme.errorContainer,
+                  ),
+                  child: const Text('Trigger Error'),
+                ),
+                const SizedBox(width: 16),
+                ElevatedButton(
+                  onPressed: _clearLogs,
+                  child: const Text('Clear Logs'),
+                ),
+              ],
+            ),
+          ),
+          if (_isLoading) const CircularProgressIndicator(),
+          if (_error != null)
             Padding(
               padding: const EdgeInsets.all(16.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
+              child: Text(
+                _error!,
+                style: TextStyle(color: Theme.of(context).colorScheme.error),
+              ),
+            ),
+          // Log Viewer Section
+          Expanded(
+            flex: 2,
+            child: Container(
+              margin: const EdgeInsets.all(8.0),
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.grey),
+                borderRadius: BorderRadius.circular(8.0),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  ElevatedButton(
-                    onPressed: _isLoading ? null : _fetchPosts,
-                    child: const Text('Fetch Posts'),
-                  ),
-                  const SizedBox(width: 16),
-                  ElevatedButton(
-                    onPressed: _isLoading ? null : _triggerError,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Theme.of(
-                        context,
-                      ).colorScheme.errorContainer,
+                  Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Text(
+                      'Logs (${_logs.length})',
+                      style: Theme.of(context).textTheme.titleMedium,
                     ),
-                    child: const Text('Trigger Error'),
+                  ),
+                  const Divider(height: 1),
+                  Expanded(
+                    child: _logs.isEmpty
+                        ? const Center(
+                            child: Text('No logs yet. Try fetching posts!'),
+                          )
+                        : ListView.builder(
+                            controller: _logScrollController,
+                            itemCount: _logs.length,
+                            itemBuilder: (context, index) {
+                              final log = _logs[index];
+                              return Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8.0,
+                                  vertical: 4.0,
+                                ),
+                                child: Text(
+                                  log,
+                                  style: const TextStyle(
+                                    fontFamily: 'monospace',
+                                    fontSize: 11,
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
                   ),
                 ],
               ),
             ),
-            if (_isLoading) const CircularProgressIndicator(),
-            if (_error != null)
-              Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Text(
-                  _error!,
-                  style: TextStyle(color: Theme.of(context).colorScheme.error),
-                ),
-              ),
-            Expanded(
-              child: ListView.builder(
-                itemCount: _posts.length,
-                itemBuilder: (context, index) {
-                  final post = _posts[index];
-                  return ListTile(
-                    leading: CircleAvatar(child: Text('${post.id}')),
-                    title: Text(post.title ?? ''),
-                    subtitle: Text(
-                      post.body ?? '',
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
+          ),
+          // Posts Section
+          Expanded(
+            flex: 3,
+            child: Container(
+              margin: const EdgeInsets.all(8.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Text(
+                      'Posts (${_posts.length})',
+                      style: Theme.of(context).textTheme.titleMedium,
                     ),
-                  );
-                },
+                  ),
+                  const Divider(height: 1),
+                  Expanded(
+                    child: _posts.isEmpty
+                        ? const Center(child: Text('No posts loaded'))
+                        : ListView.builder(
+                            itemCount: _posts.length,
+                            itemBuilder: (context, index) {
+                              final post = _posts[index];
+                              return ListTile(
+                                leading: CircleAvatar(child: Text('${post.id}')),
+                                title: Text(post.title ?? ''),
+                                subtitle: Text(
+                                  post.body ?? '',
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              );
+                            },
+                          ),
+                  ),
+                ],
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
