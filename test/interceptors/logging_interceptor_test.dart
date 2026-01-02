@@ -11,7 +11,6 @@ void main() {
     setUp(() {
       logs = [];
       interceptor = LoggingInterceptor(
-        level: LogLevel.info,
         logger: (message, level, metadata) {
           if (metadata != null) {
             logs.add(metadata);
@@ -48,7 +47,7 @@ void main() {
         data: {
           'username': 'user',
           'password': 'my_password',
-          'nested': {'accessToken': 'xyz', 'publicInfo': 'visible'}
+          'nested': {'accessToken': 'xyz', 'publicInfo': 'visible'},
         },
       );
       final handler = RequestInterceptorHandler();
@@ -94,7 +93,6 @@ void main() {
   group('LoggingInterceptor Resilience', () {
     test('proceeds when logger throws exception', () {
       final interceptor = LoggingInterceptor(
-        level: LogLevel.info,
         logger: (message, level, metadata) {
           throw Exception('Logger failed');
         },
@@ -106,8 +104,11 @@ void main() {
       // Should not throw
       interceptor.onRequest(options, handler);
 
-      expect(handler.nextCalled, isTrue,
-          reason: 'handler.next should be called even if logger fails');
+      expect(
+        handler.nextCalled,
+        isTrue,
+        reason: 'handler.next should be called even if logger fails',
+      );
     });
   });
 }

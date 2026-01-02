@@ -101,7 +101,9 @@ class LoggingInterceptor extends Interceptor {
 
   @override
   void onResponse(
-      Response<dynamic> response, ResponseInterceptorHandler handler) {
+    Response<dynamic> response,
+    ResponseInterceptorHandler handler,
+  ) {
     if (level == LogLevel.none) {
       return handler.next(response);
     }
@@ -202,9 +204,8 @@ class LoggingInterceptor extends Interceptor {
     return newMap;
   }
 
-  List<dynamic> _redactList(List<dynamic> list) {
-    return list.map((e) => _redactBody(e)).toList();
-  }
+  List<dynamic> _redactList(List<dynamic> list) =>
+      list.map((e) => _redactBody(e)).toList();
 
   Map<String, dynamic> _redactHeaders(Map<String, dynamic> headers) {
     final newHeaders = <String, dynamic>{};
