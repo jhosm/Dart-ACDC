@@ -27,6 +27,7 @@ class FakeOAuthServer {
   final List<shelf.Request> receivedRequests = [];
   int refreshCallCount = 0;
   int revokeCallCount = 0;
+  Map<String, String>? lastRefreshRequestParams;
 
   /// Starts the fake OAuth server on a random port.
   Future<void> start() async {
@@ -95,6 +96,7 @@ class FakeOAuthServer {
     receivedRequests.clear();
     refreshCallCount = 0;
     revokeCallCount = 0;
+    lastRefreshRequestParams = null;
     respondWithSuccess();
     _responseDelay = Duration.zero;
   }
@@ -124,6 +126,9 @@ class FakeOAuthServer {
     // Parse request body
     final body = await request.readAsString();
     final params = Uri.splitQueryString(body);
+
+    // Store params for test inspection
+    lastRefreshRequestParams = params;
 
     // Validate request
     if (params['grant_type'] != 'refresh_token') {
