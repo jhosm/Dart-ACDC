@@ -2,13 +2,11 @@ import 'dart:convert';
 import 'package:dart_acdc/src/logging/acdc_logger.dart';
 import 'package:dart_acdc/src/logging/log_level.dart';
 import 'package:dio/dio.dart';
-import 'package:flutter/foundation.dart'; // For kDebugMode
-import 'package:pretty_dio_logger/pretty_dio_logger.dart';
 
 /// Interceptor that handles logging of requests, responses, and errors.
 ///
 /// Features:
-/// - Human-readable console logs in debug mode (via [PrettyDioLogger]).
+/// - Human-readable console logs (when enabled via [printLogs]).
 /// - Structured logging via optional [AcdcLogger] callback.
 /// - Adjustable verbosity levels.
 /// - Automatic redaction of sensitive fields (headers and body).
@@ -23,6 +21,7 @@ class LoggingInterceptor extends Interceptor {
     this.logResponseHeaders = true,
     this.maxWidth = 120,
     this.compact = true,
+    this.printLogs = false,
   }) : sensitiveFields = sensitiveFields ??
             const [
               'password',
@@ -55,6 +54,9 @@ class LoggingInterceptor extends Interceptor {
   /// Whether to compact JSON output.
   final bool compact;
 
+  /// Whether to print logs to console.
+  final bool printLogs;
+
   @override
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
     if (level == LogLevel.none) {
@@ -62,8 +64,8 @@ class LoggingInterceptor extends Interceptor {
     }
 
     try {
-      // 1. Pretty Print (Debug Only)
-      if (kDebugMode && level != LogLevel.none) {
+      // 1. Console Logging
+      if (printLogs && level != LogLevel.none) {
         // We manually print a debug representation that respects our redaction rules.
         _printDebugRequest(options);
       }
@@ -92,7 +94,7 @@ class LoggingInterceptor extends Interceptor {
       }
     } catch (e, stack) {
       // Resilience: never crash request due to logging
-      debugPrint('LoggingInterceptor Error: $e\n$stack');
+      print('LoggingInterceptor Error: $e\n$stack');
     }
 
     // We must call next since we didn't delegate to another interceptor
@@ -109,7 +111,7 @@ class LoggingInterceptor extends Interceptor {
     }
 
     try {
-      if (kDebugMode && level != LogLevel.none) {
+      if (printLogs && level != LogLevel.none) {
         _printDebugResponse(response);
       }
 
@@ -132,7 +134,7 @@ class LoggingInterceptor extends Interceptor {
         );
       }
     } catch (e, stack) {
-      debugPrint('LoggingInterceptor Error: $e\n$stack');
+      print('LoggingInterceptor Error: $e\n$stack');
     }
 
     handler.next(response);
@@ -145,7 +147,7 @@ class LoggingInterceptor extends Interceptor {
     }
 
     try {
-      if (kDebugMode && level != LogLevel.none) {
+      if (printLogs && level != LogLevel.none) {
         _printDebugError(err);
       }
 
@@ -164,7 +166,7 @@ class LoggingInterceptor extends Interceptor {
         );
       }
     } catch (e, stack) {
-      debugPrint('LoggingInterceptor Error: $e\n$stack');
+      print('LoggingInterceptor Error: $e\n$stack');
     }
 
     handler.next(err);
@@ -205,7 +207,7 @@ class LoggingInterceptor extends Interceptor {
   }
 
   List<dynamic> _redactList(List<dynamic> list) =>
-      list.map((e) => _redactBody(e)).toList();
+      list.map(_redactBody).toList();
 
   Map<String, dynamic> _redactHeaders(Map<String, dynamic> headers) {
     final newHeaders = <String, dynamic>{};
@@ -238,7 +240,7 @@ class LoggingInterceptor extends Interceptor {
     return DateTime.now().millisecondsSinceEpoch - startTime;
   }
 
-  // --- Quick Debug Printing Helpers (Replacements for PrettyDioLogger if we don't use it directly) ---
+  // --- Console Printing Helpers ---
 
   void _printDebugRequest(RequestOptions options) {
     final b = StringBuffer();
@@ -250,7 +252,7 @@ class LoggingInterceptor extends Interceptor {
     if (options.data != null) {
       b.writeln('Body: ${_redactBody(options.data)}');
     }
-    debugPrint(b.toString());
+    print(b.toString());
   }
 
   void _printDebugResponse(Response<dynamic> response) {
@@ -261,7 +263,7 @@ class LoggingInterceptor extends Interceptor {
       b.writeln('Headers: ${_redactHeaders(response.headers.map)}');
     }
     b.writeln('Data: ${_redactBody(response.data)}');
-    debugPrint(b.toString());
+    print(b.toString());
   }
 
   void _printDebugError(DioException err) {
@@ -269,6 +271,6 @@ class LoggingInterceptor extends Interceptor {
     b.writeln('*** Error ***');
     b.writeln('Message: ${err.message}');
     b.writeln('Type: ${err.type}');
-    debugPrint(b.toString());
+    print(b.toString());
   }
 }

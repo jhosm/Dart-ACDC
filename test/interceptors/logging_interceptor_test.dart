@@ -1,4 +1,3 @@
-import 'package:dart_acdc/dart_acdc.dart';
 import 'package:dart_acdc/src/interceptors/logging_interceptor.dart';
 import 'package:dio/dio.dart';
 import 'package:test/test.dart';
