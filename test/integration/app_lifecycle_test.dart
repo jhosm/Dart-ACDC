@@ -164,7 +164,6 @@ void main() {
       oauthServer.respondWithOAuthError(
         error: 'invalid_grant',
         errorDescription: 'Refresh token expired',
-        statusCode: 400,
       );
 
       // Set up EXPIRED token to force refresh
@@ -259,7 +258,6 @@ void main() {
         ..setResponseDelay(const Duration(milliseconds: 200))
         ..respondWithSuccess(
           accessToken: 'refreshed-token',
-          refreshToken: 'new-refresh-token',
         );
 
       // Set up expiring token
@@ -315,7 +313,7 @@ void main() {
       const clientId = 'test-client-id';
 
       // Configure server to return 500 error
-      oauthServer.respondWithServerError(statusCode: 500);
+      oauthServer.respondWithServerError();
 
       // Set up EXPIRED token to force refresh
       final expiry = DateTime.now().toUtc().subtract(const Duration(hours: 1));

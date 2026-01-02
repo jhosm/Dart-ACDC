@@ -35,7 +35,6 @@ void main() {
 
       // Configure server to return success
       oauthServer.respondWithSuccess(
-        accessToken: 'new-access-token',
         refreshToken: 'new-refresh-token',
       );
 
@@ -172,7 +171,6 @@ void main() {
 
       // Configure server to return rotated refresh token
       oauthServer.respondWithSuccess(
-        accessToken: 'new-access-token',
         refreshToken: rotatedRefreshToken,
       );
 
@@ -213,7 +211,6 @@ void main() {
 
       // Configure server to NOT return a new refresh token
       oauthServer.respondWithSuccess(
-        accessToken: 'new-access-token',
         refreshToken: null, // No token rotation
       );
 

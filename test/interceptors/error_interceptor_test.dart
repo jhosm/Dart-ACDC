@@ -189,7 +189,6 @@ void main() {
         // Simulate a response that cannot be parsed (invalid JSON, corrupted data)
         final dioException = DioException(
           requestOptions: RequestOptions(path: '/test'),
-          type: DioExceptionType.unknown,
           error: const FormatException('Invalid JSON'),
           response: Response(
             requestOptions: RequestOptions(path: '/test'),
