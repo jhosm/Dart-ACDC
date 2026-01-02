@@ -495,24 +495,188 @@ void main() {
 
     group('OAuth error handling', () {
       test('handles invalid_grant error', () async {
+        final mockDio = _createMockOAuthErrorDio('invalid_grant', 'Refresh token expired');
+
         interceptor = AuthInterceptor(
           tokenProvider: tokenProvider,
           refreshEndpointUrl: 'https://auth.example.com/token',
           clientId: 'test-client',
+          httpClient: mockDio,
+          refreshThreshold: const Duration(minutes: 5),
         );
 
         tokenProvider
           .._refreshToken = 'expired-refresh-token'
           .._accessToken = 'old-token'
           .._accessExpiry =
-              DateTime.now().toUtc().subtract(const Duration(hours: 1));
+              DateTime.now().toUtc().add(const Duration(minutes: 1));
 
-        // Simulate OAuth error response
-        // This is tricky to test without a real server, so we'll test the error mapping function indirectly
-        // by triggering a refresh that would fail
+        final options = RequestOptions(path: '/test');
+        final handler = _MockRequestHandler();
 
-        // For now, verify the interceptor handles the scenario gracefully
-        expect(interceptor, isNotNull);
+        // Should trigger proactive refresh which will fail with OAuth error
+        await interceptor.onRequest(options, handler);
+
+        // Request should proceed without auth (refresh failed, tokens cleared)
+        expect(handler.nextOptions?.headers.containsKey('Authorization'), false);
+
+        // Tokens should be cleared after OAuth error
+        expect(tokenProvider._accessToken, isNull);
+        expect(tokenProvider._refreshToken, isNull);
+      });
+
+      test('handles invalid_client error', () async {
+        final mockDio = _createMockOAuthErrorDio('invalid_client', 'Client authentication failed');
+
+        interceptor = AuthInterceptor(
+          tokenProvider: tokenProvider,
+          refreshEndpointUrl: 'https://auth.example.com/token',
+          clientId: 'invalid-client',
+          httpClient: mockDio,
+          refreshThreshold: const Duration(minutes: 5),
+        );
+
+        tokenProvider
+          .._refreshToken = 'refresh-token'
+          .._accessToken = 'old-token'
+          .._accessExpiry =
+              DateTime.now().toUtc().add(const Duration(minutes: 1));
+
+        final options = RequestOptions(path: '/test');
+        final handler = _MockRequestHandler();
+
+        await interceptor.onRequest(options, handler);
+
+        // Request should proceed without auth
+        expect(handler.nextOptions?.headers.containsKey('Authorization'), false);
+
+        // Tokens should be cleared
+        expect(tokenProvider._accessToken, isNull);
+        expect(tokenProvider._refreshToken, isNull);
+      });
+
+      test('handles unauthorized_client error', () async {
+        final mockDio = _createMockOAuthErrorDio('unauthorized_client', 'Client not authorized');
+
+        interceptor = AuthInterceptor(
+          tokenProvider: tokenProvider,
+          refreshEndpointUrl: 'https://auth.example.com/token',
+          clientId: 'test-client',
+          httpClient: mockDio,
+          refreshThreshold: const Duration(minutes: 5),
+        );
+
+        tokenProvider
+          .._refreshToken = 'refresh-token'
+          .._accessToken = 'old-token'
+          .._accessExpiry =
+              DateTime.now().toUtc().add(const Duration(minutes: 1));
+
+        final options = RequestOptions(path: '/test');
+        final handler = _MockRequestHandler();
+
+        await interceptor.onRequest(options, handler);
+
+        // Request should proceed without auth
+        expect(handler.nextOptions?.headers.containsKey('Authorization'), false);
+
+        // Tokens should be cleared
+        expect(tokenProvider._accessToken, isNull);
+        expect(tokenProvider._refreshToken, isNull);
+      });
+
+      test('handles unsupported_grant_type error', () async {
+        final mockDio = _createMockOAuthErrorDio('unsupported_grant_type', 'Grant type not supported');
+
+        interceptor = AuthInterceptor(
+          tokenProvider: tokenProvider,
+          refreshEndpointUrl: 'https://auth.example.com/token',
+          clientId: 'test-client',
+          httpClient: mockDio,
+          refreshThreshold: const Duration(minutes: 5),
+        );
+
+        tokenProvider
+          .._refreshToken = 'refresh-token'
+          .._accessToken = 'old-token'
+          .._accessExpiry =
+              DateTime.now().toUtc().add(const Duration(minutes: 1));
+
+        final options = RequestOptions(path: '/test');
+        final handler = _MockRequestHandler();
+
+        await interceptor.onRequest(options, handler);
+
+        // Request should proceed without auth
+        expect(handler.nextOptions?.headers.containsKey('Authorization'), false);
+
+        // Tokens should be cleared
+        expect(tokenProvider._accessToken, isNull);
+        expect(tokenProvider._refreshToken, isNull);
+      });
+
+      test('handles unknown OAuth error code', () async {
+        final mockDio = _createMockOAuthErrorDio('unknown_error', 'Some unknown error');
+
+        interceptor = AuthInterceptor(
+          tokenProvider: tokenProvider,
+          refreshEndpointUrl: 'https://auth.example.com/token',
+          clientId: 'test-client',
+          httpClient: mockDio,
+          refreshThreshold: const Duration(minutes: 5),
+        );
+
+        tokenProvider
+          .._refreshToken = 'refresh-token'
+          .._accessToken = 'old-token'
+          .._accessExpiry =
+              DateTime.now().toUtc().add(const Duration(minutes: 1));
+
+        final options = RequestOptions(path: '/test');
+        final handler = _MockRequestHandler();
+
+        await interceptor.onRequest(options, handler);
+
+        // Request should proceed without auth
+        expect(handler.nextOptions?.headers.containsKey('Authorization'), false);
+
+        // Tokens should be cleared
+        expect(tokenProvider._accessToken, isNull);
+        expect(tokenProvider._refreshToken, isNull);
+      });
+
+      test('handles OAuth error on reactive 401 refresh', () async {
+        final mockDio = _createMockOAuthErrorDio('invalid_grant', 'Refresh token invalid');
+
+        interceptor = AuthInterceptor(
+          tokenProvider: tokenProvider,
+          refreshEndpointUrl: 'https://auth.example.com/token',
+          clientId: 'test-client',
+          httpClient: mockDio,
+        );
+
+        tokenProvider
+          .._refreshToken = 'refresh-token'
+          .._accessToken = 'old-token';
+
+        final err = DioException(
+          requestOptions: RequestOptions(path: '/api/data'),
+          response: Response(
+            requestOptions: RequestOptions(path: '/api/data'),
+            statusCode: 401,
+          ),
+        );
+
+        final handler = _MockErrorHandler();
+        await interceptor.onError(err, handler);
+
+        // Should fail with DioException (from OAuth error)
+        expect(handler.nextError, isNotNull);
+        expect(handler.nextError, isA<DioException>());
+
+        // Tokens should be cleared
+        expect(tokenProvider._accessToken, isNull);
+        expect(tokenProvider._refreshToken, isNull);
       });
     });
 
@@ -826,4 +990,34 @@ class _ThrowingExpiryProvider extends MockTokenProvider {
   Future<DateTime?> getAccessTokenExpiry() async {
     throw Exception('Failed to get expiry');
   }
+}
+
+/// Creates a Dio instance that simulates OAuth error responses.
+Dio _createMockOAuthErrorDio(String errorCode, String errorDescription) {
+  final dio = Dio();
+
+  // Add interceptor that throws OAuth error before any real request is made
+  dio.interceptors.add(
+    InterceptorsWrapper(
+      onRequest: (options, handler) {
+        // Intercept and throw OAuth error
+        handler.reject(
+          DioException(
+            requestOptions: options,
+            response: Response<Map<String, dynamic>>(
+              requestOptions: options,
+              statusCode: 400,
+              data: {
+                'error': errorCode,
+                'error_description': errorDescription,
+              },
+            ),
+            type: DioExceptionType.badResponse,
+          ),
+        );
+      },
+    ),
+  );
+
+  return dio;
 }
