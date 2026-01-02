@@ -4,6 +4,7 @@ import 'package:dart_acdc/src/auth/token_refresh_result.dart';
 import 'package:dart_acdc/src/cache/cache_config.dart';
 import 'package:dart_acdc/src/interceptors/auth_interceptor.dart';
 import 'package:dart_acdc/src/interceptors/error_interceptor.dart';
+import 'package:dart_acdc/src/interceptors/logging_interceptor.dart';
 import 'package:dart_acdc/src/logging/acdc_logger.dart';
 import 'package:dart_acdc/src/logging/log_level.dart';
 import 'package:dio/dio.dart';
@@ -134,24 +135,25 @@ class AcdcClientBuilder {
   /// Configures the token provider for authentication.
   ///
   /// When configured, enables automatic token injection and refresh.
-  AcdcClientBuilder withTokenProvider(TokenProvider provider) => AcdcClientBuilder(
-      baseUrl: _baseUrl,
-      timeout: _timeout,
-      tokenProvider: provider,
-      tokenRefreshEndpointUrl: _tokenRefreshEndpointUrl,
-      tokenRefreshClientId: _tokenRefreshClientId,
-      customTokenRefresh: _customTokenRefresh,
-      tokenRevocationEndpoint: _tokenRevocationEndpoint,
-      tokenRefreshThreshold: _tokenRefreshThreshold,
-      logLevel: _logLevel,
-      logger: _logger,
-      sensitiveFields: _sensitiveFields,
-      slowRequestThreshold: _slowRequestThreshold,
-      largePayloadThreshold: _largePayloadThreshold,
-      cacheConfig: _cacheConfig,
-      cacheDisabled: _cacheDisabled,
-      customInterceptors: _customInterceptors,
-    );
+  AcdcClientBuilder withTokenProvider(TokenProvider provider) =>
+      AcdcClientBuilder(
+        baseUrl: _baseUrl,
+        timeout: _timeout,
+        tokenProvider: provider,
+        tokenRefreshEndpointUrl: _tokenRefreshEndpointUrl,
+        tokenRefreshClientId: _tokenRefreshClientId,
+        customTokenRefresh: _customTokenRefresh,
+        tokenRevocationEndpoint: _tokenRevocationEndpoint,
+        tokenRefreshThreshold: _tokenRefreshThreshold,
+        logLevel: _logLevel,
+        logger: _logger,
+        sensitiveFields: _sensitiveFields,
+        slowRequestThreshold: _slowRequestThreshold,
+        largePayloadThreshold: _largePayloadThreshold,
+        cacheConfig: _cacheConfig,
+        cacheDisabled: _cacheDisabled,
+        customInterceptors: _customInterceptors,
+      );
 
   /// Configures the OAuth 2.1 token refresh endpoint.
   ///
@@ -168,24 +170,25 @@ class AcdcClientBuilder {
   AcdcClientBuilder withTokenRefreshEndpoint({
     required String url,
     required String clientId,
-  }) => AcdcClientBuilder(
-      baseUrl: _baseUrl,
-      timeout: _timeout,
-      tokenProvider: _tokenProvider,
-      tokenRefreshEndpointUrl: url,
-      tokenRefreshClientId: clientId,
-      customTokenRefresh: _customTokenRefresh,
-      tokenRevocationEndpoint: _tokenRevocationEndpoint,
-      tokenRefreshThreshold: _tokenRefreshThreshold,
-      logLevel: _logLevel,
-      logger: _logger,
-      sensitiveFields: _sensitiveFields,
-      slowRequestThreshold: _slowRequestThreshold,
-      largePayloadThreshold: _largePayloadThreshold,
-      cacheConfig: _cacheConfig,
-      cacheDisabled: _cacheDisabled,
-      customInterceptors: _customInterceptors,
-    );
+  }) =>
+      AcdcClientBuilder(
+        baseUrl: _baseUrl,
+        timeout: _timeout,
+        tokenProvider: _tokenProvider,
+        tokenRefreshEndpointUrl: url,
+        tokenRefreshClientId: clientId,
+        customTokenRefresh: _customTokenRefresh,
+        tokenRevocationEndpoint: _tokenRevocationEndpoint,
+        tokenRefreshThreshold: _tokenRefreshThreshold,
+        logLevel: _logLevel,
+        logger: _logger,
+        sensitiveFields: _sensitiveFields,
+        slowRequestThreshold: _slowRequestThreshold,
+        largePayloadThreshold: _largePayloadThreshold,
+        cacheConfig: _cacheConfig,
+        cacheDisabled: _cacheDisabled,
+        customInterceptors: _customInterceptors,
+      );
 
   /// Configures a custom token refresh function.
   ///
@@ -207,48 +210,50 @@ class AcdcClientBuilder {
   /// ```
   AcdcClientBuilder withCustomTokenRefresh(
     Future<TokenRefreshResult> Function(String) refreshFn,
-  ) => AcdcClientBuilder(
-      baseUrl: _baseUrl,
-      timeout: _timeout,
-      tokenProvider: _tokenProvider,
-      tokenRefreshEndpointUrl: _tokenRefreshEndpointUrl,
-      tokenRefreshClientId: _tokenRefreshClientId,
-      customTokenRefresh: refreshFn,
-      tokenRevocationEndpoint: _tokenRevocationEndpoint,
-      tokenRefreshThreshold: _tokenRefreshThreshold,
-      logLevel: _logLevel,
-      logger: _logger,
-      sensitiveFields: _sensitiveFields,
-      slowRequestThreshold: _slowRequestThreshold,
-      largePayloadThreshold: _largePayloadThreshold,
-      cacheConfig: _cacheConfig,
-      cacheDisabled: _cacheDisabled,
-      customInterceptors: _customInterceptors,
-    );
+  ) =>
+      AcdcClientBuilder(
+        baseUrl: _baseUrl,
+        timeout: _timeout,
+        tokenProvider: _tokenProvider,
+        tokenRefreshEndpointUrl: _tokenRefreshEndpointUrl,
+        tokenRefreshClientId: _tokenRefreshClientId,
+        customTokenRefresh: refreshFn,
+        tokenRevocationEndpoint: _tokenRevocationEndpoint,
+        tokenRefreshThreshold: _tokenRefreshThreshold,
+        logLevel: _logLevel,
+        logger: _logger,
+        sensitiveFields: _sensitiveFields,
+        slowRequestThreshold: _slowRequestThreshold,
+        largePayloadThreshold: _largePayloadThreshold,
+        cacheConfig: _cacheConfig,
+        cacheDisabled: _cacheDisabled,
+        customInterceptors: _customInterceptors,
+      );
 
   /// Configures the OAuth 2.1 token revocation endpoint.
   ///
   /// Used during logout to revoke tokens server-side.
   ///
   /// Example: `https://auth.example.com/oauth/revoke`
-  AcdcClientBuilder withTokenRevocationEndpoint(String url) => AcdcClientBuilder(
-      baseUrl: _baseUrl,
-      timeout: _timeout,
-      tokenProvider: _tokenProvider,
-      tokenRefreshEndpointUrl: _tokenRefreshEndpointUrl,
-      tokenRefreshClientId: _tokenRefreshClientId,
-      customTokenRefresh: _customTokenRefresh,
-      tokenRevocationEndpoint: url,
-      tokenRefreshThreshold: _tokenRefreshThreshold,
-      logLevel: _logLevel,
-      logger: _logger,
-      sensitiveFields: _sensitiveFields,
-      slowRequestThreshold: _slowRequestThreshold,
-      largePayloadThreshold: _largePayloadThreshold,
-      cacheConfig: _cacheConfig,
-      cacheDisabled: _cacheDisabled,
-      customInterceptors: _customInterceptors,
-    );
+  AcdcClientBuilder withTokenRevocationEndpoint(String url) =>
+      AcdcClientBuilder(
+        baseUrl: _baseUrl,
+        timeout: _timeout,
+        tokenProvider: _tokenProvider,
+        tokenRefreshEndpointUrl: _tokenRefreshEndpointUrl,
+        tokenRefreshClientId: _tokenRefreshClientId,
+        customTokenRefresh: _customTokenRefresh,
+        tokenRevocationEndpoint: url,
+        tokenRefreshThreshold: _tokenRefreshThreshold,
+        logLevel: _logLevel,
+        logger: _logger,
+        sensitiveFields: _sensitiveFields,
+        slowRequestThreshold: _slowRequestThreshold,
+        largePayloadThreshold: _largePayloadThreshold,
+        cacheConfig: _cacheConfig,
+        cacheDisabled: _cacheDisabled,
+        customInterceptors: _customInterceptors,
+      );
 
   /// Configures the token refresh threshold.
   ///
@@ -259,24 +264,25 @@ class AcdcClientBuilder {
   /// ```dart
   /// builder.withTokenRefreshThreshold(Duration(seconds: 120))
   /// ```
-  AcdcClientBuilder withTokenRefreshThreshold(Duration threshold) => AcdcClientBuilder(
-      baseUrl: _baseUrl,
-      timeout: _timeout,
-      tokenProvider: _tokenProvider,
-      tokenRefreshEndpointUrl: _tokenRefreshEndpointUrl,
-      tokenRefreshClientId: _tokenRefreshClientId,
-      customTokenRefresh: _customTokenRefresh,
-      tokenRevocationEndpoint: _tokenRevocationEndpoint,
-      tokenRefreshThreshold: threshold,
-      logLevel: _logLevel,
-      logger: _logger,
-      sensitiveFields: _sensitiveFields,
-      slowRequestThreshold: _slowRequestThreshold,
-      largePayloadThreshold: _largePayloadThreshold,
-      cacheConfig: _cacheConfig,
-      cacheDisabled: _cacheDisabled,
-      customInterceptors: _customInterceptors,
-    );
+  AcdcClientBuilder withTokenRefreshThreshold(Duration threshold) =>
+      AcdcClientBuilder(
+        baseUrl: _baseUrl,
+        timeout: _timeout,
+        tokenProvider: _tokenProvider,
+        tokenRefreshEndpointUrl: _tokenRefreshEndpointUrl,
+        tokenRefreshClientId: _tokenRefreshClientId,
+        customTokenRefresh: _customTokenRefresh,
+        tokenRevocationEndpoint: _tokenRevocationEndpoint,
+        tokenRefreshThreshold: threshold,
+        logLevel: _logLevel,
+        logger: _logger,
+        sensitiveFields: _sensitiveFields,
+        slowRequestThreshold: _slowRequestThreshold,
+        largePayloadThreshold: _largePayloadThreshold,
+        cacheConfig: _cacheConfig,
+        cacheDisabled: _cacheDisabled,
+        customInterceptors: _customInterceptors,
+      );
 
   /// Configures the logging verbosity level.
   ///
@@ -285,23 +291,23 @@ class AcdcClientBuilder {
   ///
   /// Defaults to [LogLevel.info] for production builds.
   AcdcClientBuilder withLogLevel(LogLevel level) => AcdcClientBuilder(
-      baseUrl: _baseUrl,
-      timeout: _timeout,
-      tokenProvider: _tokenProvider,
-      tokenRefreshEndpointUrl: _tokenRefreshEndpointUrl,
-      tokenRefreshClientId: _tokenRefreshClientId,
-      customTokenRefresh: _customTokenRefresh,
-      tokenRevocationEndpoint: _tokenRevocationEndpoint,
-      tokenRefreshThreshold: _tokenRefreshThreshold,
-      logLevel: level,
-      logger: _logger,
-      sensitiveFields: _sensitiveFields,
-      slowRequestThreshold: _slowRequestThreshold,
-      largePayloadThreshold: _largePayloadThreshold,
-      cacheConfig: _cacheConfig,
-      cacheDisabled: _cacheDisabled,
-      customInterceptors: _customInterceptors,
-    );
+        baseUrl: _baseUrl,
+        timeout: _timeout,
+        tokenProvider: _tokenProvider,
+        tokenRefreshEndpointUrl: _tokenRefreshEndpointUrl,
+        tokenRefreshClientId: _tokenRefreshClientId,
+        customTokenRefresh: _customTokenRefresh,
+        tokenRevocationEndpoint: _tokenRevocationEndpoint,
+        tokenRefreshThreshold: _tokenRefreshThreshold,
+        logLevel: level,
+        logger: _logger,
+        sensitiveFields: _sensitiveFields,
+        slowRequestThreshold: _slowRequestThreshold,
+        largePayloadThreshold: _largePayloadThreshold,
+        cacheConfig: _cacheConfig,
+        cacheDisabled: _cacheDisabled,
+        customInterceptors: _customInterceptors,
+      );
 
   /// Configures a custom logger function.
   ///
@@ -317,23 +323,23 @@ class AcdcClientBuilder {
   /// })
   /// ```
   AcdcClientBuilder withLogger(AcdcLogger logger) => AcdcClientBuilder(
-      baseUrl: _baseUrl,
-      timeout: _timeout,
-      tokenProvider: _tokenProvider,
-      tokenRefreshEndpointUrl: _tokenRefreshEndpointUrl,
-      tokenRefreshClientId: _tokenRefreshClientId,
-      customTokenRefresh: _customTokenRefresh,
-      tokenRevocationEndpoint: _tokenRevocationEndpoint,
-      tokenRefreshThreshold: _tokenRefreshThreshold,
-      logLevel: _logLevel,
-      logger: logger,
-      sensitiveFields: _sensitiveFields,
-      slowRequestThreshold: _slowRequestThreshold,
-      largePayloadThreshold: _largePayloadThreshold,
-      cacheConfig: _cacheConfig,
-      cacheDisabled: _cacheDisabled,
-      customInterceptors: _customInterceptors,
-    );
+        baseUrl: _baseUrl,
+        timeout: _timeout,
+        tokenProvider: _tokenProvider,
+        tokenRefreshEndpointUrl: _tokenRefreshEndpointUrl,
+        tokenRefreshClientId: _tokenRefreshClientId,
+        customTokenRefresh: _customTokenRefresh,
+        tokenRevocationEndpoint: _tokenRevocationEndpoint,
+        tokenRefreshThreshold: _tokenRefreshThreshold,
+        logLevel: _logLevel,
+        logger: logger,
+        sensitiveFields: _sensitiveFields,
+        slowRequestThreshold: _slowRequestThreshold,
+        largePayloadThreshold: _largePayloadThreshold,
+        cacheConfig: _cacheConfig,
+        cacheDisabled: _cacheDisabled,
+        customInterceptors: _customInterceptors,
+      );
 
   /// Configures sensitive fields to redact from logs.
   ///
@@ -344,24 +350,25 @@ class AcdcClientBuilder {
   /// ```dart
   /// builder.withSensitiveFields(['password', 'ssn', 'credit_card'])
   /// ```
-  AcdcClientBuilder withSensitiveFields(List<dynamic> fields) => AcdcClientBuilder(
-      baseUrl: _baseUrl,
-      timeout: _timeout,
-      tokenProvider: _tokenProvider,
-      tokenRefreshEndpointUrl: _tokenRefreshEndpointUrl,
-      tokenRefreshClientId: _tokenRefreshClientId,
-      customTokenRefresh: _customTokenRefresh,
-      tokenRevocationEndpoint: _tokenRevocationEndpoint,
-      tokenRefreshThreshold: _tokenRefreshThreshold,
-      logLevel: _logLevel,
-      logger: _logger,
-      sensitiveFields: fields,
-      slowRequestThreshold: _slowRequestThreshold,
-      largePayloadThreshold: _largePayloadThreshold,
-      cacheConfig: _cacheConfig,
-      cacheDisabled: _cacheDisabled,
-      customInterceptors: _customInterceptors,
-    );
+  AcdcClientBuilder withSensitiveFields(List<dynamic> fields) =>
+      AcdcClientBuilder(
+        baseUrl: _baseUrl,
+        timeout: _timeout,
+        tokenProvider: _tokenProvider,
+        tokenRefreshEndpointUrl: _tokenRefreshEndpointUrl,
+        tokenRefreshClientId: _tokenRefreshClientId,
+        customTokenRefresh: _customTokenRefresh,
+        tokenRevocationEndpoint: _tokenRevocationEndpoint,
+        tokenRefreshThreshold: _tokenRefreshThreshold,
+        logLevel: _logLevel,
+        logger: _logger,
+        sensitiveFields: fields,
+        slowRequestThreshold: _slowRequestThreshold,
+        largePayloadThreshold: _largePayloadThreshold,
+        cacheConfig: _cacheConfig,
+        cacheDisabled: _cacheDisabled,
+        customInterceptors: _customInterceptors,
+      );
 
   /// Configures the threshold for slow request warnings.
   ///
@@ -372,24 +379,25 @@ class AcdcClientBuilder {
   /// ```dart
   /// builder.withSlowRequestThreshold(Duration(seconds: 5))
   /// ```
-  AcdcClientBuilder withSlowRequestThreshold(Duration threshold) => AcdcClientBuilder(
-      baseUrl: _baseUrl,
-      timeout: _timeout,
-      tokenProvider: _tokenProvider,
-      tokenRefreshEndpointUrl: _tokenRefreshEndpointUrl,
-      tokenRefreshClientId: _tokenRefreshClientId,
-      customTokenRefresh: _customTokenRefresh,
-      tokenRevocationEndpoint: _tokenRevocationEndpoint,
-      tokenRefreshThreshold: _tokenRefreshThreshold,
-      logLevel: _logLevel,
-      logger: _logger,
-      sensitiveFields: _sensitiveFields,
-      slowRequestThreshold: threshold,
-      largePayloadThreshold: _largePayloadThreshold,
-      cacheConfig: _cacheConfig,
-      cacheDisabled: _cacheDisabled,
-      customInterceptors: _customInterceptors,
-    );
+  AcdcClientBuilder withSlowRequestThreshold(Duration threshold) =>
+      AcdcClientBuilder(
+        baseUrl: _baseUrl,
+        timeout: _timeout,
+        tokenProvider: _tokenProvider,
+        tokenRefreshEndpointUrl: _tokenRefreshEndpointUrl,
+        tokenRefreshClientId: _tokenRefreshClientId,
+        customTokenRefresh: _customTokenRefresh,
+        tokenRevocationEndpoint: _tokenRevocationEndpoint,
+        tokenRefreshThreshold: _tokenRefreshThreshold,
+        logLevel: _logLevel,
+        logger: _logger,
+        sensitiveFields: _sensitiveFields,
+        slowRequestThreshold: threshold,
+        largePayloadThreshold: _largePayloadThreshold,
+        cacheConfig: _cacheConfig,
+        cacheDisabled: _cacheDisabled,
+        customInterceptors: _customInterceptors,
+      );
 
   /// Configures the threshold for large payload warnings.
   ///
@@ -401,23 +409,23 @@ class AcdcClientBuilder {
   /// builder.withLargePayloadThreshold(1024 * 1024) // 1 MB
   /// ```
   AcdcClientBuilder withLargePayloadThreshold(int bytes) => AcdcClientBuilder(
-      baseUrl: _baseUrl,
-      timeout: _timeout,
-      tokenProvider: _tokenProvider,
-      tokenRefreshEndpointUrl: _tokenRefreshEndpointUrl,
-      tokenRefreshClientId: _tokenRefreshClientId,
-      customTokenRefresh: _customTokenRefresh,
-      tokenRevocationEndpoint: _tokenRevocationEndpoint,
-      tokenRefreshThreshold: _tokenRefreshThreshold,
-      logLevel: _logLevel,
-      logger: _logger,
-      sensitiveFields: _sensitiveFields,
-      slowRequestThreshold: _slowRequestThreshold,
-      largePayloadThreshold: bytes,
-      cacheConfig: _cacheConfig,
-      cacheDisabled: _cacheDisabled,
-      customInterceptors: _customInterceptors,
-    );
+        baseUrl: _baseUrl,
+        timeout: _timeout,
+        tokenProvider: _tokenProvider,
+        tokenRefreshEndpointUrl: _tokenRefreshEndpointUrl,
+        tokenRefreshClientId: _tokenRefreshClientId,
+        customTokenRefresh: _customTokenRefresh,
+        tokenRevocationEndpoint: _tokenRevocationEndpoint,
+        tokenRefreshThreshold: _tokenRefreshThreshold,
+        logLevel: _logLevel,
+        logger: _logger,
+        sensitiveFields: _sensitiveFields,
+        slowRequestThreshold: _slowRequestThreshold,
+        largePayloadThreshold: bytes,
+        cacheConfig: _cacheConfig,
+        cacheDisabled: _cacheDisabled,
+        customInterceptors: _customInterceptors,
+      );
 
   /// Configures HTTP caching with custom settings.
   ///
@@ -433,23 +441,23 @@ class AcdcClientBuilder {
   /// ))
   /// ```
   AcdcClientBuilder withCache(CacheConfig config) => AcdcClientBuilder(
-      baseUrl: _baseUrl,
-      timeout: _timeout,
-      tokenProvider: _tokenProvider,
-      tokenRefreshEndpointUrl: _tokenRefreshEndpointUrl,
-      tokenRefreshClientId: _tokenRefreshClientId,
-      customTokenRefresh: _customTokenRefresh,
-      tokenRevocationEndpoint: _tokenRevocationEndpoint,
-      tokenRefreshThreshold: _tokenRefreshThreshold,
-      logLevel: _logLevel,
-      logger: _logger,
-      sensitiveFields: _sensitiveFields,
-      slowRequestThreshold: _slowRequestThreshold,
-      largePayloadThreshold: _largePayloadThreshold,
-      cacheConfig: config,
-      cacheDisabled: false,
-      customInterceptors: _customInterceptors,
-    );
+        baseUrl: _baseUrl,
+        timeout: _timeout,
+        tokenProvider: _tokenProvider,
+        tokenRefreshEndpointUrl: _tokenRefreshEndpointUrl,
+        tokenRefreshClientId: _tokenRefreshClientId,
+        customTokenRefresh: _customTokenRefresh,
+        tokenRevocationEndpoint: _tokenRevocationEndpoint,
+        tokenRefreshThreshold: _tokenRefreshThreshold,
+        logLevel: _logLevel,
+        logger: _logger,
+        sensitiveFields: _sensitiveFields,
+        slowRequestThreshold: _slowRequestThreshold,
+        largePayloadThreshold: _largePayloadThreshold,
+        cacheConfig: config,
+        cacheDisabled: false,
+        customInterceptors: _customInterceptors,
+      );
 
   /// Disables HTTP caching.
   ///
@@ -460,22 +468,22 @@ class AcdcClientBuilder {
   /// builder.disableCache()
   /// ```
   AcdcClientBuilder disableCache() => AcdcClientBuilder(
-      baseUrl: _baseUrl,
-      timeout: _timeout,
-      tokenProvider: _tokenProvider,
-      tokenRefreshEndpointUrl: _tokenRefreshEndpointUrl,
-      tokenRefreshClientId: _tokenRefreshClientId,
-      customTokenRefresh: _customTokenRefresh,
-      tokenRevocationEndpoint: _tokenRevocationEndpoint,
-      tokenRefreshThreshold: _tokenRefreshThreshold,
-      logLevel: _logLevel,
-      logger: _logger,
-      sensitiveFields: _sensitiveFields,
-      slowRequestThreshold: _slowRequestThreshold,
-      largePayloadThreshold: _largePayloadThreshold,
-      cacheDisabled: true,
-      customInterceptors: _customInterceptors,
-    );
+        baseUrl: _baseUrl,
+        timeout: _timeout,
+        tokenProvider: _tokenProvider,
+        tokenRefreshEndpointUrl: _tokenRefreshEndpointUrl,
+        tokenRefreshClientId: _tokenRefreshClientId,
+        customTokenRefresh: _customTokenRefresh,
+        tokenRevocationEndpoint: _tokenRevocationEndpoint,
+        tokenRefreshThreshold: _tokenRefreshThreshold,
+        logLevel: _logLevel,
+        logger: _logger,
+        sensitiveFields: _sensitiveFields,
+        slowRequestThreshold: _slowRequestThreshold,
+        largePayloadThreshold: _largePayloadThreshold,
+        cacheDisabled: true,
+        customInterceptors: _customInterceptors,
+      );
 
   /// Adds a custom interceptor to the interceptor chain.
   ///
@@ -537,7 +545,9 @@ class AcdcClientBuilder {
     // Validate base URL format if provided
     if (_baseUrl != null && _baseUrl!.isNotEmpty) {
       final uri = Uri.tryParse(_baseUrl!);
-      if (uri == null || (!uri.hasScheme || (!uri.isScheme('http') && !uri.isScheme('https')))) {
+      if (uri == null ||
+          (!uri.hasScheme ||
+              (!uri.isScheme('http') && !uri.isScheme('https')))) {
         throw ArgumentError(
           'Invalid base URL format: "$_baseUrl". '
           'Expected format: https://api.example.com',
@@ -596,7 +606,20 @@ class AcdcClientBuilder {
     // Add error interceptor (always present)
     dio.interceptors.add(const ErrorInterceptor());
 
-    // TODO(logging): Add logging interceptor when implemented
+    // Add logging interceptor (before auth in request, after error in response)
+    // Note: Due to Dio's FIFO interceptor handling, we add it first so it's first in request chain
+    // and last in response chain (wrapping everything).
+
+    // Default to info level if not specified
+    final logLevel = _logLevel ?? LogLevel.info;
+
+    // Only add if logging is enabled (not none)
+    if (logLevel != LogLevel.none) {
+      dio.interceptors.add(LoggingInterceptor(
+        level: logLevel,
+        logger: _logger,
+      ));
+    }
     // TODO(cache): Add cache interceptor when implemented
 
     // Add custom interceptors at the end
