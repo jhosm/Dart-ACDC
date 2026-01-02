@@ -269,18 +269,20 @@ class AuthInterceptor extends Interceptor {
       }
 
       // Check if refresh token is expired
+      DateTime? refreshExpiry;
       try {
-        final refreshExpiry = await _tokenProvider.getRefreshTokenExpiry();
-        if (refreshExpiry != null &&
-            refreshExpiry.isBefore(DateTime.now().toUtc())) {
-          await _clearTokensSafely();
-          throw AcdcAuthException(
-            requestOptions: RequestOptions(),
-            message: 'Refresh token expired. Please log in again.',
-          );
-        }
+        refreshExpiry = await _tokenProvider.getRefreshTokenExpiry();
       } on Exception {
         // Ignore expiry check errors, proceed with refresh
+      }
+
+      if (refreshExpiry != null &&
+          refreshExpiry.isBefore(DateTime.now().toUtc())) {
+        await _clearTokensSafely();
+        throw AcdcAuthException(
+          requestOptions: RequestOptions(),
+          message: 'Refresh token expired. Please log in again.',
+        );
       }
 
       // Perform refresh

@@ -427,6 +427,72 @@ void main() {
       });
     });
 
+    group('Expired refresh token handling', () {
+      test('clears tokens when refresh token is expired', () async {
+        tokenProvider
+          .._accessToken = 'old-token'
+          .._refreshToken = 'expired-refresh-token'
+          .._accessExpiry =
+              DateTime.now().toUtc().add(const Duration(minutes: 1))
+          .._refreshExpiry =
+              DateTime.now().toUtc().subtract(const Duration(hours: 1));
+
+        interceptor = AuthInterceptor(
+          tokenProvider: tokenProvider,
+          customRefreshFn: (token) async => const TokenRefreshResult(
+            accessToken: 'new-token',
+          ),
+          refreshThreshold: const Duration(minutes: 5),
+        );
+
+        final options = RequestOptions(path: '/test');
+        final handler = _MockRequestHandler();
+
+        // Exception is caught internally, request proceeds without auth
+        await interceptor.onRequest(options, handler);
+
+        // Request should complete without auth header (expired refresh token)
+        expect(
+          handler.nextOptions?.headers.containsKey('Authorization'),
+          false,
+        );
+
+        // Tokens should be cleared (expired refresh token triggers clearTokens)
+        expect(tokenProvider._accessToken, isNull);
+        expect(tokenProvider._refreshToken, isNull);
+      });
+
+      test('proceeds with refresh when refresh token expiry is not available',
+          () async {
+        var refreshCalled = false;
+
+        tokenProvider
+          .._accessToken = 'old-token'
+          .._refreshToken = 'refresh-token'
+          .._accessExpiry =
+              DateTime.now().toUtc().add(const Duration(minutes: 1))
+          .._refreshExpiry = null; // No expiry info
+
+        interceptor = AuthInterceptor(
+          tokenProvider: tokenProvider,
+          customRefreshFn: (token) async {
+            refreshCalled = true;
+            return const TokenRefreshResult(accessToken: 'new-token');
+          },
+          refreshThreshold: const Duration(minutes: 5),
+        );
+
+        final options = RequestOptions(path: '/test');
+        final handler = _MockRequestHandler();
+
+        await interceptor.onRequest(options, handler);
+
+        // Should proceed with refresh even without expiry info
+        expect(refreshCalled, true);
+        expect(tokenProvider._accessToken, 'new-token');
+      });
+    });
+
     group('OAuth error handling', () {
       test('handles invalid_grant error', () async {
         interceptor = AuthInterceptor(
@@ -518,6 +584,128 @@ void main() {
 
         // Should only refresh once
         expect(refreshCallCount, 1);
+      });
+
+      test('times out queued requests after timeout period', () async {
+        // Create interceptor with short timeout
+        interceptor = AuthInterceptor(
+          tokenProvider: tokenProvider,
+          customRefreshFn: (token) async {
+            // Delay then complete to simulate slow refresh
+            await Future<void>.delayed(const Duration(milliseconds: 200));
+            return const TokenRefreshResult(accessToken: 'new-token');
+          },
+          refreshThreshold: const Duration(minutes: 5),
+          refreshQueueTimeout: const Duration(milliseconds: 100),
+        );
+
+        tokenProvider
+          .._accessToken = 'old-token'
+          .._refreshToken = 'refresh-token'
+          .._accessExpiry =
+              DateTime.now().toUtc().add(const Duration(minutes: 1));
+
+        // Start first request (triggers refresh)
+        final firstOptions = RequestOptions(path: '/test1');
+        final firstHandler = _MockRequestHandler();
+        final firstFuture = interceptor.onRequest(firstOptions, firstHandler);
+
+        // Wait a bit to ensure refresh is in progress
+        await Future<void>.delayed(const Duration(milliseconds: 20));
+
+        // Start second request (should be queued and timeout after 100ms)
+        final secondOptions = RequestOptions(path: '/test2');
+        final secondHandler = _MockRequestHandler();
+
+        // Second request should timeout while waiting for refresh
+        // The timeout exception is caught internally and request proceeds without auth
+        await interceptor.onRequest(secondOptions, secondHandler);
+
+        // Second request should proceed without auth header (refresh timed out)
+        expect(
+          secondHandler.nextOptions?.headers.containsKey('Authorization'),
+          false,
+        );
+
+        // Wait for first request to complete (will take 200ms total)
+        await firstFuture;
+
+        // First request should have the new token
+        expect(
+          firstHandler.nextOptions?.headers['Authorization'],
+          'Bearer new-token',
+        );
+      });
+    });
+
+    group('TokenProvider exception handling', () {
+      test('handles exception from getRefreshToken during refresh', () async {
+        tokenProvider
+          .._accessToken = 'old-token'
+          .._refreshToken = 'refresh-token'
+          .._accessExpiry =
+              DateTime.now().toUtc().add(const Duration(minutes: 1))
+          ..throwOnGetRefreshToken = true;
+
+        interceptor = AuthInterceptor(
+          tokenProvider: tokenProvider,
+          customRefreshFn: (token) async => const TokenRefreshResult(
+            accessToken: 'new-token',
+          ),
+          refreshThreshold: const Duration(minutes: 5),
+        );
+
+        final options = RequestOptions(path: '/test');
+        final handler = _MockRequestHandler();
+
+        // Exception is caught internally, request proceeds without auth
+        await interceptor.onRequest(options, handler);
+
+        // Request should complete without auth header
+        expect(
+          handler.nextOptions?.headers.containsKey('Authorization'),
+          false,
+        );
+        // Tokens should be cleared after auth exception
+        expect(tokenProvider._accessToken, isNull);
+        expect(tokenProvider._refreshToken, isNull);
+      });
+
+      test('handles exception from setTokens during refresh', () async {
+        var refreshCalled = false;
+
+        tokenProvider
+          .._accessToken = 'old-token'
+          .._refreshToken = 'refresh-token'
+          .._accessExpiry =
+              DateTime.now().toUtc().add(const Duration(minutes: 1))
+          ..throwOnSetTokens = true;
+
+        interceptor = AuthInterceptor(
+          tokenProvider: tokenProvider,
+          customRefreshFn: (token) async {
+            refreshCalled = true;
+            return const TokenRefreshResult(accessToken: 'new-token');
+          },
+          refreshThreshold: const Duration(minutes: 5),
+        );
+
+        final options = RequestOptions(path: '/test');
+        final handler = _MockRequestHandler();
+
+        // Exception is caught internally, request proceeds without auth
+        await interceptor.onRequest(options, handler);
+
+        // Request should complete without auth header
+        expect(
+          handler.nextOptions?.headers.containsKey('Authorization'),
+          false,
+        );
+        // Refresh function should have been called
+        expect(refreshCalled, true);
+        // Tokens should be cleared after auth exception
+        expect(tokenProvider._accessToken, isNull);
+        expect(tokenProvider._refreshToken, isNull);
       });
     });
 
