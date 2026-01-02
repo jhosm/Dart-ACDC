@@ -1,9 +1,11 @@
 import 'dart:async';
+import 'package:dart_acdc/src/auth/backoff_manager.dart';
 import 'package:dart_acdc/src/auth/token_provider.dart';
 import 'package:dart_acdc/src/auth/token_refresh_result.dart';
 import 'package:dart_acdc/src/exceptions/acdc_auth_exception.dart';
 import 'package:dart_acdc/src/exceptions/acdc_network_exception.dart';
 import 'package:dart_acdc/src/exceptions/acdc_server_exception.dart';
+import 'package:dart_acdc/src/interceptors/auth_request_helper.dart';
 import 'package:dio/dio.dart';
 
 /// Interceptor that handles authentication token injection and automatic refresh.
@@ -64,8 +66,7 @@ class AuthInterceptor extends Interceptor {
   // Refresh state management
   Completer<void>? _refreshCompleter;
   bool _isRefreshing = false;
-  DateTime? _lastRefreshAttempt;
-  int _backoffSeconds = 0;
+  final _backoffManager = BackoffManager();
 
   @override
   Future<void> onRequest(
@@ -73,7 +74,7 @@ class AuthInterceptor extends Interceptor {
     RequestInterceptorHandler handler,
   ) async {
     // Skip if Authorization header already exists (manual override)
-    if (options.headers.containsKey('Authorization')) {
+    if (AuthRequestHelper.hasManualAuthHeader(options)) {
       handler.next(options);
       return;
     }
@@ -97,11 +98,11 @@ class AuthInterceptor extends Interceptor {
         // Get the new token after refresh
         final newToken = await _tokenProvider.getAccessToken();
         if (newToken != null) {
-          options.headers['Authorization'] = 'Bearer $newToken';
+          AuthRequestHelper.injectBearerToken(options, newToken);
         }
       } else {
         // Token is valid, inject it
-        options.headers['Authorization'] = 'Bearer $accessToken';
+        AuthRequestHelper.injectBearerToken(options, accessToken);
       }
 
       handler.next(options);
@@ -125,9 +126,7 @@ class AuthInterceptor extends Interceptor {
     }
 
     // Check if this is a retry after refresh (prevent infinite loop)
-    final isRetry =
-        err.requestOptions.extra['_acdc_retry_after_refresh'] == true;
-    if (isRetry) {
+    if (AuthRequestHelper.isRetryRequest(err.requestOptions)) {
       // Second 401 after refresh - clear tokens and fail
       await _clearTokensSafely();
       handler.next(
@@ -158,8 +157,8 @@ class AuthInterceptor extends Interceptor {
 
       // Retry the original request with new token
       final requestOptions = err.requestOptions;
-      requestOptions.headers['Authorization'] = 'Bearer $newToken';
-      requestOptions.extra['_acdc_retry_after_refresh'] = true;
+      AuthRequestHelper.injectBearerToken(requestOptions, newToken);
+      AuthRequestHelper.markAsRetry(requestOptions);
 
       // Make the retry request
       final dio = Dio();
@@ -205,7 +204,7 @@ class AuthInterceptor extends Interceptor {
           _refreshQueueTimeout,
           onTimeout: () {
             throw AcdcAuthException(
-              requestOptions: RequestOptions(),
+              requestOptions: AuthRequestHelper.createEmptyRequestOptions(),
               message: 'Token refresh timeout',
             );
           },
@@ -218,7 +217,7 @@ class AuthInterceptor extends Interceptor {
     _isRefreshing = true;
     _refreshCompleter = Completer<void>();
     // Prevent unhandled exception if no one awaits the future when error is completed
-    _refreshCompleter!.future.catchError((_) {});
+    unawaited(_refreshCompleter!.future.catchError((_) {}));
 
     try {
       await _performTokenRefresh();
@@ -235,20 +234,8 @@ class AuthInterceptor extends Interceptor {
   /// Performs the actual token refresh operation.
   Future<void> _performTokenRefresh() async {
     try {
-      // Check for exponential backoff
-      if (_backoffSeconds > 0) {
-        final timeSinceLastAttempt = _lastRefreshAttempt != null
-            ? DateTime.now().difference(_lastRefreshAttempt!)
-            : Duration.zero;
-
-        if (timeSinceLastAttempt.inSeconds < _backoffSeconds) {
-          await Future<void>.delayed(
-            Duration(seconds: _backoffSeconds - timeSinceLastAttempt.inSeconds),
-          );
-        }
-      }
-
-      _lastRefreshAttempt = DateTime.now();
+      // Wait for exponential backoff if needed
+      await _backoffManager.waitIfNeeded();
 
       // Get refresh token
       String? refreshToken;
@@ -256,14 +243,14 @@ class AuthInterceptor extends Interceptor {
         refreshToken = await _tokenProvider.getRefreshToken();
       } on Exception catch (e) {
         throw AcdcAuthException(
-          requestOptions: RequestOptions(),
+          requestOptions: AuthRequestHelper.createEmptyRequestOptions(),
           message: 'Failed to retrieve refresh token: $e',
         );
       }
 
       if (refreshToken == null) {
         throw AcdcAuthException(
-          requestOptions: RequestOptions(),
+          requestOptions: AuthRequestHelper.createEmptyRequestOptions(),
           message: 'No refresh token available',
         );
       }
@@ -280,7 +267,7 @@ class AuthInterceptor extends Interceptor {
           refreshExpiry.isBefore(DateTime.now().toUtc())) {
         await _clearTokensSafely();
         throw AcdcAuthException(
-          requestOptions: RequestOptions(),
+          requestOptions: AuthRequestHelper.createEmptyRequestOptions(),
           message: 'Refresh token expired. Please log in again.',
         );
       }
@@ -300,13 +287,13 @@ class AuthInterceptor extends Interceptor {
         );
       } on Exception catch (e) {
         throw AcdcAuthException(
-          requestOptions: RequestOptions(),
+          requestOptions: AuthRequestHelper.createEmptyRequestOptions(),
           message: 'Failed to store refreshed tokens: $e',
         );
       }
 
       // Reset backoff on success
-      _backoffSeconds = 0;
+      _backoffManager.reset();
     } on AcdcAuthException {
       // Auth errors - clear tokens
       await _clearTokensSafely();
@@ -316,8 +303,7 @@ class AuthInterceptor extends Interceptor {
       rethrow;
     } on AcdcServerException {
       // Server errors - apply exponential backoff
-      _backoffSeconds =
-          (_backoffSeconds == 0 ? 1 : _backoffSeconds * 2).clamp(0, 30);
+      _backoffManager.increment();
       rethrow;
     }
   }
@@ -436,7 +422,7 @@ class AuthInterceptor extends Interceptor {
     if (_isRefreshing && _refreshCompleter != null) {
       _refreshCompleter!.completeError(
         AcdcAuthException(
-          requestOptions: RequestOptions(),
+          requestOptions: AuthRequestHelper.createEmptyRequestOptions(),
           message: 'Token refresh cancelled',
         ),
       );
