@@ -63,11 +63,11 @@ void main() {
         // Ignore error
       }
 
-      // Verify error logs
+      // Verify error logs (updated to match enhanced error logging format)
       expect(
           logs,
           contains(contains(
-              '[LogLevel.error] Error: 500 https://api.example.com/error',),),);
+              '[LogLevel.error] HTTP error 500: GET https://api.example.com/error',),),);
     });
   });
 }

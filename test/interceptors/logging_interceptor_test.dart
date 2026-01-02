@@ -1,4 +1,5 @@
 import 'package:dart_acdc/src/interceptors/logging_interceptor.dart';
+import 'package:dart_acdc/src/logging/log_level.dart';
 import 'package:dio/dio.dart';
 import 'package:test/test.dart';
 
@@ -110,6 +111,222 @@ void main() {
       );
     });
   });
+
+  group('LoggingInterceptor Slow Request Warning', () {
+    late LoggingInterceptor interceptor;
+    late List<Map<String, dynamic>> logs;
+
+    setUp(() {
+      logs = [];
+      interceptor = LoggingInterceptor(
+        logger: (message, level, metadata) {
+          if (metadata != null && metadata['type'] == 'slow_request') {
+            logs.add(metadata);
+          }
+        },
+        slowRequestThreshold: const Duration(milliseconds: 100),
+      );
+    });
+
+    test('logs warning when request exceeds threshold', () {
+      final options = RequestOptions(path: '/test');
+      // Simulate slow request by setting start time in the past
+      options.extra['acdc_request_start_time'] =
+          DateTime.now().millisecondsSinceEpoch - 200;
+
+      final response = Response<dynamic>(
+        requestOptions: options,
+        statusCode: 200,
+      );
+
+      interceptor.onResponse(response, ResponseInterceptorHandler());
+
+      expect(logs.length, 1);
+      expect(logs.first['type'], 'slow_request');
+      expect(logs.first['duration_ms'], greaterThan(100));
+    });
+
+    test('does not log when request is fast', () {
+      final options = RequestOptions(path: '/test');
+      options.extra['acdc_request_start_time'] =
+          DateTime.now().millisecondsSinceEpoch - 50;
+
+      final response = Response<dynamic>(
+        requestOptions: options,
+        statusCode: 200,
+      );
+
+      interceptor.onResponse(response, ResponseInterceptorHandler());
+
+      expect(logs.length, 0);
+    });
+  });
+
+  group('LoggingInterceptor Large Payload Warning', () {
+    late List<Map<String, dynamic>> logs;
+
+    test('logs warning for large request payload', () {
+      logs = [];
+      final interceptor = LoggingInterceptor(
+        logger: (message, level, metadata) {
+          if (metadata != null && metadata['type'] == 'large_payload') {
+            logs.add(metadata);
+          }
+        },
+        largePayloadThreshold: 100, // 100 bytes threshold
+      );
+
+      // Create payload > 100 bytes
+      final largeData = {'data': 'x' * 200};
+      final options = RequestOptions(path: '/test', data: largeData);
+
+      interceptor.onRequest(options, RequestInterceptorHandler());
+
+      expect(logs.length, 1);
+      expect(logs.first['type'], 'large_payload');
+      expect(logs.first['payload_type'], 'request');
+      expect(logs.first['size_bytes'], greaterThan(100));
+    });
+
+    test('logs warning for large response payload', () {
+      logs = [];
+      final interceptor = LoggingInterceptor(
+        logger: (message, level, metadata) {
+          if (metadata != null && metadata['type'] == 'large_payload') {
+            logs.add(metadata);
+          }
+        },
+        largePayloadThreshold: 100, // 100 bytes threshold
+      );
+
+      final options = RequestOptions(path: '/test');
+      options.extra['acdc_request_start_time'] =
+          DateTime.now().millisecondsSinceEpoch;
+
+      // Create large response
+      final largeData = {'data': 'x' * 200};
+      final response = Response<dynamic>(
+        requestOptions: options,
+        statusCode: 200,
+        data: largeData,
+      );
+
+      interceptor.onResponse(response, ResponseInterceptorHandler());
+
+      expect(logs.length, 1);
+      expect(logs.first['type'], 'large_payload');
+      expect(logs.first['payload_type'], 'response');
+    });
+  });
+
+  group('LoggingInterceptor Enhanced Error Logging', () {
+    late List<Map<String, dynamic>> logs;
+    late LoggingInterceptor interceptor;
+
+    setUp(() {
+      logs = [];
+      interceptor = LoggingInterceptor(
+        logger: (message, level, metadata) {
+          if (metadata != null && metadata['type'] == 'error') {
+            logs.add(metadata);
+          }
+        },
+      );
+    });
+
+    test('logs connection timeout with details', () {
+      final options = RequestOptions(path: '/test');
+      final err = DioException.connectionTimeout(
+        requestOptions: options,
+        timeout: const Duration(seconds: 5),
+      );
+
+      interceptor.onError(err, _FakeErrorHandler());
+
+      expect(logs.length, 1);
+      expect(logs.first['error_type'], 'connection_timeout');
+      expect(logs.first['timeout_type'], 'Connection establishment');
+    });
+
+    test('logs SSL certificate error', () {
+      final options = RequestOptions(path: '/test');
+      final err = DioException.badCertificate(
+        requestOptions: options,
+      );
+
+      interceptor.onError(err, _FakeErrorHandler());
+
+      expect(logs.length, 1);
+      expect(logs.first['error_type'], 'ssl_certificate_error');
+    });
+
+    test('logs HTTP 4xx as warning level', () {
+      final options = RequestOptions(path: '/test');
+      final response = Response<dynamic>(
+        requestOptions: options,
+        statusCode: 404,
+      );
+      final err = DioException.badResponse(
+        requestOptions: options,
+        response: response,
+        statusCode: 404,
+      );
+
+      var capturedLevel = LogLevel.info;
+      final testInterceptor = LoggingInterceptor(
+        logger: (message, level, metadata) {
+          capturedLevel = level;
+        },
+      );
+
+      testInterceptor.onError(err, _FakeErrorHandler());
+
+      expect(capturedLevel, LogLevel.warning);
+    });
+
+    test('logs HTTP 5xx as error level', () {
+      final options = RequestOptions(path: '/test');
+      final response = Response<dynamic>(
+        requestOptions: options,
+        statusCode: 500,
+      );
+      final err = DioException.badResponse(
+        requestOptions: options,
+        response: response,
+        statusCode: 500,
+      );
+
+      var capturedLevel = LogLevel.info;
+      final testInterceptor = LoggingInterceptor(
+        logger: (message, level, metadata) {
+          capturedLevel = level;
+        },
+      );
+
+      testInterceptor.onError(err, _FakeErrorHandler());
+
+      expect(capturedLevel, LogLevel.error);
+    });
+
+    test('logs request cancellation as info level', () {
+      final options = RequestOptions(path: '/test');
+      final err = DioException.requestCancelled(
+        requestOptions: options,
+        reason: 'Manual cancellation',
+      );
+
+      var capturedLevel = LogLevel.error;
+      final testInterceptor = LoggingInterceptor(
+        logger: (message, level, metadata) {
+          capturedLevel = level;
+        },
+      );
+
+      testInterceptor.onError(err, _FakeErrorHandler());
+
+      expect(capturedLevel, LogLevel.info);
+    });
+  });
 }
 
 class _FakeRequestHandler extends RequestInterceptorHandler {
@@ -118,5 +335,12 @@ class _FakeRequestHandler extends RequestInterceptorHandler {
   @override
   void next(RequestOptions requestOptions) {
     nextCalled = true;
+  }
+}
+
+class _FakeErrorHandler extends ErrorInterceptorHandler {
+  @override
+  void next(DioException err) {
+    // Do nothing
   }
 }

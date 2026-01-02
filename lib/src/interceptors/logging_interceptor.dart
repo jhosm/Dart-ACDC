@@ -22,6 +22,8 @@ class LoggingInterceptor extends Interceptor {
     this.maxWidth = 120,
     this.compact = true,
     this.printLogs = false,
+    this.slowRequestThreshold = const Duration(seconds: 3),
+    this.largePayloadThreshold = 1048576, // 1 MB in bytes
   }) : sensitiveFields = sensitiveFields ??
             const [
               'password',
@@ -31,6 +33,16 @@ class LoggingInterceptor extends Interceptor {
               'refresh_token',
               'client_secret',
               'authorization',
+              'apikey',
+              'api_key',
+              'accesstoken',
+              'refreshtoken',
+              'pin',
+              'ssn',
+              'creditcard',
+              'cvv',
+              'privatekey',
+              'private_key',
             ];
 
   /// The log verbosity level.
@@ -56,6 +68,12 @@ class LoggingInterceptor extends Interceptor {
 
   /// Whether to print logs to console.
   final bool printLogs;
+
+  /// Duration threshold for slow request warnings. Set to null to disable.
+  final Duration? slowRequestThreshold;
+
+  /// Byte threshold for large payload warnings. Set to null to disable.
+  final int? largePayloadThreshold;
 
   @override
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
@@ -91,6 +109,15 @@ class LoggingInterceptor extends Interceptor {
             'timestamp': DateTime.now().toIso8601String(),
           },
         );
+
+        // Check for large request payload
+        _checkLargePayload(
+          options.data,
+          'request',
+          options.method,
+          options.uri.toString(),
+          null,
+        );
       }
     } catch (e, stack) {
       // Resilience: never crash request due to logging
@@ -118,6 +145,7 @@ class LoggingInterceptor extends Interceptor {
       if (logger != null) {
         final redactedBody = _redactBody(response.data);
         final redactedHeaders = _redactHeaders(response.headers.map);
+        final durationMs = _calculateDuration(response);
 
         logger!(
           'Response: ${response.statusCode} ${response.requestOptions.uri}',
@@ -128,9 +156,34 @@ class LoggingInterceptor extends Interceptor {
             'url': response.requestOptions.uri.toString(),
             'headers': redactedHeaders,
             'body': redactedBody,
-            'duration_ms': _calculateDuration(response),
+            'duration_ms': durationMs,
             'timestamp': DateTime.now().toIso8601String(),
           },
+        );
+
+        // Check for slow request warning
+        if (slowRequestThreshold != null &&
+            durationMs > slowRequestThreshold!.inMilliseconds) {
+          logger!(
+            'Slow request detected: ${response.requestOptions.method} ${response.requestOptions.uri}',
+            LogLevel.warning,
+            {
+              'type': 'slow_request',
+              'duration_ms': durationMs,
+              'threshold_ms': slowRequestThreshold!.inMilliseconds,
+              'url': response.requestOptions.uri.toString(),
+              'method': response.requestOptions.method,
+            },
+          );
+        }
+
+        // Check for large response payload
+        _checkLargePayload(
+          response.data,
+          'response',
+          response.requestOptions.method,
+          response.requestOptions.uri.toString(),
+          durationMs,
         );
       }
     } catch (e, stack) {
@@ -152,17 +205,13 @@ class LoggingInterceptor extends Interceptor {
       }
 
       if (logger != null) {
+        final errorDetails = _analyzeError(err);
+        final logLevel = _getErrorLogLevel(err);
+
         logger!(
-          'Error: ${err.response?.statusCode ?? 'N/A'} ${err.requestOptions.uri}',
-          LogLevel.error,
-          {
-            'type': 'error',
-            'statusCode': err.response?.statusCode,
-            'url': err.requestOptions.uri.toString(),
-            'message': err.message,
-            'error': err.error.toString(),
-            'timestamp': DateTime.now().toIso8601String(),
-          },
+          errorDetails['message'] as String,
+          logLevel,
+          errorDetails,
         );
       }
     } catch (e, stack) {
@@ -272,5 +321,166 @@ class LoggingInterceptor extends Interceptor {
     b.writeln('Message: ${err.message}');
     b.writeln('Type: ${err.type}');
     print(b.toString());
+  }
+
+  /// Check if payload exceeds threshold and log warning
+  void _checkLargePayload(
+    dynamic data,
+    String type,
+    String method,
+    String url,
+    int? durationMs,
+  ) {
+    if (largePayloadThreshold == null || logger == null) return;
+
+    final size = _estimatePayloadSize(data);
+    if (size > largePayloadThreshold!) {
+      final sizeMB = (size / 1048576).toStringAsFixed(1);
+      final metadata = <String, dynamic>{
+        'type': 'large_payload',
+        'payload_type': type,
+        'size_bytes': size,
+        'size_mb': sizeMB,
+        'threshold_bytes': largePayloadThreshold,
+        'url': url,
+        'method': method,
+      };
+
+      if (durationMs != null) {
+        metadata['duration_ms'] = durationMs;
+      }
+
+      logger!(
+        'Large $type payload: $method $url (${sizeMB}MB)',
+        LogLevel.warning,
+        metadata,
+      );
+    }
+  }
+
+  /// Estimate payload size in bytes
+  int _estimatePayloadSize(dynamic data) {
+    if (data == null) return 0;
+
+    if (data is String) {
+      return data.length;
+    } else if (data is List<int>) {
+      return data.length;
+    } else if (data is Map || data is List) {
+      try {
+        final encoded = jsonEncode(data);
+        return encoded.length;
+      } on FormatException {
+        return 0;
+      }
+    }
+
+    return 0;
+  }
+
+  /// Analyze DioException and return detailed error information
+  Map<String, dynamic> _analyzeError(DioException err) {
+    final metadata = <String, dynamic>{
+      'type': 'error',
+      'url': err.requestOptions.uri.toString(),
+      'method': err.requestOptions.method,
+      'timestamp': DateTime.now().toIso8601String(),
+    };
+
+    String message;
+    String errorType;
+
+    switch (err.type) {
+      case DioExceptionType.connectionTimeout:
+        errorType = 'connection_timeout';
+        message =
+            'Connection timeout: ${err.requestOptions.method} ${err.requestOptions.uri}';
+        metadata['timeout_ms'] = err.requestOptions.connectTimeout;
+        metadata['timeout_type'] = 'Connection establishment';
+        break;
+
+      case DioExceptionType.sendTimeout:
+        errorType = 'send_timeout';
+        message =
+            'Send timeout: ${err.requestOptions.method} ${err.requestOptions.uri}';
+        metadata['timeout_ms'] = err.requestOptions.sendTimeout;
+        metadata['timeout_type'] = 'Request send';
+        break;
+
+      case DioExceptionType.receiveTimeout:
+        errorType = 'receive_timeout';
+        message =
+            'Receive timeout: ${err.requestOptions.method} ${err.requestOptions.uri}';
+        metadata['timeout_ms'] = err.requestOptions.receiveTimeout;
+        metadata['timeout_type'] = 'Response receive';
+        break;
+
+      case DioExceptionType.badCertificate:
+        errorType = 'ssl_certificate_error';
+        message =
+            'SSL Certificate error: ${err.requestOptions.method} ${err.requestOptions.uri}';
+        metadata['error_detail'] = err.message ?? 'Certificate validation failed';
+        break;
+
+      case DioExceptionType.badResponse:
+        errorType = 'http_error';
+        final statusCode = err.response?.statusCode ?? 0;
+        message =
+            'HTTP error $statusCode: ${err.requestOptions.method} ${err.requestOptions.uri}';
+        metadata['statusCode'] = statusCode;
+        if (err.response?.data != null) {
+          metadata['response_body'] = _redactBody(err.response!.data);
+        }
+        break;
+
+      case DioExceptionType.cancel:
+        errorType = 'request_cancelled';
+        message =
+            'Request cancelled: ${err.requestOptions.method} ${err.requestOptions.uri}';
+        metadata['cancellation_reason'] = 'Manual cancellation via CancelToken';
+        break;
+
+      case DioExceptionType.connectionError:
+        errorType = 'network_error';
+        message =
+            'Network failure: ${err.requestOptions.method} ${err.requestOptions.uri}';
+        metadata['error_detail'] = err.message ?? 'Connection failed';
+        metadata['error_object'] = err.error.toString();
+        break;
+
+      case DioExceptionType.unknown:
+        errorType = 'unknown_error';
+        message =
+            'Error: ${err.response?.statusCode ?? 'N/A'} ${err.requestOptions.uri}';
+        metadata['error_detail'] = err.message ?? 'Unknown error';
+        metadata['error_object'] = err.error.toString();
+        break;
+    }
+
+    metadata['error_type'] = errorType;
+    metadata['message'] = message;
+
+    return metadata;
+  }
+
+  /// Determine the appropriate log level based on error type
+  LogLevel _getErrorLogLevel(DioException err) {
+    switch (err.type) {
+      case DioExceptionType.badResponse:
+        final statusCode = err.response?.statusCode ?? 0;
+        // 4xx errors are warnings, 5xx are errors
+        return statusCode >= 500 ? LogLevel.error : LogLevel.warning;
+
+      case DioExceptionType.cancel:
+        return LogLevel.info; // Cancellations are informational
+
+      case DioExceptionType.connectionTimeout:
+      case DioExceptionType.sendTimeout:
+      case DioExceptionType.receiveTimeout:
+      case DioExceptionType.badCertificate:
+      case DioExceptionType.connectionError:
+      case DioExceptionType.unknown:
+        return LogLevel.error;
+    }
   }
 }
