@@ -27,6 +27,7 @@ import 'package:dart_acdc/src/exceptions/acdc_server_exception.dart';
 ///   },
 /// );
 /// ```
+// ignore: one_member_abstracts
 abstract class TokenRefreshStrategy {
   /// Refreshes the access token using the provided refresh token.
   ///

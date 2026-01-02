@@ -129,11 +129,11 @@ void main() {
       await twoTierStore.set(_createCacheResponse(
         key: 'key1',
         url: 'https://api.example.com/users/1',
-      ));
+      ),);
       await twoTierStore.set(_createCacheResponse(
         key: 'key2',
         url: 'https://api.other.com/users/1',
-      ));
+      ),);
 
       await twoTierStore.deleteFromPath(
         RegExp(r'https://api\.example\.com/'),
@@ -209,11 +209,6 @@ CacheResponse _createCacheResponse({
       url: url ?? 'https://api.example.com/test',
       cacheControl: CacheControl(
         maxAge: 3600,
-        noCache: false,
-        noStore: false,
-        mustRevalidate: false,
-        maxStale: -1,
-        minFresh: -1,
         other: [],
       ),
       content: [72, 101, 108, 108, 111],

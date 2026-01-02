@@ -107,7 +107,12 @@ void main() {
       // Configure fake server to return posts data
       apiServer.respondWithPosts([
         {'id': 1, 'userId': 10, 'title': 'Test Post', 'body': 'Test content'},
-        {'id': 2, 'userId': 10, 'title': 'Another Post', 'body': 'More content'},
+        {
+          'id': 2,
+          'userId': 10,
+          'title': 'Another Post',
+          'body': 'More content',
+        },
       ]);
 
       // Make API call through generated client
@@ -235,9 +240,8 @@ void main() {
       // Expected: ACDC error interceptor converts to AcdcException types,
       // which propagate through openapi-generated client.
 
-      final dio = const AcdcClientBuilder()
-          .withBaseUrl(apiServer.baseUrl)
-          .build();
+      final dio =
+          const AcdcClientBuilder().withBaseUrl(apiServer.baseUrl).build();
 
       final apiClient = Openapi(
         dio: dio,
@@ -257,8 +261,9 @@ void main() {
       );
 
       // Test 500 error
-      apiServer.reset();
-      apiServer.respondWith(500, {'error': 'Server error'});
+      apiServer
+        ..reset()
+        ..respondWith(500, {'error': 'Server error'});
       await expectLater(
         api.getPosts(),
         throwsA(

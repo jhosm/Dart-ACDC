@@ -370,13 +370,11 @@ void main() {
       );
 
       var capturedLevel = LogLevel.info;
-      final testInterceptor = LoggingInterceptor(
+      LoggingInterceptor(
         logger: (message, level, metadata) {
           capturedLevel = level;
         },
-      );
-
-      testInterceptor.onError(err, _FakeErrorHandler());
+      ).onError(err, _FakeErrorHandler());
 
       expect(capturedLevel, LogLevel.warning);
     });
@@ -394,13 +392,11 @@ void main() {
       );
 
       var capturedLevel = LogLevel.info;
-      final testInterceptor = LoggingInterceptor(
+      LoggingInterceptor(
         logger: (message, level, metadata) {
           capturedLevel = level;
         },
-      );
-
-      testInterceptor.onError(err, _FakeErrorHandler());
+      ).onError(err, _FakeErrorHandler());
 
       expect(capturedLevel, LogLevel.error);
     });
@@ -413,13 +409,11 @@ void main() {
       );
 
       var capturedLevel = LogLevel.error;
-      final testInterceptor = LoggingInterceptor(
+      LoggingInterceptor(
         logger: (message, level, metadata) {
           capturedLevel = level;
         },
-      );
-
-      testInterceptor.onError(err, _FakeErrorHandler());
+      ).onError(err, _FakeErrorHandler());
 
       expect(capturedLevel, LogLevel.info);
     });

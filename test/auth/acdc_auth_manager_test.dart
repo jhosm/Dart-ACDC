@@ -138,8 +138,9 @@ void main() {
       });
 
       test('clears tokens from provider', () async {
-        tokenProvider._accessToken = 'test-access-token';
-        tokenProvider._refreshToken = 'test-refresh-token';
+        tokenProvider
+          .._accessToken = 'test-access-token'
+          .._refreshToken = 'test-refresh-token';
 
         authManager = AcdcAuthManager(
           tokenProvider: tokenProvider,
@@ -167,8 +168,9 @@ void main() {
 
       test('skips revocation when revocation endpoint is not configured',
           () async {
-        tokenProvider._accessToken = 'test-access-token';
-        tokenProvider._refreshToken = 'test-refresh-token';
+        tokenProvider
+          .._accessToken = 'test-access-token'
+          .._refreshToken = 'test-refresh-token';
 
         authManager = AcdcAuthManager(
           tokenProvider: tokenProvider,
@@ -260,7 +262,9 @@ void main() {
         await expectLater(authManager.logout(), completes);
       });
 
-      test('revocation request includes token, token_type_hint, and client_id parameters', () async {
+      test(
+          'revocation request includes token, token_type_hint, and client_id parameters',
+          () async {
         final captureInterceptor = RequestCaptureInterceptor();
         final mockHttpClient = Dio()..interceptors.add(captureInterceptor);
 
@@ -285,8 +289,10 @@ void main() {
         final refreshTokenRequest = captureInterceptor.capturedRequests[0];
         expect(refreshTokenRequest['path'], 'https://auth.example.com/revoke');
         expect(refreshTokenRequest['method'], 'POST');
-        expect(refreshTokenRequest['contentType'], 'application/x-www-form-urlencoded');
-        expect(refreshTokenRequest['headers']['Accept'], 'application/json');
+        expect(refreshTokenRequest['contentType'],
+            'application/x-www-form-urlencoded',);
+        expect((refreshTokenRequest['headers'] as Map)['Accept'],
+            'application/json',);
         expect(refreshTokenRequest['data'], {
           'token': 'test-refresh-token',
           'token_type_hint': 'refresh_token',
@@ -297,8 +303,10 @@ void main() {
         final accessTokenRequest = captureInterceptor.capturedRequests[1];
         expect(accessTokenRequest['path'], 'https://auth.example.com/revoke');
         expect(accessTokenRequest['method'], 'POST');
-        expect(accessTokenRequest['contentType'], 'application/x-www-form-urlencoded');
-        expect(accessTokenRequest['headers']['Accept'], 'application/json');
+        expect(accessTokenRequest['contentType'],
+            'application/x-www-form-urlencoded',);
+        expect((accessTokenRequest['headers'] as Map)['Accept'],
+            'application/json',);
         expect(accessTokenRequest['data'], {
           'token': 'test-access-token',
           'token_type_hint': 'access_token',

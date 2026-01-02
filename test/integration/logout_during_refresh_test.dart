@@ -53,7 +53,7 @@ void main() {
 
       // Add significant delay to refresh to simulate slow network
       oauthServer
-        ..setResponseDelay(const Duration(milliseconds: 200))
+        ..responseDelay = const Duration(milliseconds: 200)
         ..respondWithSuccess(
           accessToken: 'refreshed-token',
         );

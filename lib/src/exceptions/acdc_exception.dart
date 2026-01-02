@@ -4,6 +4,7 @@ import 'package:dio/dio.dart';
 ///
 /// Extends [DioException] for backward compatibility while providing
 /// developer-friendly error categorization and messages.
+// ignore: overridden_fields
 class AcdcException extends DioException {
   /// Creates an ACDC exception.
   ///
@@ -27,6 +28,7 @@ class AcdcException extends DioException {
 
   /// Developer-focused error message with technical context.
   @override
+  // ignore: overridden_fields
   final String message;
 
   /// The original [DioException] for low-level debugging.

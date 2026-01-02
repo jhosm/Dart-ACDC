@@ -87,7 +87,8 @@ class FakeOAuthServer {
   }
 
   /// Adds a delay to all responses.
-  void setResponseDelay(Duration delay) {
+  // ignore: avoid_setters_without_getters
+  set responseDelay(Duration delay) {
     _responseDelay = delay;
   }
 

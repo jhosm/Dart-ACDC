@@ -143,15 +143,15 @@ void main() {
       await store.set(_createCacheResponse(
         key: 'key1',
         url: 'https://api.example.com/users/1',
-      ));
+      ),);
       await store.set(_createCacheResponse(
         key: 'key2',
         url: 'https://api.example.com/users/2',
-      ));
+      ),);
       await store.set(_createCacheResponse(
         key: 'key3',
         url: 'https://api.other.com/users/1',
-      ));
+      ),);
 
       final results = await store.getFromPath(
         RegExp(r'https://api\.example\.com/users/\d+'),
@@ -165,15 +165,15 @@ void main() {
       await store.set(_createCacheResponse(
         key: 'key1',
         url: 'https://api.example.com/users/1',
-      ));
+      ),);
       await store.set(_createCacheResponse(
         key: 'key2',
         url: 'https://api.example.com/users/2',
-      ));
+      ),);
       await store.set(_createCacheResponse(
         key: 'key3',
         url: 'https://api.other.com/users/1',
-      ));
+      ),);
 
       await store.deleteFromPath(
         RegExp(r'https://api\.example\.com/'),
@@ -243,18 +243,11 @@ CacheResponse _createCacheResponse({
   required String key,
   String? url,
   DateTime? maxStale,
-}) {
-  return CacheResponse(
+}) => CacheResponse(
     key: key,
     url: url ?? 'https://api.example.com/test',
     cacheControl: CacheControl(
       maxAge: 3600,
-      privacy: null,
-      noCache: false,
-      noStore: false,
-      mustRevalidate: false,
-      maxStale: -1,
-      minFresh: -1,
       other: [],
     ),
     content: [72, 101, 108, 108, 111], // "Hello" in bytes
@@ -268,7 +261,6 @@ CacheResponse _createCacheResponse({
     requestDate: DateTime.now(),
     responseDate: DateTime.now(),
   );
-}
 
 /// Creates a large test cache response for testing eviction.
 CacheResponse _createLargeCacheResponse({
@@ -282,12 +274,6 @@ CacheResponse _createLargeCacheResponse({
     url: url ?? 'https://api.example.com/test',
     cacheControl: CacheControl(
       maxAge: 3600,
-      privacy: null,
-      noCache: false,
-      noStore: false,
-      mustRevalidate: false,
-      maxStale: -1,
-      minFresh: -1,
       other: [],
     ),
     content: largeContent,

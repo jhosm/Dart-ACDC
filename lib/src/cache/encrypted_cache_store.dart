@@ -345,7 +345,8 @@ class EncryptedCacheStore implements CacheStore {
         other: otherList?.cast<String>() ?? [],
       ),
       content: (json['content'] as List<dynamic>?)?.cast<int>(),
-      date: json['date'] != null ? DateTime.parse(json['date'] as String) : null,
+      date:
+          json['date'] != null ? DateTime.parse(json['date'] as String) : null,
       eTag: json['eTag'] as String?,
       expires: json['expires'] != null
           ? DateTime.parse(json['expires'] as String)
@@ -393,6 +394,13 @@ class _CacheMetadata {
     required this.lastAccessed,
     this.expiryDate,
   });
+  factory _CacheMetadata.fromJson(Map<String, dynamic> json) => _CacheMetadata(
+        size: json['size'] as int,
+        lastAccessed: DateTime.parse(json['lastAccessed'] as String),
+        expiryDate: json['expiryDate'] != null
+            ? DateTime.parse(json['expiryDate'] as String)
+            : null,
+      );
 
   final int size;
   final DateTime lastAccessed;
@@ -414,13 +422,4 @@ class _CacheMetadata {
         'lastAccessed': lastAccessed.toIso8601String(),
         if (expiryDate != null) 'expiryDate': expiryDate!.toIso8601String(),
       };
-
-  factory _CacheMetadata.fromJson(Map<String, dynamic> json) =>
-      _CacheMetadata(
-        size: json['size'] as int,
-        lastAccessed: DateTime.parse(json['lastAccessed'] as String),
-        expiryDate: json['expiryDate'] != null
-            ? DateTime.parse(json['expiryDate'] as String)
-            : null,
-      );
 }

@@ -52,7 +52,7 @@ void main() {
 
       // Configure server with delay to simulate slow network or backgrounding
       oauthServer
-        ..setResponseDelay(const Duration(milliseconds: 500))
+        ..responseDelay = const Duration(milliseconds: 500)
         ..respondWithSuccess(
           accessToken: 'refreshed-access-token',
           refreshToken: 'refreshed-refresh-token',
@@ -124,12 +124,12 @@ void main() {
           .build();
 
       // Configure API server to require valid auth - return 401 if no auth header
-      apiServer.setDynamicHandler((request) {
+      apiServer.dynamicHandler = (request) {
         if (request.headers['authorization'] == null) {
           return (401, {'error': 'unauthorized'});
         }
         return (200, {'result': 'success'});
-      });
+      };
 
       // Make request - should fail with network exception during refresh
       // (refresh fails, no valid token available, request proceeds without auth,
@@ -184,12 +184,12 @@ void main() {
           .build();
 
       // Configure API server to require valid auth - return 401 if no auth header
-      apiServer.setDynamicHandler((request) {
+      apiServer.dynamicHandler = (request) {
         if (request.headers['authorization'] == null) {
           return (401, {'error': 'unauthorized'});
         }
         return (200, {'result': 'success'});
-      });
+      };
 
       // First request - refresh should fail with auth error
       await expectLater(
@@ -245,7 +245,8 @@ void main() {
       );
     });
 
-    test('concurrent requests wait for delayed refresh (backgrounding scenario)',
+    test(
+        'concurrent requests wait for delayed refresh (backgrounding scenario)',
         () async {
       // This tests that multiple concurrent requests properly wait for a
       // delayed refresh to complete (e.g., when app is backgrounded but
@@ -255,7 +256,7 @@ void main() {
 
       // Configure server with delay
       oauthServer
-        ..setResponseDelay(const Duration(milliseconds: 200))
+        ..responseDelay = const Duration(milliseconds: 200)
         ..respondWithSuccess(
           accessToken: 'refreshed-token',
         );
@@ -333,12 +334,12 @@ void main() {
           .build();
 
       // Configure API server to require valid auth - return 401 if no auth header
-      apiServer.setDynamicHandler((request) {
+      apiServer.dynamicHandler = (request) {
         if (request.headers['authorization'] == null) {
           return (401, {'error': 'unauthorized'});
         }
         return (200, {'result': 'success'});
-      });
+      };
 
       // Make request - should fail with server exception
       await expectLater(
@@ -458,7 +459,8 @@ class FakeApiServer {
     _dynamicHandler = null;
   }
 
-  void setDynamicHandler(
+  // ignore: avoid_setters_without_getters
+  set dynamicHandler(
     (int, Map<String, dynamic>) Function(shelf.Request) handler,
   ) {
     _dynamicHandler = handler;
@@ -484,4 +486,3 @@ class FakeApiServer {
     );
   }
 }
-

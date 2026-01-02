@@ -14,7 +14,10 @@ void main() {
 
       // Define custom logger
       void customLogger(
-          String message, LogLevel level, Map<String, dynamic>? metadata,) {
+        String message,
+        LogLevel level,
+        Map<String, dynamic>? metadata,
+      ) {
         logs.add('[$level] $message');
         if (metadata != null && metadata.isNotEmpty) {
           logs.add('Metadata: $metadata');
@@ -42,13 +45,21 @@ void main() {
       // Verify logs were captured
       // Note: Exact messages depend on implementation, but we expect at least request/response logs
       expect(
-          logs,
-          contains(contains(
-              '[LogLevel.info] Request: GET https://api.example.com/test',),),);
+        logs,
+        contains(
+          contains(
+            '[LogLevel.info] Request: GET https://api.example.com/test',
+          ),
+        ),
+      );
       expect(
-          logs,
-          contains(contains(
-              '[LogLevel.info] Response: 200 https://api.example.com/test',),),);
+        logs,
+        contains(
+          contains(
+            '[LogLevel.info] Response: 200 https://api.example.com/test',
+          ),
+        ),
+      );
     });
 
     test('logs errors with custom logger', () async {
@@ -59,15 +70,19 @@ void main() {
 
       try {
         await dio.get<dynamic>('/error');
-      } catch (_) {
+      } on Object catch (_) {
         // Ignore error
       }
 
       // Verify error logs (updated to match enhanced error logging format)
       expect(
-          logs,
-          contains(contains(
-              '[LogLevel.error] HTTP error 500: GET https://api.example.com/error',),),);
+        logs,
+        contains(
+          contains(
+            '[LogLevel.error] HTTP error 500: GET https://api.example.com/error',
+          ),
+        ),
+      );
     });
   });
 }

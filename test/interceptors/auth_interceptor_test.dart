@@ -330,7 +330,8 @@ void main() {
         expect(tokenProvider._refreshToken, 'new-refresh');
       });
 
-      test('uses server Date header for expiry calculation to prevent clock skew',
+      test(
+          'uses server Date header for expiry calculation to prevent clock skew',
           () async {
         // Server time is 2024-01-01 12:00:00 UTC
         final serverTime = DateTime.utc(2024, 1, 1, 12);
@@ -371,7 +372,8 @@ void main() {
         );
       });
 
-      test('retains existing refresh token when refresh response does not include new one',
+      test(
+          'retains existing refresh token when refresh response does not include new one',
           () async {
         interceptor = AuthInterceptor(
           tokenProvider: tokenProvider,
@@ -581,7 +583,8 @@ void main() {
 
     group('OAuth error handling', () {
       test('handles invalid_grant error', () async {
-        final mockDio = _createMockOAuthErrorDio('invalid_grant', 'Refresh token expired');
+        final mockDio =
+            _createMockOAuthErrorDio('invalid_grant', 'Refresh token expired');
 
         interceptor = AuthInterceptor(
           tokenProvider: tokenProvider,
@@ -604,7 +607,8 @@ void main() {
         await interceptor.onRequest(options, handler);
 
         // Request should proceed without auth (refresh failed, tokens cleared)
-        expect(handler.nextOptions?.headers.containsKey('Authorization'), false);
+        expect(
+            handler.nextOptions?.headers.containsKey('Authorization'), false,);
 
         // Tokens should be cleared after OAuth error
         expect(tokenProvider._accessToken, isNull);
@@ -612,7 +616,8 @@ void main() {
       });
 
       test('handles invalid_client error', () async {
-        final mockDio = _createMockOAuthErrorDio('invalid_client', 'Client authentication failed');
+        final mockDio = _createMockOAuthErrorDio(
+            'invalid_client', 'Client authentication failed',);
 
         interceptor = AuthInterceptor(
           tokenProvider: tokenProvider,
@@ -634,7 +639,8 @@ void main() {
         await interceptor.onRequest(options, handler);
 
         // Request should proceed without auth
-        expect(handler.nextOptions?.headers.containsKey('Authorization'), false);
+        expect(
+            handler.nextOptions?.headers.containsKey('Authorization'), false,);
 
         // Tokens should be cleared
         expect(tokenProvider._accessToken, isNull);
@@ -642,7 +648,8 @@ void main() {
       });
 
       test('handles unauthorized_client error', () async {
-        final mockDio = _createMockOAuthErrorDio('unauthorized_client', 'Client not authorized');
+        final mockDio = _createMockOAuthErrorDio(
+            'unauthorized_client', 'Client not authorized',);
 
         interceptor = AuthInterceptor(
           tokenProvider: tokenProvider,
@@ -664,7 +671,8 @@ void main() {
         await interceptor.onRequest(options, handler);
 
         // Request should proceed without auth
-        expect(handler.nextOptions?.headers.containsKey('Authorization'), false);
+        expect(
+            handler.nextOptions?.headers.containsKey('Authorization'), false,);
 
         // Tokens should be cleared
         expect(tokenProvider._accessToken, isNull);
@@ -672,7 +680,8 @@ void main() {
       });
 
       test('handles unsupported_grant_type error', () async {
-        final mockDio = _createMockOAuthErrorDio('unsupported_grant_type', 'Grant type not supported');
+        final mockDio = _createMockOAuthErrorDio(
+            'unsupported_grant_type', 'Grant type not supported',);
 
         interceptor = AuthInterceptor(
           tokenProvider: tokenProvider,
@@ -694,7 +703,8 @@ void main() {
         await interceptor.onRequest(options, handler);
 
         // Request should proceed without auth
-        expect(handler.nextOptions?.headers.containsKey('Authorization'), false);
+        expect(
+            handler.nextOptions?.headers.containsKey('Authorization'), false,);
 
         // Tokens should be cleared
         expect(tokenProvider._accessToken, isNull);
@@ -702,7 +712,8 @@ void main() {
       });
 
       test('handles unknown OAuth error code', () async {
-        final mockDio = _createMockOAuthErrorDio('unknown_error', 'Some unknown error');
+        final mockDio =
+            _createMockOAuthErrorDio('unknown_error', 'Some unknown error');
 
         interceptor = AuthInterceptor(
           tokenProvider: tokenProvider,
@@ -724,7 +735,8 @@ void main() {
         await interceptor.onRequest(options, handler);
 
         // Request should proceed without auth
-        expect(handler.nextOptions?.headers.containsKey('Authorization'), false);
+        expect(
+            handler.nextOptions?.headers.containsKey('Authorization'), false,);
 
         // Tokens should be cleared
         expect(tokenProvider._accessToken, isNull);
@@ -732,7 +744,8 @@ void main() {
       });
 
       test('handles OAuth error on reactive 401 refresh', () async {
-        final mockDio = _createMockOAuthErrorDio('invalid_grant', 'Refresh token invalid');
+        final mockDio =
+            _createMockOAuthErrorDio('invalid_grant', 'Refresh token invalid');
 
         interceptor = AuthInterceptor(
           tokenProvider: tokenProvider,
@@ -962,12 +975,13 @@ void main() {
     group('Edge cases', () {
       test('handles exception from getAccessTokenExpiry during proactive check',
           () async {
-        tokenProvider._accessToken = 'test-token';
-        tokenProvider._refreshToken = 'refresh-token';
+        tokenProvider
+          .._accessToken = 'test-token'
+          .._refreshToken = 'refresh-token';
 
         // Override to throw exception
-        final throwingProvider = _ThrowingExpiryProvider();
-        throwingProvider._accessToken = 'test-token';
+        final throwingProvider = _ThrowingExpiryProvider()
+          .._accessToken = 'test-token';
 
         interceptor = AuthInterceptor(
           tokenProvider: throwingProvider,
@@ -1015,7 +1029,8 @@ void main() {
         // Start a second request that should be queued
         final secondOptions = RequestOptions(path: '/test2');
         final secondHandler = _MockRequestHandler();
-        final secondFuture = interceptor.onRequest(secondOptions, secondHandler);
+        final secondFuture =
+            interceptor.onRequest(secondOptions, secondHandler);
 
         // Wait a bit to ensure second request is queued
         await Future<void>.delayed(const Duration(milliseconds: 50));

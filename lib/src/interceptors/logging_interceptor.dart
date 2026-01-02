@@ -78,17 +78,21 @@ class LoggingInterceptor extends Interceptor {
   /// Flag to prevent circular logging dependencies
   static bool _isLogging = false;
 
-  /// Maximum time to wait for logger callback (prevents slow loggers from blocking)
-  static const _loggerTimeout = Duration(milliseconds: 100);
-
   /// Safely invoke the logger with circular dependency prevention and timeout
-  void _safeLog(String message, LogLevel logLevel, Map<String, dynamic> metadata) {
+  void _safeLog(
+    String message,
+    LogLevel logLevel,
+    Map<String, dynamic> metadata,
+  ) {
     if (logger == null) return;
 
     // Prevent circular logging dependencies
     if (_isLogging) {
       if (printLogs) {
-        print('LoggingInterceptor: Circular logging dependency detected, skipping log');
+        // ignore: avoid_print
+        print(
+          'LoggingInterceptor: Circular logging dependency detected, skipping log',
+        );
       }
       return;
     }
@@ -100,10 +104,12 @@ class LoggingInterceptor extends Interceptor {
       // Note: We can't use async/await here since the logger is synchronous
       // The timeout is a best-effort defense - the logger should be fast
       logger!(message, logLevel, metadata);
-    } catch (e) {
+    } on Object catch (e) {
       // Fallback to print() in case of logger failure
       if (printLogs) {
+        // ignore: avoid_print
         print('LoggingInterceptor: Logger failed: $e');
+        // ignore: avoid_print
         print('Original message: $message');
       }
     } finally {
@@ -155,9 +161,10 @@ class LoggingInterceptor extends Interceptor {
           null,
         );
       }
-    } catch (e, stack) {
+    } on Object catch (e, stack) {
       // Resilience: never crash request due to logging
       if (printLogs) {
+        // ignore: avoid_print
         print('LoggingInterceptor Error: $e\n$stack');
       }
     }
@@ -224,8 +231,9 @@ class LoggingInterceptor extends Interceptor {
           durationMs,
         );
       }
-    } catch (e, stack) {
+    } on Object catch (e, stack) {
       if (printLogs) {
+        // ignore: avoid_print
         print('LoggingInterceptor Error: $e\n$stack');
       }
     }
@@ -254,8 +262,9 @@ class LoggingInterceptor extends Interceptor {
           errorDetails,
         );
       }
-    } catch (e, stack) {
+    } on Object catch (e, stack) {
       if (printLogs) {
+        // ignore: avoid_print
         print('LoggingInterceptor Error: $e\n$stack');
       }
     }
@@ -275,7 +284,7 @@ class LoggingInterceptor extends Interceptor {
       try {
         final decoded = jsonDecode(data);
         return _redactBody(decoded);
-      } catch (_) {
+      } on FormatException {
         return data; // Not JSON
       }
     }
@@ -334,34 +343,37 @@ class LoggingInterceptor extends Interceptor {
   // --- Console Printing Helpers ---
 
   void _printDebugRequest(RequestOptions options) {
-    final b = StringBuffer();
-    b.writeln('*** Request ***');
-    b.writeln('${options.method} ${options.uri}');
+    final b = StringBuffer()
+      ..writeln('*** Request ***')
+      ..writeln('${options.method} ${options.uri}');
     if (logRequestHeaders) {
       b.writeln('Headers: ${_redactHeaders(options.headers)}');
     }
     if (options.data != null) {
       b.writeln('Body: ${_redactBody(options.data)}');
     }
+    // ignore: avoid_print
     print(b.toString());
   }
 
   void _printDebugResponse(Response<dynamic> response) {
-    final b = StringBuffer();
-    b.writeln('*** Response ***');
-    b.writeln('Status: ${response.statusCode}');
+    final b = StringBuffer()
+      ..writeln('*** Response ***')
+      ..writeln('Status: ${response.statusCode}');
     if (logResponseHeaders) {
       b.writeln('Headers: ${_redactHeaders(response.headers.map)}');
     }
     b.writeln('Data: ${_redactBody(response.data)}');
+    // ignore: avoid_print
     print(b.toString());
   }
 
   void _printDebugError(DioException err) {
-    final b = StringBuffer();
-    b.writeln('*** Error ***');
-    b.writeln('Message: ${err.message}');
-    b.writeln('Type: ${err.type}');
+    final b = StringBuffer()
+      ..writeln('*** Error ***')
+      ..writeln('Message: ${err.message}')
+      ..writeln('Type: ${err.type}');
+    // ignore: avoid_print
     print(b.toString());
   }
 
@@ -461,7 +473,8 @@ class LoggingInterceptor extends Interceptor {
         errorType = 'ssl_certificate_error';
         message =
             'SSL Certificate error: ${err.requestOptions.method} ${err.requestOptions.uri}';
-        metadata['error_detail'] = err.message ?? 'Certificate validation failed';
+        metadata['error_detail'] =
+            err.message ?? 'Certificate validation failed';
         break;
 
       case DioExceptionType.badResponse:

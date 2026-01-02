@@ -72,17 +72,24 @@ void main() {
       expect(invocations[0], 'original-refresh-token');
 
       // Verify tokens were updated with custom function's result
-      expect(await tokenProvider.getAccessToken(),
-          'custom-refreshed-access-token',);
-      expect(await tokenProvider.getRefreshToken(),
-          'custom-refreshed-refresh-token',);
+      expect(
+        await tokenProvider.getAccessToken(),
+        'custom-refreshed-access-token',
+      );
+      expect(
+        await tokenProvider.getRefreshToken(),
+        'custom-refreshed-refresh-token',
+      );
 
       // Verify the refreshed token was used in the request
-      expect(apiServer.lastRequest?.headers['authorization'],
-          'Bearer custom-refreshed-access-token',);
+      expect(
+        apiServer.lastRequest?.headers['authorization'],
+        'Bearer custom-refreshed-access-token',
+      );
     });
 
-    test('custom refresh function is called during reactive token refresh (401)',
+    test(
+        'custom refresh function is called during reactive token refresh (401)',
         () async {
       // Track custom function invocations
       final invocations = <String>[];
@@ -108,14 +115,14 @@ void main() {
 
       // Configure server to respond with 401 first, then success on retry
       var requestCount = 0;
-      apiServer.setDynamicHandler((request) {
+      apiServer.dynamicHandler = (request) {
         requestCount++;
         if (requestCount == 1) {
           return (401, {'error': 'unauthorized'});
         } else {
           return (200, {'result': 'success'});
         }
-      });
+      };
 
       // Make request - should get 401, trigger refresh, retry
       final response = await dio.get<Map<String, dynamic>>('/protected');
@@ -171,12 +178,13 @@ void main() {
       final newAccessExpiry = now.add(const Duration(hours: 1));
       final newRefreshExpiry = now.add(const Duration(days: 30));
 
-      Future<TokenRefreshResult> customRefresh(String refreshToken) async => TokenRefreshResult(
-          accessToken: 'full-result-access',
-          refreshToken: 'full-result-refresh',
-          accessExpiry: newAccessExpiry,
-          refreshExpiry: newRefreshExpiry,
-        );
+      Future<TokenRefreshResult> customRefresh(String refreshToken) async =>
+          TokenRefreshResult(
+            accessToken: 'full-result-access',
+            refreshToken: 'full-result-refresh',
+            accessExpiry: newAccessExpiry,
+            refreshExpiry: newRefreshExpiry,
+          );
 
       final expiry = now.add(const Duration(seconds: 30));
       tokenProvider.initializeTokens(
@@ -374,7 +382,8 @@ class FakeApiServer {
     _dynamicHandler = null;
   }
 
-  void setDynamicHandler(
+  // ignore: avoid_setters_without_getters
+  set dynamicHandler(
     (int, Map<String, dynamic>) Function(shelf.Request) handler,
   ) {
     _dynamicHandler = handler;

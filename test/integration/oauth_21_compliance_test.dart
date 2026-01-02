@@ -35,7 +35,7 @@ void main() {
 
       // Configure server to return success
       oauthServer.respondWithSuccess(
-        refreshToken: 'new-refresh-token',
+        
       );
 
       // Set up token provider with expiring token to trigger refresh

@@ -154,8 +154,9 @@ void main() {
 
     test('error interceptor converts HTTP errors to ACDC exceptions', () async {
       // Test 4xx client error
-      apiServer.reset();
-      apiServer.respondWith(400, {'error': 'Bad request'});
+      apiServer
+        ..reset()
+        ..respondWith(400, {'error': 'Bad request'});
       final dio1 =
           const AcdcClientBuilder().withBaseUrl(apiServer.baseUrl).build();
 
@@ -171,8 +172,9 @@ void main() {
       );
 
       // Test 5xx server error
-      apiServer.reset();
-      apiServer.respondWith(500, {'error': 'Internal error'});
+      apiServer
+        ..reset()
+        ..respondWith(500, {'error': 'Internal error'});
       final dio2 =
           const AcdcClientBuilder().withBaseUrl(apiServer.baseUrl).build();
 
@@ -188,8 +190,9 @@ void main() {
       );
 
       // Test 401 auth error (without auth configured)
-      apiServer.reset();
-      apiServer.respondWith(401, {'error': 'Unauthorized'});
+      apiServer
+        ..reset()
+        ..respondWith(401, {'error': 'Unauthorized'});
       final dio3 =
           const AcdcClientBuilder().withBaseUrl(apiServer.baseUrl).build();
 
@@ -252,10 +255,11 @@ void main() {
       );
 
       // Add delay to refresh to ensure concurrent requests queue
-      oauthServer.setResponseDelay(const Duration(milliseconds: 100));
-      oauthServer.respondWithSuccess(
-        accessToken: 'refreshed-token',
-      );
+      oauthServer
+        ..responseDelay = const Duration(milliseconds: 100)
+        ..respondWithSuccess(
+          accessToken: 'refreshed-token',
+        );
 
       final dio = const AcdcClientBuilder()
           .withBaseUrl(apiServer.baseUrl)

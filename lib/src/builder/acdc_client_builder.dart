@@ -81,27 +81,24 @@ class AcdcClientBuilder {
   /// Example: `https://api.example.com`
   ///
   /// Throws [ArgumentError] if the URL format is invalid.
-  AcdcClientBuilder withBaseUrl(String url) {
-    // Validation will be performed in build() method
-    return AcdcClientBuilder(
-      baseUrl: url,
-      timeout: _timeout,
-      tokenProvider: _tokenProvider,
-      tokenRefreshEndpointUrl: _tokenRefreshEndpointUrl,
-      tokenRefreshClientId: _tokenRefreshClientId,
-      customTokenRefresh: _customTokenRefresh,
-      tokenRevocationEndpoint: _tokenRevocationEndpoint,
-      tokenRefreshThreshold: _tokenRefreshThreshold,
-      logLevel: _logLevel,
-      logger: _logger,
-      sensitiveFields: _sensitiveFields,
-      slowRequestThreshold: _slowRequestThreshold,
-      largePayloadThreshold: _largePayloadThreshold,
-      cacheConfig: _cacheConfig,
-      cacheDisabled: _cacheDisabled,
-      customInterceptors: _customInterceptors,
-    );
-  }
+  AcdcClientBuilder withBaseUrl(String url) => AcdcClientBuilder(
+        baseUrl: url,
+        timeout: _timeout,
+        tokenProvider: _tokenProvider,
+        tokenRefreshEndpointUrl: _tokenRefreshEndpointUrl,
+        tokenRefreshClientId: _tokenRefreshClientId,
+        customTokenRefresh: _customTokenRefresh,
+        tokenRevocationEndpoint: _tokenRevocationEndpoint,
+        tokenRefreshThreshold: _tokenRefreshThreshold,
+        logLevel: _logLevel,
+        logger: _logger,
+        sensitiveFields: _sensitiveFields,
+        slowRequestThreshold: _slowRequestThreshold,
+        largePayloadThreshold: _largePayloadThreshold,
+        cacheConfig: _cacheConfig,
+        cacheDisabled: _cacheDisabled,
+        customInterceptors: _customInterceptors,
+      );
 
   /// Configures timeout for connection, send, and receive operations.
   ///
@@ -629,10 +626,12 @@ class AcdcClientBuilder {
 
     // Only add if logging is enabled (not none)
     if (logLevel != LogLevel.none) {
-      dio.interceptors.add(LoggingInterceptor(
-        level: logLevel,
-        logger: _logger,
-      ),);
+      dio.interceptors.add(
+        LoggingInterceptor(
+          level: logLevel,
+          logger: _logger,
+        ),
+      );
     }
 
     // Add custom interceptors at the end

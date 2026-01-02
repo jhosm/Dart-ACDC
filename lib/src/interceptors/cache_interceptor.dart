@@ -2,6 +2,7 @@ import 'package:dart_acdc/src/cache/cache_config.dart';
 import 'package:dart_acdc/src/cache/encrypted_cache_store.dart';
 import 'package:dart_acdc/src/cache/jwt_utils.dart';
 import 'package:dart_acdc/src/cache/two_tier_cache_store.dart';
+import 'package:dart_acdc/src/exceptions/acdc_network_exception.dart';
 import 'package:dio/dio.dart';
 import 'package:dio_cache_interceptor/dio_cache_interceptor.dart';
 
@@ -33,7 +34,7 @@ class AcdcCacheInterceptor extends Interceptor {
   /// - Invalidates cache on POST/PUT/DELETE/PATCH requests
   /// - Requires user ID extraction for caching (user isolation)
   ///
-  /// Throws [AcdcCacheException] if encryption is required but unavailable.
+  /// Throws [StateError] if encryption is required but unavailable.
   AcdcCacheInterceptor({
     required CacheConfig config,
   })  : _config = config,
@@ -248,8 +249,30 @@ class AcdcCacheInterceptor extends Interceptor {
       _invalidateCacheForUrl(response.requestOptions.uri.toString());
     }
 
+    // Add cache metadata to response
+    _addCacheMetadata(response);
+
     // Delegate to dio_cache_interceptor
     _dioCacheInterceptor.onResponse(response, handler);
+  }
+
+  /// Adds cache metadata to response.
+  ///
+  /// Adds:
+  /// - X-ACDC-From-Cache header when response came from cache
+  /// - response.extra['fromOfflineCache'] flag (set in onError for offline scenarios)
+  void _addCacheMetadata(Response<dynamic> response) {
+    // Check if response came from cache
+    // dio_cache_interceptor adds CacheResponse.cacheKey to extra when serving from cache
+    final fromCache = response.extra[CacheResponse.cacheKey] != null;
+
+    if (fromCache) {
+      // Add X-ACDC-From-Cache header
+      response.headers.add('X-ACDC-From-Cache', 'true');
+
+      // Note: fromOfflineCache flag is set in onError when serving
+      // stale cache during network failures
+    }
   }
 
   @override
@@ -257,8 +280,14 @@ class AcdcCacheInterceptor extends Interceptor {
     DioException err,
     ErrorInterceptorHandler handler,
   ) {
-    // Delegate to dio_cache_interceptor
-    _dioCacheInterceptor.onError(err, handler);
+    // Create a custom error handler to detect when cache is served during network errors
+    final customHandler = _CacheAwareErrorHandler(
+      originalHandler: handler,
+      originalError: err,
+    );
+
+    // Delegate to dio_cache_interceptor (may serve stale cache on network error)
+    _dioCacheInterceptor.onError(err, customHandler);
   }
 
   /// Clears all cached entries.
@@ -288,5 +317,56 @@ class AcdcCacheInterceptor extends Interceptor {
       // Silently ignore cache invalidation errors
       // Cache invalidation is best-effort
     });
+  }
+}
+
+/// Custom error handler that adds cache metadata when serving from offline cache.
+///
+/// Wraps the original error handler to detect when dio_cache_interceptor
+/// serves stale cache during network errors, and adds appropriate metadata.
+class _CacheAwareErrorHandler extends ErrorInterceptorHandler {
+  _CacheAwareErrorHandler({
+    required this.originalHandler,
+    required this.originalError,
+  });
+
+  final ErrorInterceptorHandler originalHandler;
+  final DioException originalError;
+
+  @override
+  void next(DioException err) {
+    // dio_cache_interceptor called next() - no cache was served
+    // Check if the original error was a network error and enhance it
+    final isNetworkError =
+        originalError.type == DioExceptionType.connectionTimeout ||
+            originalError.type == DioExceptionType.sendTimeout ||
+            originalError.type == DioExceptionType.receiveTimeout ||
+            originalError.type == DioExceptionType.connectionError;
+
+    if (isNetworkError) {
+      // Enhance network exception with ACDC exception
+      originalHandler.reject(
+        AcdcNetworkException.fromDioException(originalError),
+      );
+    } else {
+      // Pass through other errors
+      originalHandler.next(err);
+    }
+  }
+
+  @override
+  void reject(DioException err) {
+    // dio_cache_interceptor explicitly rejected - pass through
+    originalHandler.reject(err);
+  }
+
+  @override
+  void resolve(Response<dynamic> response) {
+    // Response was served from cache during network error (offline scenario)
+    // Add offline cache metadata
+    response.extra['fromOfflineCache'] = true;
+    response.headers.add('X-ACDC-From-Cache', 'true');
+
+    originalHandler.resolve(response);
   }
 }

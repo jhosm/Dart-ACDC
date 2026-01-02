@@ -30,8 +30,10 @@ void main() {
 
       // Verify client2 is unaffected
       expect(client2.options.baseUrl, 'https://api.example.com');
-      expect(client2.interceptors.length,
-          isNot(equals(client1.interceptors.length)),);
+      expect(
+        client2.interceptors.length,
+        isNot(equals(client1.interceptors.length)),
+      );
     });
 
     test('clients work independently', () async {
@@ -47,8 +49,8 @@ void main() {
       final response1 = await client1.get<dynamic>('/test');
       final response2 = await client2.get<dynamic>('/test');
 
-      expect(response1.data['id'], 1);
-      expect(response2.data['id'], 2);
+      expect((response1.data as Map)['id'], 1);
+      expect((response2.data as Map)['id'], 2);
     });
   });
 }
