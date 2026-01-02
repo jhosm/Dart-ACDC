@@ -84,6 +84,32 @@ class MockAuthInterceptor extends AuthInterceptor {
   }
 }
 
+/// Interceptor for capturing HTTP requests in tests.
+class RequestCaptureInterceptor extends Interceptor {
+  final List<Map<String, dynamic>> capturedRequests = [];
+
+  @override
+  void onRequest(
+    RequestOptions options,
+    RequestInterceptorHandler handler,
+  ) {
+    capturedRequests.add({
+      'path': options.path,
+      'data': options.data,
+      'method': options.method,
+      'contentType': options.contentType,
+      'headers': options.headers,
+    });
+    // Return success response
+    handler.resolve(
+      Response(
+        requestOptions: options,
+        statusCode: 200,
+      ),
+    );
+  }
+}
+
 void main() {
   group('AcdcAuthManager', () {
     late MockTokenProvider tokenProvider;
@@ -232,6 +258,52 @@ void main() {
 
         // Should complete successfully
         await expectLater(authManager.logout(), completes);
+      });
+
+      test('revocation request includes token, token_type_hint, and client_id parameters', () async {
+        final captureInterceptor = RequestCaptureInterceptor();
+        final mockHttpClient = Dio()..interceptors.add(captureInterceptor);
+
+        tokenProvider
+          .._accessToken = 'test-access-token'
+          .._refreshToken = 'test-refresh-token';
+
+        authManager = AcdcAuthManager(
+          tokenProvider: tokenProvider,
+          authInterceptor: authInterceptor,
+          revocationEndpointUrl: 'https://auth.example.com/revoke',
+          clientId: 'test-client-id',
+          httpClient: mockHttpClient,
+        );
+
+        await authManager.logout();
+
+        // Should have made two revocation requests (refresh token first, then access token)
+        expect(captureInterceptor.capturedRequests.length, 2);
+
+        // Verify refresh token revocation request
+        final refreshTokenRequest = captureInterceptor.capturedRequests[0];
+        expect(refreshTokenRequest['path'], 'https://auth.example.com/revoke');
+        expect(refreshTokenRequest['method'], 'POST');
+        expect(refreshTokenRequest['contentType'], 'application/x-www-form-urlencoded');
+        expect(refreshTokenRequest['headers']['Accept'], 'application/json');
+        expect(refreshTokenRequest['data'], {
+          'token': 'test-refresh-token',
+          'token_type_hint': 'refresh_token',
+          'client_id': 'test-client-id',
+        });
+
+        // Verify access token revocation request
+        final accessTokenRequest = captureInterceptor.capturedRequests[1];
+        expect(accessTokenRequest['path'], 'https://auth.example.com/revoke');
+        expect(accessTokenRequest['method'], 'POST');
+        expect(accessTokenRequest['contentType'], 'application/x-www-form-urlencoded');
+        expect(accessTokenRequest['headers']['Accept'], 'application/json');
+        expect(accessTokenRequest['data'], {
+          'token': 'test-access-token',
+          'token_type_hint': 'access_token',
+          'client_id': 'test-client-id',
+        });
       });
     });
 
