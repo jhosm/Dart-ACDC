@@ -3,6 +3,7 @@ import 'package:dart_acdc/src/auth/token_provider.dart';
 import 'package:dart_acdc/src/auth/token_refresh_result.dart';
 import 'package:dart_acdc/src/cache/cache_config.dart';
 import 'package:dart_acdc/src/interceptors/auth_interceptor.dart';
+import 'package:dart_acdc/src/interceptors/cache_interceptor.dart';
 import 'package:dart_acdc/src/interceptors/error_interceptor.dart';
 import 'package:dart_acdc/src/interceptors/logging_interceptor.dart';
 import 'package:dart_acdc/src/logging/acdc_logger.dart';
@@ -104,7 +105,7 @@ class AcdcClientBuilder {
 
   /// Configures timeout for connection, send, and receive operations.
   ///
-  /// Defaults to 30 seconds if not specified.
+  /// Defaults to 5 seconds if not specified.
   ///
   /// Throws [ArgumentError] if timeout is not positive.
   AcdcClientBuilder withTimeout(Duration timeout) {
@@ -563,8 +564,8 @@ class AcdcClientBuilder {
       dio.options.baseUrl = _baseUrl!;
     }
 
-    // Set default or custom timeouts (30s default for connect, send, receive)
-    final timeout = _timeout ?? const Duration(seconds: 30);
+    // Set default or custom timeouts (5s default for connect, send, receive)
+    final timeout = _timeout ?? const Duration(seconds: 5);
     dio.options.connectTimeout = timeout;
     dio.options.sendTimeout = timeout;
     dio.options.receiveTimeout = timeout;
@@ -603,6 +604,12 @@ class AcdcClientBuilder {
       dio.interceptors.add(authInterceptor);
     }
 
+    // Add cache interceptor if caching is enabled
+    if (!_cacheDisabled) {
+      final cacheConfig = _cacheConfig ?? const CacheConfig();
+      dio.interceptors.add(AcdcCacheInterceptor(config: cacheConfig));
+    }
+
     // Add error interceptor (always present)
     dio.interceptors.add(const ErrorInterceptor());
 
@@ -620,7 +627,6 @@ class AcdcClientBuilder {
         logger: _logger,
       ),);
     }
-    // TODO(cache): Add cache interceptor when implemented
 
     // Add custom interceptors at the end
     if (_customInterceptors != null) {

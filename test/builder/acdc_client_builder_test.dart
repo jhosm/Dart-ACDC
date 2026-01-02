@@ -4,6 +4,7 @@ import 'package:dart_acdc/src/auth/token_refresh_result.dart';
 import 'package:dart_acdc/src/builder/acdc_client_builder.dart';
 import 'package:dart_acdc/src/cache/cache_config.dart';
 import 'package:dart_acdc/src/interceptors/auth_interceptor.dart';
+import 'package:dart_acdc/src/interceptors/cache_interceptor.dart';
 import 'package:dart_acdc/src/interceptors/error_interceptor.dart';
 import 'package:dart_acdc/src/logging/log_level.dart';
 import 'package:dio/dio.dart';
@@ -366,9 +367,9 @@ void main() {
 
         expect(dio, isA<Dio>());
         expect(dio.options.baseUrl, isEmpty);
-        expect(dio.options.connectTimeout, const Duration(seconds: 30));
-        expect(dio.options.sendTimeout, const Duration(seconds: 30));
-        expect(dio.options.receiveTimeout, const Duration(seconds: 30));
+        expect(dio.options.connectTimeout, const Duration(seconds: 5));
+        expect(dio.options.sendTimeout, const Duration(seconds: 5));
+        expect(dio.options.receiveTimeout, const Duration(seconds: 5));
       });
 
       test('build sets base URL when configured', () {
@@ -491,6 +492,38 @@ void main() {
             contains('No TokenProvider configured'),
           ),),
         );
+      });
+
+      test('build adds cache interceptor by default', () {
+        final dio = const AcdcClientBuilder().build();
+
+        final hasCacheInterceptor = dio.interceptors
+            .any((interceptor) => interceptor is AcdcCacheInterceptor);
+
+        expect(hasCacheInterceptor, true);
+      });
+
+      test('build does not add cache interceptor when caching disabled', () {
+        final dio = const AcdcClientBuilder().disableCache().build();
+
+        final hasCacheInterceptor = dio.interceptors
+            .any((interceptor) => interceptor is AcdcCacheInterceptor);
+
+        expect(hasCacheInterceptor, false);
+      });
+
+      test('build adds cache interceptor with custom config', () {
+        final dio = const AcdcClientBuilder()
+            .withCache(const CacheConfig(
+              ttl: Duration(hours: 2),
+              maxSize: 20 * 1024 * 1024,
+            ),)
+            .build();
+
+        final hasCacheInterceptor = dio.interceptors
+            .any((interceptor) => interceptor is AcdcCacheInterceptor);
+
+        expect(hasCacheInterceptor, true);
       });
     });
   });

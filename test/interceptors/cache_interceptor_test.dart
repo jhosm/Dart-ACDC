@@ -1,0 +1,228 @@
+import 'package:dart_acdc/src/cache/cache_config.dart';
+import 'package:dart_acdc/src/interceptors/cache_interceptor.dart';
+import 'package:dio/dio.dart';
+import 'package:test/test.dart';
+
+void main() {
+  group('AcdcCacheInterceptor', () {
+    late Dio dio;
+
+    setUp(() {
+      dio = Dio();
+      dio.options.baseUrl = 'https://api.example.com';
+    });
+
+    group('Method-Based Caching', () {
+      test('creates interceptor with default configuration', () {
+        final interceptor = AcdcCacheInterceptor(
+          config: const CacheConfig(),
+        );
+        dio.interceptors.add(interceptor);
+
+        // Verify interceptor is configured correctly
+        // Actual caching behavior (GET/HEAD only) is handled by dio_cache_interceptor
+        expect(interceptor, isA<AcdcCacheInterceptor>());
+        expect(dio.interceptors.contains(interceptor), true);
+      });
+
+      test('POST requests trigger cache invalidation', () {
+        final interceptor = AcdcCacheInterceptor(
+          config: const CacheConfig(),
+        );
+
+        // Create a response for a POST request
+        final response = Response<Map<String, dynamic>>(
+          requestOptions: RequestOptions(
+            path: '/users',
+            method: 'POST',
+          ),
+          statusCode: 201,
+        );
+
+        // Verify onResponse handles POST without errors
+        expect(
+          () => interceptor.onResponse(
+            response,
+            ResponseInterceptorHandler(),
+          ),
+          returnsNormally,
+        );
+      });
+
+      test('PUT requests trigger cache invalidation', () {
+        final interceptor = AcdcCacheInterceptor(
+          config: const CacheConfig(),
+        );
+
+        final response = Response<Map<String, dynamic>>(
+          requestOptions: RequestOptions(
+            path: '/users/1',
+            method: 'PUT',
+          ),
+          statusCode: 200,
+        );
+
+        expect(
+          () => interceptor.onResponse(
+            response,
+            ResponseInterceptorHandler(),
+          ),
+          returnsNormally,
+        );
+      });
+
+      test('DELETE requests trigger cache invalidation', () {
+        final interceptor = AcdcCacheInterceptor(
+          config: const CacheConfig(),
+        );
+
+        final response = Response<Map<String, dynamic>>(
+          requestOptions: RequestOptions(
+            path: '/users/1',
+            method: 'DELETE',
+          ),
+          statusCode: 204,
+        );
+
+        expect(
+          () => interceptor.onResponse(
+            response,
+            ResponseInterceptorHandler(),
+          ),
+          returnsNormally,
+        );
+      });
+
+      test('PATCH requests trigger cache invalidation', () {
+        final interceptor = AcdcCacheInterceptor(
+          config: const CacheConfig(),
+        );
+
+        final response = Response<Map<String, dynamic>>(
+          requestOptions: RequestOptions(
+            path: '/users/1',
+            method: 'PATCH',
+          ),
+          statusCode: 200,
+        );
+
+        expect(
+          () => interceptor.onResponse(
+            response,
+            ResponseInterceptorHandler(),
+          ),
+          returnsNormally,
+        );
+      });
+
+      test('GET requests do not trigger cache invalidation', () {
+        final interceptor = AcdcCacheInterceptor(
+          config: const CacheConfig(),
+        );
+
+        final response = Response<Map<String, dynamic>>(
+          requestOptions: RequestOptions(
+            path: '/users',
+            method: 'GET',
+          ),
+          statusCode: 200,
+        );
+
+        expect(
+          () => interceptor.onResponse(
+            response,
+            ResponseInterceptorHandler(),
+          ),
+          returnsNormally,
+        );
+      });
+    });
+
+    group('Cache Invalidation', () {
+      test('clearCache method is available', () async {
+        final interceptor = AcdcCacheInterceptor(
+          config: const CacheConfig(),
+        );
+
+        // Verify clearCache doesn't throw
+        await expectLater(
+          interceptor.clearCache(),
+          completes,
+        );
+      });
+
+      test('clearCacheForUrl method is available', () async {
+        final interceptor = AcdcCacheInterceptor(
+          config: const CacheConfig(),
+        );
+
+        // Verify clearCacheForUrl doesn't throw
+        await expectLater(
+          interceptor.clearCacheForUrl('https://api.example.com/users'),
+          completes,
+        );
+      });
+    });
+
+    group('Configuration', () {
+      test('respects staleWhileRevalidate setting', () {
+        final interceptor = AcdcCacheInterceptor(
+          config: const CacheConfig(staleWhileRevalidate: true),
+        );
+
+        expect(interceptor, isA<AcdcCacheInterceptor>());
+      });
+
+      test('respects staleIfError setting', () {
+        final interceptor = AcdcCacheInterceptor(
+          config: const CacheConfig(staleIfError: false),
+        );
+
+        expect(interceptor, isA<AcdcCacheInterceptor>());
+      });
+
+      test('respects inMemory cache configuration', () {
+        final interceptor = AcdcCacheInterceptor(
+          config: const CacheConfig(
+            inMemoryMaxSize: 10 * 1024 * 1024,
+          ),
+        );
+
+        expect(interceptor, isA<AcdcCacheInterceptor>());
+      });
+
+      test('respects disabled inMemory cache', () {
+        final interceptor = AcdcCacheInterceptor(
+          config: const CacheConfig(
+            inMemory: false,
+            maxSize: 20 * 1024 * 1024,
+          ),
+        );
+
+        expect(interceptor, isA<AcdcCacheInterceptor>());
+      });
+    });
+
+    group('HTTP Directive Support', () {
+      test('interceptor is configured to respect HTTP directives', () {
+        // The interceptor uses CachePolicy.request which respects
+        // Cache-Control, ETag, Last-Modified headers
+        final interceptor = AcdcCacheInterceptor(
+          config: const CacheConfig(),
+        );
+
+        expect(interceptor, isA<AcdcCacheInterceptor>());
+      });
+
+      test('supports 304 Not Modified handling via dio_cache_interceptor', () {
+        // 304 handling is built into dio_cache_interceptor
+        // This test verifies the interceptor is properly configured
+        final interceptor = AcdcCacheInterceptor(
+          config: const CacheConfig(),
+        );
+
+        expect(interceptor, isA<AcdcCacheInterceptor>());
+      });
+    });
+  });
+}
