@@ -1,5 +1,7 @@
 import 'package:dart_acdc/src/cache/cache_config.dart';
+import 'package:dart_acdc/src/cache/encrypted_cache_store.dart';
 import 'package:dart_acdc/src/cache/jwt_utils.dart';
+import 'package:dart_acdc/src/cache/two_tier_cache_store.dart';
 import 'package:dio/dio.dart';
 import 'package:dio_cache_interceptor/dio_cache_interceptor.dart';
 
@@ -24,18 +26,20 @@ class AcdcCacheInterceptor extends Interceptor {
   ///
   /// Builds appropriate cache stores based on [config] settings:
   /// - Uses in-memory cache with configured size limits
+  /// - Optionally encrypts cache with platform secure storage
+  /// - Supports two-tier caching (memory + persistent)
   /// - Configures cache policies based on config flags
   /// - Only caches GET and HEAD requests
   /// - Invalidates cache on POST/PUT/DELETE/PATCH requests
   /// - Requires user ID extraction for caching (user isolation)
+  ///
+  /// Throws [AcdcCacheException] if encryption is required but unavailable.
   AcdcCacheInterceptor({
     required CacheConfig config,
   })  : _config = config,
         _cacheOptions = CacheOptions(
-          // Use memory cache store
-          store: MemCacheStore(
-            maxSize: config.inMemory ? config.inMemoryMaxSize : config.maxSize,
-          ),
+          // Build appropriate cache store based on config
+          store: _buildCacheStore(config),
 
           // Cache policy based on config - respects HTTP directives
           policy: config.staleWhileRevalidate
@@ -53,10 +57,7 @@ class AcdcCacheInterceptor extends Interceptor {
         ),
         _dioCacheInterceptor = DioCacheInterceptor(
           options: CacheOptions(
-            store: MemCacheStore(
-              maxSize:
-                  config.inMemory ? config.inMemoryMaxSize : config.maxSize,
-            ),
+            store: _buildCacheStore(config),
             policy: config.staleWhileRevalidate
                 ? CachePolicy.refreshForceCache
                 : CachePolicy.request,
@@ -69,6 +70,58 @@ class AcdcCacheInterceptor extends Interceptor {
   final CacheConfig _config;
   final CacheOptions _cacheOptions;
   final DioCacheInterceptor _dioCacheInterceptor;
+
+  /// Builds the appropriate cache store based on configuration.
+  ///
+  /// Returns:
+  /// - TwoTierCacheStore: If both inMemory and encryption are enabled
+  /// - EncryptedCacheStore: If only encryption is enabled
+  /// - MemCacheStore: If only inMemory is enabled (default)
+  ///
+  /// Throws [StateError] if encryption is required but unavailable.
+  static CacheStore _buildCacheStore(CacheConfig config) {
+    // Build persistent store if encryption is enabled
+    CacheStore? persistentStore;
+    if (config.encrypted) {
+      try {
+        persistentStore = EncryptedCacheStore(
+          maxSize: config.maxSize,
+        );
+      } on Exception catch (e) {
+        if (config.requireEncryption) {
+          throw StateError(
+            'Encryption required but unavailable: ${e.toString()}',
+          );
+        }
+        // Fall back to unencrypted cache if encryption not required
+        persistentStore = null;
+      }
+    }
+
+    // Build two-tier cache if inMemory is enabled
+    if (config.inMemory) {
+      final memoryStore = MemCacheStore(
+        maxSize: config.inMemoryMaxSize,
+      );
+
+      if (persistentStore != null) {
+        // Two-tier: memory + encrypted persistent
+        return TwoTierCacheStore(
+          memoryStore: memoryStore,
+          persistentStore: persistentStore,
+        );
+      }
+
+      // Memory-only cache
+      return memoryStore;
+    }
+
+    // Persistent-only cache (encrypted or unencrypted)
+    return persistentStore ??
+        MemCacheStore(
+          maxSize: config.maxSize,
+        );
+  }
 
   /// Builds a cache key with user isolation.
   ///
