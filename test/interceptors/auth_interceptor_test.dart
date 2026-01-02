@@ -329,6 +329,75 @@ void main() {
         expect(tokenProvider._accessToken, 'new-token');
         expect(tokenProvider._refreshToken, 'new-refresh');
       });
+
+      test('uses server Date header for expiry calculation to prevent clock skew',
+          () async {
+        // Server time is 2024-01-01 12:00:00 UTC
+        final serverTime = DateTime.utc(2024, 1, 1, 12);
+        // Token expires in 3600 seconds (1 hour) from server time
+        const expiresIn = 3600;
+
+        final mockDio = _createSuccessfulOAuthDioWithDateHeader(
+          accessToken: 'new-token',
+          expiresIn: expiresIn,
+          serverTime: serverTime.toIso8601String(),
+        );
+
+        interceptor = AuthInterceptor(
+          tokenProvider: tokenProvider,
+          refreshEndpointUrl: 'https://auth.example.com/token',
+          clientId: 'test-client',
+          httpClient: mockDio,
+          refreshThreshold: const Duration(minutes: 5),
+        );
+
+        tokenProvider
+          .._accessToken = 'old-token'
+          .._refreshToken = 'refresh-token'
+          .._accessExpiry =
+              DateTime.now().toUtc().add(const Duration(minutes: 1));
+
+        final options = RequestOptions(path: '/test');
+        final handler = _MockRequestHandler();
+
+        await interceptor.onRequest(options, handler);
+
+        // Token should be refreshed and expiry should be calculated from server time
+        expect(tokenProvider._accessToken, 'new-token');
+        // Verify expiry is server time + expires_in (not local time + expires_in)
+        expect(
+          tokenProvider._accessExpiry,
+          serverTime.add(const Duration(seconds: expiresIn)),
+        );
+      });
+
+      test('retains existing refresh token when refresh response does not include new one',
+          () async {
+        interceptor = AuthInterceptor(
+          tokenProvider: tokenProvider,
+          customRefreshFn: (token) async => const TokenRefreshResult(
+            accessToken: 'new-access-token',
+            // No refreshToken provided - simulating no token rotation
+          ),
+          refreshThreshold: const Duration(minutes: 5),
+        );
+
+        tokenProvider
+          .._accessToken = 'old-access-token'
+          .._refreshToken = 'existing-refresh-token'
+          .._accessExpiry =
+              DateTime.now().toUtc().add(const Duration(minutes: 1));
+
+        final options = RequestOptions(path: '/test');
+        final handler = _MockRequestHandler();
+
+        await interceptor.onRequest(options, handler);
+
+        // Access token should be updated
+        expect(tokenProvider._accessToken, 'new-access-token');
+        // Refresh token should be retained (not null, not changed)
+        expect(tokenProvider._refreshToken, 'existing-refresh-token');
+      });
     });
 
     group('Reactive refresh on 401', () {
@@ -1111,6 +1180,50 @@ Dio _createMockOAuthErrorDio(String errorCode, String errorDescription) {
               },
             ),
             type: DioExceptionType.badResponse,
+          ),
+        );
+      },
+    ),
+  );
+
+  return dio;
+}
+
+/// Creates a Dio instance that simulates successful OAuth refresh with Date header.
+Dio _createSuccessfulOAuthDioWithDateHeader({
+  required String accessToken,
+  String? refreshToken,
+  int? expiresIn,
+  String? serverTime,
+}) {
+  final dio = Dio();
+
+  dio.interceptors.add(
+    InterceptorsWrapper(
+      onRequest: (options, handler) {
+        final responseData = <String, dynamic>{
+          'access_token': accessToken,
+        };
+
+        if (refreshToken != null) {
+          responseData['refresh_token'] = refreshToken;
+        }
+
+        if (expiresIn != null) {
+          responseData['expires_in'] = expiresIn;
+        }
+
+        final headers = Headers();
+        if (serverTime != null) {
+          headers.add('date', serverTime);
+        }
+
+        handler.resolve(
+          Response<Map<String, dynamic>>(
+            requestOptions: options,
+            statusCode: 200,
+            data: responseData,
+            headers: headers,
           ),
         );
       },
