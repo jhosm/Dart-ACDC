@@ -1,5 +1,6 @@
 import 'package:dart_acdc/src/exceptions/acdc_auth_exception.dart';
 import 'package:dart_acdc/src/exceptions/acdc_client_exception.dart';
+import 'package:dart_acdc/src/exceptions/acdc_exception.dart';
 import 'package:dart_acdc/src/exceptions/acdc_network_exception.dart';
 import 'package:dart_acdc/src/exceptions/acdc_server_exception.dart';
 import 'package:dio/dio.dart';
@@ -35,9 +36,19 @@ class ErrorInterceptor extends Interceptor {
       return AcdcNetworkException.fromDioException(exception);
     }
 
+    // Handle malformed response (parse errors)
+    if (_isMalformedResponse(exception)) {
+      return _createMalformedResponseException(exception);
+    }
+
     // Handle HTTP response errors
     final statusCode = exception.response?.statusCode;
     if (statusCode != null) {
+      // Redirect handling (3xx) when automatic redirects are disabled
+      if (statusCode >= 300 && statusCode < 400) {
+        return _createRedirectException(exception);
+      }
+
       // Authentication errors (401, 403)
       if (statusCode == 401 || statusCode == 403) {
         return AcdcAuthException.fromDioException(exception);
@@ -86,5 +97,62 @@ class ErrorInterceptor extends Interceptor {
         }
         return false;
     }
+  }
+
+  /// Checks if the exception is due to a malformed response.
+  bool _isMalformedResponse(DioException exception) {
+    if (exception.type == DioExceptionType.unknown &&
+        exception.error != null) {
+      final error = exception.error;
+      // Check for common parsing errors
+      return error is FormatException ||
+          error.toString().toLowerCase().contains('format') ||
+          error.toString().toLowerCase().contains('parse') ||
+          error.toString().toLowerCase().contains('invalid json');
+    }
+    return false;
+  }
+
+  /// Creates an AcdcClientException for malformed responses.
+  AcdcClientException _createMalformedResponseException(
+    DioException exception,
+  ) {
+    final url = AcdcException.redactUrl(
+      exception.requestOptions.uri.toString(),
+    );
+    final responseBody = AcdcException.truncateResponseBody(
+      exception.response?.data,
+    );
+
+    return AcdcClientException(
+      requestOptions: exception.requestOptions,
+      message: 'Invalid response format from server',
+      originalException: exception,
+      statusCode: exception.response?.statusCode,
+      response: exception.response,
+      responseData: responseBody,
+      requestUrl: url,
+      error: exception.error,
+      stackTrace: exception.stackTrace,
+    );
+  }
+
+  /// Creates an AcdcClientException for redirect responses.
+  AcdcClientException _createRedirectException(DioException exception) {
+    final location = exception.response?.headers.value('location') ?? 'unknown';
+    final url = AcdcException.redactUrl(
+      exception.requestOptions.uri.toString(),
+    );
+
+    return AcdcClientException(
+      requestOptions: exception.requestOptions,
+      message: 'Unexpected redirect to $location',
+      originalException: exception,
+      statusCode: exception.response?.statusCode,
+      response: exception.response,
+      requestUrl: url,
+      error: exception.error,
+      stackTrace: exception.stackTrace,
+    );
   }
 }

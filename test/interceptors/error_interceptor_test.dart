@@ -183,5 +183,91 @@ void main() {
         equals(NetworkErrorType.cancelled),
       );
     });
+
+    group('Edge case handling', () {
+      test('converts malformed response to AcdcClientException', () {
+        // Simulate a response that cannot be parsed (invalid JSON, corrupted data)
+        final dioException = DioException(
+          requestOptions: RequestOptions(path: '/test'),
+          type: DioExceptionType.unknown,
+          error: const FormatException('Invalid JSON'),
+          response: Response(
+            requestOptions: RequestOptions(path: '/test'),
+            statusCode: 200,
+            data: 'Invalid JSON {not valid}',
+          ),
+        );
+
+        final handler = TestErrorInterceptorHandler();
+        interceptor.onError(dioException, handler);
+
+        expect(handler.capturedError, isA<AcdcClientException>());
+        final clientException = handler.capturedError! as AcdcClientException;
+        expect(clientException.message, contains('Invalid response format'));
+      });
+
+      test('converts 3xx redirect to AcdcClientException when redirects disabled', () {
+        for (final statusCode in [301, 302, 307, 308]) {
+          final dioException = DioException(
+            requestOptions: RequestOptions(path: '/test'),
+            response: Response(
+              requestOptions: RequestOptions(path: '/test'),
+              statusCode: statusCode,
+              headers: Headers.fromMap({
+                'location': ['/new-location'],
+              }),
+            ),
+          );
+
+          final handler = TestErrorInterceptorHandler();
+          interceptor.onError(dioException, handler);
+
+          expect(handler.capturedError, isA<AcdcClientException>());
+          final clientException = handler.capturedError! as AcdcClientException;
+          expect(clientException.statusCode, equals(statusCode));
+          expect(clientException.message, contains('redirect'));
+        }
+      });
+
+      test('converts non-standard 4xx status codes to AcdcClientException', () {
+        for (final statusCode in [418, 451]) {
+          final dioException = DioException(
+            requestOptions: RequestOptions(path: '/test'),
+            response: Response(
+              requestOptions: RequestOptions(path: '/test'),
+              statusCode: statusCode,
+            ),
+          );
+
+          final handler = TestErrorInterceptorHandler();
+          interceptor.onError(dioException, handler);
+
+          expect(handler.capturedError, isA<AcdcClientException>());
+          expect(
+            (handler.capturedError! as AcdcClientException).statusCode,
+            equals(statusCode),
+          );
+        }
+      });
+
+      test('converts non-standard 5xx status codes to AcdcServerException', () {
+        final dioException = DioException(
+          requestOptions: RequestOptions(path: '/test'),
+          response: Response(
+            requestOptions: RequestOptions(path: '/test'),
+            statusCode: 599,
+          ),
+        );
+
+        final handler = TestErrorInterceptorHandler();
+        interceptor.onError(dioException, handler);
+
+        expect(handler.capturedError, isA<AcdcServerException>());
+        expect(
+          (handler.capturedError! as AcdcServerException).statusCode,
+          equals(599),
+        );
+      });
+    });
   });
 }

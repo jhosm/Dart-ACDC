@@ -919,21 +919,59 @@ void main() {
         );
       });
 
-      test('cancelRefresh can be called to cancel in-progress refresh',
+      test('cancelRefresh stops in-progress refresh and fails queued requests',
           () async {
-        // This test just verifies that cancelRefresh can be called without error
+        final refreshCompleter = Completer<TokenRefreshResult>();
+
         interceptor = AuthInterceptor(
           tokenProvider: tokenProvider,
-          customRefreshFn: (token) async => const TokenRefreshResult(
-            accessToken: 'new-token',
-          ),
+          customRefreshFn: (token) async => refreshCompleter.future,
+          refreshThreshold: const Duration(minutes: 5),
         );
 
-        // Call cancelRefresh even when nothing is in progress
+        tokenProvider
+          .._accessToken = 'old-token'
+          .._refreshToken = 'refresh-token'
+          .._accessExpiry =
+              DateTime.now().toUtc().add(const Duration(minutes: 1));
+
+        // Start a request that will trigger refresh
+        final firstOptions = RequestOptions(path: '/test1');
+        final firstHandler = _MockRequestHandler();
+        final firstFuture = interceptor.onRequest(firstOptions, firstHandler);
+
+        // Wait a bit to ensure refresh is in progress
+        await Future<void>.delayed(const Duration(milliseconds: 50));
+
+        // Start a second request that should be queued
+        final secondOptions = RequestOptions(path: '/test2');
+        final secondHandler = _MockRequestHandler();
+        final secondFuture = interceptor.onRequest(secondOptions, secondHandler);
+
+        // Wait a bit to ensure second request is queued
+        await Future<void>.delayed(const Duration(milliseconds: 50));
+
+        // Cancel the refresh
         interceptor.cancelRefresh();
 
-        // Should complete without error
-        expect(true, true);
+        // Wait a bit for cancellation to propagate
+        await Future<void>.delayed(const Duration(milliseconds: 50));
+
+        // The queued request should now timeout/fail waiting for refresh
+        // It should proceed without auth after the timeout
+        await secondFuture;
+
+        // Second request should proceed without auth (refresh was cancelled)
+        expect(
+          secondHandler.nextOptions?.headers.containsKey('Authorization'),
+          false,
+        );
+
+        // Clean up: complete the refresh so first request doesn't hang
+        refreshCompleter.complete(
+          const TokenRefreshResult(accessToken: 'new-token'),
+        );
+        await firstFuture;
       });
 
       test('handles DioException during retry after refresh', () async {
@@ -964,6 +1002,49 @@ void main() {
 
         // Should have attempted refresh
         expect(tokenProvider._accessToken, 'new-token');
+      });
+
+      test(
+          'handles non-DioException error during refresh and passes original 401 through',
+          () async {
+        // Create a custom refresh function that throws a non-DioException
+        interceptor = AuthInterceptor(
+          tokenProvider: tokenProvider,
+          customRefreshFn: (token) async {
+            // Simulate an unexpected error during refresh (e.g., FormatException)
+            throw const FormatException('Invalid token format');
+          },
+        );
+
+        tokenProvider
+          .._accessToken = 'old-token'
+          .._refreshToken = 'refresh-token';
+
+        // Create the original 401 error
+        final original401Error = DioException(
+          requestOptions: RequestOptions(path: '/api/data'),
+          response: Response(
+            requestOptions: RequestOptions(path: '/api/data'),
+            statusCode: 401,
+            statusMessage: 'Unauthorized',
+          ),
+        );
+
+        final handler = _MockErrorHandler();
+
+        // Attempt to handle the 401, which will trigger refresh
+        // Refresh will throw FormatException (non-DioException)
+        // The interceptor should catch it and pass through the original 401
+        await interceptor.onError(original401Error, handler);
+
+        // Should have passed through the original 401 error (not the FormatException)
+        expect(handler.nextError, isNotNull);
+        expect(handler.nextError, original401Error);
+        expect(handler.nextError?.response?.statusCode, 401);
+
+        // Tokens should remain (non-DioException doesn't clear tokens)
+        expect(tokenProvider._accessToken, 'old-token');
+        expect(tokenProvider._refreshToken, 'refresh-token');
       });
     });
   });
