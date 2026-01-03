@@ -358,5 +358,69 @@ void main() {
         );
       });
     });
+    group('Custom Key Builder', () {
+      test('uses custom key builder when provided', () {
+        // Configuration validation
+        // ignore: unused_local_variable
+        final interceptor = AcdcCacheInterceptor(
+          config: CacheConfig(
+            keyBuilder: (request) => 'custom_key:${request.uri}',
+          ),
+        );
+
+        // Verify key generation (using public static helper for testing)
+        final options = RequestOptions(
+          baseUrl: 'https://api.example.com',
+          path: '/users',
+          extra: {
+            '_acdc_has_auth': true,
+            '_acdc_user_id': 'user123',
+          },
+        );
+
+        final key = AcdcCacheInterceptor.buildCacheKeyWithUserIsolation(
+          options,
+          customKeyBuilder: (request) => 'custom_key:${request.uri}',
+        );
+
+        // Should use custom key + user ID suffix (isolation enforced)
+        expect(key, 'custom_key:https://api.example.com/users:user123');
+      });
+
+      test('enforces user isolation with custom key builder', () {
+        // Authenticated request with user ID
+        final options = RequestOptions(
+          path: '/users',
+          extra: {
+            '_acdc_has_auth': true,
+            '_acdc_user_id': 'user123',
+          },
+        );
+
+        final key = AcdcCacheInterceptor.buildCacheKeyWithUserIsolation(
+          options,
+          customKeyBuilder: (request) => 'simple_key',
+        );
+
+        // Must preserve user isolation
+        expect(key, 'simple_key:user123');
+      });
+
+      test('uses custom key builder for unauthenticated requests', () {
+        final options = RequestOptions(
+          path: '/users',
+          extra: {
+            '_acdc_has_auth': false,
+          },
+        );
+
+        final key = AcdcCacheInterceptor.buildCacheKeyWithUserIsolation(
+          options,
+          customKeyBuilder: (request) => 'public_key',
+        );
+
+        expect(key, 'public_key');
+      });
+    });
   });
 }

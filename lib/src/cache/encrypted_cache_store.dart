@@ -1,34 +1,56 @@
 import 'dart:convert';
+import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:dio_cache_interceptor/dio_cache_interceptor.dart';
+import 'package:dio_cache_interceptor_file_store/dio_cache_interceptor_file_store.dart';
+import 'package:encrypt/encrypt.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:path_provider/path_provider.dart';
 
-/// A cache store that encrypts data using platform secure storage.
+/// A cache store that encrypts data before persisting to disk.
 ///
-/// Uses [FlutterSecureStorage] to encrypt and persist cache entries.
-/// Implements LRU eviction when size limits are exceeded.
+/// Wraps a [FileCacheStore] and uses AES-GCM encryption for content.
+/// The encryption key is managed by [FlutterSecureStorage].
 ///
 /// Features:
-/// - Platform-level encryption (Keychain on iOS, KeyStore on Android)
-/// - Automatic LRU eviction based on maxSize
-/// - Graceful degradation on encryption failures
+/// - AES-GCM encryption (256-bit key)
+/// - Key storage in platform secure storage (Keychain/KeyStore)
+/// - File-based persistence
+/// - Automatic key generation
 class EncryptedCacheStore implements CacheStore {
   /// Creates an encrypted cache store.
   ///
-  /// [maxSize]: Maximum cache size in bytes (default: 10 MB)
-  /// [storage]: Custom secure storage instance (mainly for testing)
-  /// [version]: Cache version string (invalidation trigger)
-  /// [onError]: Callback for internal errors
+  /// [storePath]: Path to store cache files. If null, uses application documents directory.
+  /// [storage]: Custom secure storage instance (mainly for testing).
+  /// [clean]: Whether to clean the store on opening.
+  /// Creates an encrypted cache store.
+  ///
+  /// [storePath]: Path to store cache files. If null, uses application documents directory.
+  /// [storage]: Custom secure storage instance (mainly for testing).
+  /// [clean]: Whether to clean the store on opening.
+  /// [maxSize]: Maximum cache size in bytes (currently unused for file store, standard is 10 MB).
+  /// [version]: Cache version string. If changes, cache is cleared.
+  /// [onError]: Callback for internal errors.
   EncryptedCacheStore({
-    this.maxSize = 10 * 1024 * 1024, // 10 MB
+    this.storePath,
     FlutterSecureStorage? storage,
+    this.cleanStore = false,
+    this.maxSize = 10 * 1024 * 1024, // 10 MB
     this.version,
     this.onError,
-  }) : _storage = storage ?? const FlutterSecureStorage();
+  }) : _secureStorage = storage ?? const FlutterSecureStorage();
 
-  final FlutterSecureStorage _storage;
+  /// Path to store cache files.
+  final String? storePath;
 
-  /// Maximum cache size in bytes.
+  /// Custom secure storage instance.
+  final FlutterSecureStorage _secureStorage;
+
+  /// Whether to clean the store on opening.
+  final bool cleanStore;
+
+  /// Maximum cache size (not strictly enforced by FileCacheStore wrapper currently).
   final int maxSize;
 
   /// Cache version string.
@@ -37,74 +59,102 @@ class EncryptedCacheStore implements CacheStore {
   /// Error callback.
   final void Function(Object error, StackTrace stackTrace)? onError;
 
-  static const String _keyPrefix = 'acdc_cache_';
-  static const String _metadataKey = 'acdc_cache_metadata';
-  static const String _versionKey = 'acdc_cache_version';
+  /// The underlying file store.
+  FileCacheStore? _fileStore;
 
-  /// Metadata for tracking cache entries (for LRU eviction).
-  final Map<String, _CacheMetadata> _metadata = {};
-  bool _metadataLoaded = false;
+  /// The encrypter instance.
+  Encrypter? _encrypter;
+
+  /// Future to track initialization.
+  Future<void>? _initFuture;
+
+  static const String _keyStorageKey = 'acdc_cache_encryption_key';
+  static const String _versionStorageKey = 'acdc_cache_version';
+
+  /// Ensures that file store and encryption are initialized.
+  Future<void> _ensureInitialized() async {
+    if (_initFuture != null) {
+      await _initFuture;
+      return;
+    }
+
+    _initFuture = _initialize();
+    await _initFuture;
+  }
+
+  Future<void> _initialize() async {
+    try {
+      // 1. Initialize path
+      final path = storePath ?? (await getApplicationDocumentsDirectory()).path;
+      final cacheDir = Directory('$path/acdc_cache');
+      if (!cacheDir.existsSync()) {
+        cacheDir.createSync(recursive: true);
+      }
+      _fileStore = FileCacheStore(cacheDir.path);
+
+      if (cleanStore) {
+        await _fileStore!.clean();
+      }
+
+      // 2. Check version
+      final storedVersion = await _secureStorage.read(key: _versionStorageKey);
+      if (version != null && storedVersion != version) {
+        // Version mismatch - clear cache
+        await _fileStore!.clean();
+        await _secureStorage.write(key: _versionStorageKey, value: version);
+      } else if (version != null && storedVersion == null) {
+        await _secureStorage.write(key: _versionStorageKey, value: version);
+      }
+
+      // 3. Initialize encryption key
+      final keyBytes = await _getOrGenerateKey(_secureStorage);
+      _encrypter = Encrypter(AES(Key(keyBytes), mode: AESMode.gcm));
+    } catch (e, stack) {
+      onError?.call(e, stack);
+      // If initialization fails, we might want to rethrow or handle it
+      // For now, let it propagate so calls fail
+      rethrow;
+    }
+  }
+
+  /// Gets existing key or generates a new one.
+  static Future<Uint8List> _getOrGenerateKey(
+      FlutterSecureStorage storage) async {
+    String? base64Key = await storage.read(key: _keyStorageKey);
+
+    if (base64Key == null) {
+      final key = Key.fromSecureRandom(32); // 256 bits
+      base64Key = base64Url.encode(key.bytes);
+      await storage.write(key: _keyStorageKey, value: base64Key);
+      return key.bytes;
+    }
+
+    return base64Url.decode(base64Key);
+  }
 
   @override
   Future<void> clean({
     CachePriority priorityOrBelow = CachePriority.high,
     bool staleOnly = false,
   }) async {
-    try {
-      await _loadMetadata();
-
-      final now = DateTime.now();
-      final keysToDelete = <String>[];
-
-      for (final entry in _metadata.entries) {
-        final shouldDelete = !staleOnly ||
-            (entry.value.expiryDate != null &&
-                entry.value.expiryDate!.isBefore(now));
-
-        if (shouldDelete) {
-          keysToDelete.add(entry.key);
-        }
-      }
-
-      for (final key in keysToDelete) {
-        await _deleteEntry(key);
-      }
-
-      await _saveMetadata();
-    } on Exception catch (e, stack) {
-      onError?.call(e, stack);
-      // Silently fail on clean errors
-    }
+    await _ensureInitialized();
+    return _fileStore!.clean(
+      priorityOrBelow: priorityOrBelow,
+      staleOnly: staleOnly,
+    );
   }
 
   @override
   Future<void> close() async {
-    // No resources to release
+    // Wait for init if it's pending, though if we close before init finishes it's awkward
+    // Just close the file store if it exists
+    return _fileStore?.close();
   }
 
   @override
   Future<void> delete(String key, {bool staleOnly = false}) async {
-    try {
-      await _loadMetadata();
-
-      if (!_metadata.containsKey(key)) {
-        return;
-      }
-
-      if (staleOnly) {
-        final meta = _metadata[key];
-        final now = DateTime.now();
-        if (meta?.expiryDate == null || meta!.expiryDate!.isAfter(now)) {
-          return;
-        }
-      }
-
-      await _deleteEntry(key);
-      await _saveMetadata();
-    } on Exception catch (e, stack) {
-      onError?.call(e, stack);
-      // Silently fail on delete errors
-    }
+    await _ensureInitialized();
+    return _fileStore!.delete(key, staleOnly: staleOnly);
   }
 
   @override
@@ -112,76 +162,50 @@ class EncryptedCacheStore implements CacheStore {
     RegExp pathPattern, {
     Map<String, String?>? queryParams,
   }) async {
-    try {
-      await _loadMetadata();
-
-      final keysToDelete = <String>[];
-      for (final key in _metadata.keys) {
-        // Read the cached response to get its URL
-        final response = await get(key);
-        if (response != null &&
-            pathExists(response.url, pathPattern, queryParams: queryParams)) {
-          keysToDelete.add(key);
-        }
-      }
-
-      for (final key in keysToDelete) {
-        await _deleteEntry(key);
-      }
-
-      await _saveMetadata();
-    } on Exception catch (e, stack) {
-      onError?.call(e, stack);
-      // Silently fail on delete errors
-    }
+    await _ensureInitialized();
+    return _fileStore!.deleteFromPath(pathPattern, queryParams: queryParams);
   }
 
   @override
   Future<bool> exists(String key) async {
-    try {
-      await _loadMetadata();
-      return _metadata.containsKey(key);
-    } on Exception catch (e, stack) {
-      onError?.call(e, stack);
-      return false;
-    }
+    await _ensureInitialized();
+    return _fileStore!.exists(key);
   }
 
   @override
   Future<CacheResponse?> get(String key) async {
-    try {
-      await _loadMetadata();
-
-      if (!_metadata.containsKey(key)) {
-        return null;
-      }
-
-      // Update last accessed time (LRU)
-      _metadata[key] = _metadata[key]!.copyWith(
-        lastAccessed: DateTime.now(),
-      );
-
-      // Read encrypted data from secure storage
-      final storageKey = _getStorageKey(key);
-      final data = await _storage.read(key: storageKey);
-
-      if (data == null) {
-        // Entry exists in metadata but not in storage - clean up
-        _metadata.remove(key);
-        await _saveMetadata();
-        return null;
-      }
-
-      // Deserialize cache response
-      final json = jsonDecode(data) as Map<String, dynamic>;
-      final response = _deserializeCacheResponse(json);
-
-      await _saveMetadata();
-
+    await _ensureInitialized();
+    final response = await _fileStore!.get(key);
+    if (response == null || response.content == null) {
       return response;
-    } on Exception catch (e, stack) {
-      // Return null on any error (encryption failure, deserialization, etc.)
-      onError?.call(e, stack);
+    }
+
+    try {
+      // Decrypt content
+      final encryptedBytes = Uint8List.fromList(response.content!);
+      // AES-GCM format: IV + Ciphertext + AuthTag
+      // encrypt package handles this structure for GCM mode?
+      // Actually, Encrypted.fromBase64 expects just the bytes if we manage IV manually
+      // But AES-GCM needs IV (nonce).
+      // Let's assume content was stored as: IV (12 bytes) + Encrypted Data
+
+      // IMPORTANT: The encrypt package's AES-GCM implementation details:
+      // When using `encrypter.encrypt(bytes)`, it returns an `Encrypted` object.
+      // We should store IV + bytes.
+
+      // Let's check how we store it in `set`.
+      // We are storing deserialized bytes.
+
+      final parts = _deserializeContent(encryptedBytes);
+      final iv = IV(parts.iv);
+      final encrypted = Encrypted(parts.ciphertext);
+
+      final decrypted = _encrypter!.decryptBytes(encrypted, iv: iv);
+
+      return response.copyWith(content: decrypted);
+    } catch (e) {
+      // Decryption failed - treat as cache miss and delete corrupted entry
+      await delete(key);
       return null;
     }
   }
@@ -191,215 +215,51 @@ class EncryptedCacheStore implements CacheStore {
     RegExp pathPattern, {
     Map<String, String?>? queryParams,
   }) async {
-    try {
-      await _loadMetadata();
+    await _ensureInitialized();
+    final responses = await _fileStore!.getFromPath(
+      pathPattern,
+      queryParams: queryParams,
+    );
 
-      final responses = <CacheResponse>[];
-      for (final key in _metadata.keys) {
-        final response = await get(key);
-        if (response != null &&
-            pathExists(response.url, pathPattern, queryParams: queryParams)) {
-          responses.add(response);
-        }
+    final decryptedResponses = <CacheResponse>[];
+    for (final response in responses) {
+      if (response.content == null) {
+        decryptedResponses.add(response);
+        continue;
       }
 
-      return responses;
-    } on Exception catch (e, stack) {
-      onError?.call(e, stack);
-      return [];
+      try {
+        final encryptedBytes = Uint8List.fromList(response.content!);
+        final parts = _deserializeContent(encryptedBytes);
+        final iv = IV(parts.iv);
+        final encrypted = Encrypted(parts.ciphertext);
+
+        final decrypted = _encrypter!.decryptBytes(encrypted, iv: iv);
+        decryptedResponses.add(response.copyWith(content: decrypted));
+      } catch (e) {
+        // Skip corrupted entries
+        await delete(response.key);
+      }
     }
+
+    return decryptedResponses;
   }
 
   @override
   Future<void> set(CacheResponse response) async {
-    try {
-      await _loadMetadata();
-
-      final key = response.key;
-      final json = _serializeCacheResponse(response);
-      final data = jsonEncode(json);
-      final size = utf8.encode(data).length;
-
-      // Evict entries if needed to make room
-      await _evictIfNeeded(size);
-
-      // Store encrypted data in secure storage
-      final storageKey = _getStorageKey(key);
-      await _storage.write(key: storageKey, value: data);
-
-      // Update metadata
-      _metadata[key] = _CacheMetadata(
-        size: size,
-        lastAccessed: DateTime.now(),
-        expiryDate: response.maxStale,
-      );
-
-      await _saveMetadata();
-    } on Exception catch (e, stack) {
-      onError?.call(e, stack);
-      // Silently fail on encryption errors
-      // This allows graceful degradation when encryption is unavailable
-    }
-  }
-
-  /// Calculates current total cache size.
-  int get currentSize =>
-      _metadata.values.fold(0, (sum, meta) => sum + meta.size);
-
-  /// Evicts least recently used entries until there's enough space.
-  Future<void> _evictIfNeeded(int requiredSpace) async {
-    if (currentSize + requiredSpace <= maxSize) {
-      return;
+    await _ensureInitialized();
+    if (response.content == null) {
+      return _fileStore!.set(response);
     }
 
-    // Sort by last accessed (oldest first)
-    final entries = _metadata.entries.toList()
-      ..sort((a, b) => a.value.lastAccessed.compareTo(b.value.lastAccessed));
+    // Encrypt content
+    final iv = IV.fromSecureRandom(12); // GCM standard IV size
+    final encrypted = _encrypter!.encryptBytes(response.content!, iv: iv);
 
-    // Evict until we have enough space
-    for (final entry in entries) {
-      if (currentSize + requiredSpace <= maxSize) {
-        break;
-      }
+    // Store IV + Encrypted Data
+    final serialized = _serializeContent(iv.bytes, encrypted.bytes);
 
-      await _deleteEntry(entry.key);
-    }
-  }
-
-  /// Deletes a cache entry and updates metadata.
-  Future<void> _deleteEntry(String key) async {
-    try {
-      final storageKey = _getStorageKey(key);
-      await _storage.delete(key: storageKey);
-      _metadata.remove(key);
-    } on Exception catch (e, stack) {
-      onError?.call(e, stack);
-      // Ignore delete errors
-    }
-  }
-
-  /// Loads metadata from secure storage.
-  ///
-  /// Also checks for version mismatch and invalidates cache if version changed.
-  Future<void> _loadMetadata() async {
-    if (_metadataLoaded) {
-      return;
-    }
-
-    try {
-      // Check version first
-      final storedVersion = await _storage.read(key: _versionKey);
-
-      // If version mismatch, clear everything
-      if (version != null && storedVersion != version) {
-        await _storage.deleteAll();
-        await _storage.write(key: _versionKey, value: version);
-        _metadata.clear();
-        _metadataLoaded = true;
-        return;
-      }
-
-      // Also write version if not present (first run with versioning)
-      if (version != null && storedVersion == null) {
-        await _storage.write(key: _versionKey, value: version);
-      }
-
-      final data = await _storage.read(key: _metadataKey);
-      if (data != null) {
-        final json = jsonDecode(data) as Map<String, dynamic>;
-        _metadata.clear();
-        for (final entry in json.entries) {
-          _metadata[entry.key] = _CacheMetadata.fromJson(
-            entry.value as Map<String, dynamic>,
-          );
-        }
-      }
-      _metadataLoaded = true;
-    } on Exception catch (e, stack) {
-      // If metadata loading fails, start fresh but report error
-      onError?.call(e, stack);
-      _metadata.clear();
-      _metadataLoaded = true;
-    }
-  }
-
-  /// Saves metadata to secure storage.
-  Future<void> _saveMetadata() async {
-    try {
-      final json = <String, dynamic>{};
-      for (final entry in _metadata.entries) {
-        json[entry.key] = entry.value.toJson();
-      }
-      final data = jsonEncode(json);
-      await _storage.write(key: _metadataKey, value: data);
-    } on Exception catch (e, stack) {
-      onError?.call(e, stack);
-      // Ignore metadata save errors
-    }
-  }
-
-  /// Gets the storage key for a cache key.
-  String _getStorageKey(String key) => '$_keyPrefix$key';
-
-  /// Serializes a CacheResponse to JSON.
-  Map<String, dynamic> _serializeCacheResponse(CacheResponse response) => {
-        'key': response.key,
-        'url': response.url,
-        'cacheControl': {
-          'maxAge': response.cacheControl.maxAge,
-          'privacy': response.cacheControl.privacy,
-          'noCache': response.cacheControl.noCache,
-          'noStore': response.cacheControl.noStore,
-          'mustRevalidate': response.cacheControl.mustRevalidate,
-          'maxStale': response.cacheControl.maxStale,
-          'minFresh': response.cacheControl.minFresh,
-          'other': response.cacheControl.other,
-        },
-        'content': response.content,
-        'date': response.date?.toIso8601String(),
-        'eTag': response.eTag,
-        'expires': response.expires?.toIso8601String(),
-        'headers': response.headers,
-        'lastModified': response.lastModified,
-        'maxStale': response.maxStale?.toIso8601String(),
-        'priority': response.priority.index,
-        'requestDate': response.requestDate.toIso8601String(),
-        'responseDate': response.responseDate.toIso8601String(),
-      };
-
-  /// Deserializes a CacheResponse from JSON.
-  CacheResponse _deserializeCacheResponse(Map<String, dynamic> json) {
-    final cacheControlJson = json['cacheControl'] as Map<String, dynamic>;
-    final otherList = cacheControlJson['other'] as List<dynamic>?;
-    return CacheResponse(
-      key: json['key'] as String,
-      url: json['url'] as String,
-      cacheControl: CacheControl(
-        maxAge: cacheControlJson['maxAge'] as int,
-        privacy: cacheControlJson['privacy'] as String?,
-        noCache: cacheControlJson['noCache'] as bool,
-        noStore: cacheControlJson['noStore'] as bool,
-        mustRevalidate: cacheControlJson['mustRevalidate'] as bool,
-        maxStale: cacheControlJson['maxStale'] as int,
-        minFresh: cacheControlJson['minFresh'] as int,
-        other: otherList?.cast<String>() ?? [],
-      ),
-      content: (json['content'] as List<dynamic>?)?.cast<int>(),
-      date:
-          json['date'] != null ? DateTime.parse(json['date'] as String) : null,
-      eTag: json['eTag'] as String?,
-      expires: json['expires'] != null
-          ? DateTime.parse(json['expires'] as String)
-          : null,
-      headers: (json['headers'] as List<dynamic>?)?.cast<int>(),
-      lastModified: json['lastModified'] as String?,
-      maxStale: json['maxStale'] != null
-          ? DateTime.parse(json['maxStale'] as String)
-          : null,
-      priority: CachePriority.values[json['priority'] as int],
-      requestDate: DateTime.parse(json['requestDate'] as String),
-      responseDate: DateTime.parse(json['responseDate'] as String),
-    );
+    return _fileStore!.set(response.copyWith(content: serialized));
   }
 
   @override
@@ -410,56 +270,37 @@ class EncryptedCacheStore implements CacheStore {
   }) {
     if (!pathPattern.hasMatch(url)) return false;
 
-    var hasMatch = true;
-
-    final uri = Uri.parse(url);
-    if (queryParams != null) {
+    if (queryParams != null && queryParams.isNotEmpty) {
+      final uri = Uri.parse(url);
       for (final entry in queryParams.entries) {
-        hasMatch &= uri.queryParameters.containsKey(entry.key);
-        if (entry.value != null) {
-          hasMatch &= uri.queryParameters[entry.key] == entry.value;
+        if (!uri.queryParameters.containsKey(entry.key)) return false;
+        if (entry.value != null &&
+            uri.queryParameters[entry.key] != entry.value) {
+          return false;
         }
-        if (!hasMatch) break;
       }
     }
 
-    return hasMatch;
+    return true;
   }
-}
 
-/// Metadata for tracking cache entries.
-class _CacheMetadata {
-  const _CacheMetadata({
-    required this.size,
-    required this.lastAccessed,
-    this.expiryDate,
-  });
-  factory _CacheMetadata.fromJson(Map<String, dynamic> json) => _CacheMetadata(
-        size: json['size'] as int,
-        lastAccessed: DateTime.parse(json['lastAccessed'] as String),
-        expiryDate: json['expiryDate'] != null
-            ? DateTime.parse(json['expiryDate'] as String)
-            : null,
-      );
+  // -- Helpers for byte manipulation --
 
-  final int size;
-  final DateTime lastAccessed;
-  final DateTime? expiryDate;
+  /// Combines IV and ciphertext into a single byte array.
+  /// Format: [IV Length (1 byte)] [IV bytes] [Ciphertext bytes]
+  Uint8List _serializeContent(Uint8List iv, Uint8List ciphertext) {
+    final bb = BytesBuilder();
+    bb.addByte(iv.length);
+    bb.add(iv);
+    bb.add(ciphertext);
+    return bb.toBytes();
+  }
 
-  _CacheMetadata copyWith({
-    int? size,
-    DateTime? lastAccessed,
-    DateTime? expiryDate,
-  }) =>
-      _CacheMetadata(
-        size: size ?? this.size,
-        lastAccessed: lastAccessed ?? this.lastAccessed,
-        expiryDate: expiryDate ?? this.expiryDate,
-      );
-
-  Map<String, dynamic> toJson() => {
-        'size': size,
-        'lastAccessed': lastAccessed.toIso8601String(),
-        if (expiryDate != null) 'expiryDate': expiryDate!.toIso8601String(),
-      };
+  /// Extracts IV and ciphertext from a byte array.
+  ({Uint8List iv, Uint8List ciphertext}) _deserializeContent(Uint8List bytes) {
+    final ivLength = bytes[0];
+    final iv = bytes.sublist(1, 1 + ivLength);
+    final ciphertext = bytes.sublist(1 + ivLength);
+    return (iv: iv, ciphertext: ciphertext);
+  }
 }

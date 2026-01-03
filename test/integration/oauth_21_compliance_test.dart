@@ -34,9 +34,7 @@ void main() {
       const testRefreshToken = 'test-refresh-token';
 
       // Configure server to return success
-      oauthServer.respondWithSuccess(
-        
-      );
+      oauthServer.respondWithSuccess();
 
       // Set up token provider with expiring token to trigger refresh
       final expiry = DateTime.now().toUtc().add(const Duration(seconds: 30));
@@ -204,7 +202,8 @@ void main() {
       );
     });
 
-    test('refresh request does not include refresh_token when response omits it',
+    test(
+        'refresh request does not include refresh_token when response omits it',
         () async {
       const clientId = 'test-client-id';
       const originalRefreshToken = 'original-refresh-token';
@@ -240,7 +239,8 @@ void main() {
       expect(
         await tokenProvider.getRefreshToken(),
         originalRefreshToken,
-        reason: 'Token provider should keep original refresh token when not rotated',
+        reason:
+            'Token provider should keep original refresh token when not rotated',
       );
     });
   });

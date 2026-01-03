@@ -103,7 +103,8 @@ void main() {
       );
 
       expect(results.length, equals(2));
-      expect(results.map((r) => r.key), containsAll(['mem_key', 'persist_key']));
+      expect(
+          results.map((r) => r.key), containsAll(['mem_key', 'persist_key']));
     });
 
     test('getFromPath removes duplicates when merging', () async {
@@ -126,14 +127,18 @@ void main() {
     });
 
     test('deleteFromPath removes from both tiers', () async {
-      await twoTierStore.set(_createCacheResponse(
-        key: 'key1',
-        url: 'https://api.example.com/users/1',
-      ),);
-      await twoTierStore.set(_createCacheResponse(
-        key: 'key2',
-        url: 'https://api.other.com/users/1',
-      ),);
+      await twoTierStore.set(
+        _createCacheResponse(
+          key: 'key1',
+          url: 'https://api.example.com/users/1',
+        ),
+      );
+      await twoTierStore.set(
+        _createCacheResponse(
+          key: 'key2',
+          url: 'https://api.other.com/users/1',
+        ),
+      );
 
       await twoTierStore.deleteFromPath(
         RegExp(r'https://api\.example\.com/'),

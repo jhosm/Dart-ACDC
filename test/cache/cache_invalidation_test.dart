@@ -4,17 +4,52 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
+import 'package:path/path.dart' as p;
+import 'dart:io';
 
 import 'cache_invalidation_test.mocks.dart';
 
 @GenerateMocks([FlutterSecureStorage])
 void main() {
   group('EncryptedCacheStore Invalidation & Errors', () {
-    late FlutterSecureStorage mockStorage;
+    late MockFlutterSecureStorage mockStorage;
+    late Directory tempDir;
 
     setUp(() {
-      FlutterSecureStorage.setMockInitialValues({});
-      mockStorage = const FlutterSecureStorage();
+      mockStorage = MockFlutterSecureStorage();
+      final storageMap = <String, String>{};
+
+      // Stateful mocks
+      when(mockStorage.read(key: anyNamed('key')))
+          .thenAnswer((invocation) async {
+        final key = invocation.namedArguments[#key] as String;
+        return storageMap[key];
+      });
+
+      when(mockStorage.write(key: anyNamed('key'), value: anyNamed('value')))
+          .thenAnswer((invocation) async {
+        final key = invocation.namedArguments[#key] as String;
+        final value = invocation.namedArguments[#value] as String;
+        storageMap[key] = value;
+      });
+
+      when(mockStorage.delete(key: anyNamed('key')))
+          .thenAnswer((invocation) async {
+        final key = invocation.namedArguments[#key] as String;
+        storageMap.remove(key);
+      });
+
+      when(mockStorage.deleteAll()).thenAnswer((_) async {
+        storageMap.clear();
+      });
+
+      tempDir = Directory.systemTemp.createTempSync('cache_invalidation_test');
+    });
+
+    tearDown(() {
+      if (tempDir.existsSync()) {
+        tempDir.deleteSync(recursive: true);
+      }
     });
 
     test('invalidates cache when version changes', () async {
@@ -22,6 +57,7 @@ void main() {
       var store = EncryptedCacheStore(
         version: 'v1',
         storage: mockStorage,
+        storePath: p.join(tempDir.path, 'test_cache'),
       );
 
       final response = _createCacheResponse(key: 'key1');
@@ -32,6 +68,7 @@ void main() {
       store = EncryptedCacheStore(
         version: 'v1',
         storage: mockStorage,
+        storePath: p.join(tempDir.path, 'test_cache'),
       );
       expect(
         await store.exists('key1'),
@@ -43,6 +80,7 @@ void main() {
       store = EncryptedCacheStore(
         version: 'v2',
         storage: mockStorage,
+        storePath: p.join(tempDir.path, 'test_cache'),
       );
 
       // Force metadata reload by calling exists/get
@@ -58,21 +96,24 @@ void main() {
       expect(await store.exists('key2'), isTrue);
 
       // Check that version key is updated
-      final version = await mockStorage.read(key: 'acdc_cache_version');
-      expect(version, equals('v2'));
+      verify(mockStorage.read(key: 'acdc_cache_version'))
+          .called(greaterThan(0));
+      verify(mockStorage.write(key: 'acdc_cache_version', value: 'v2'))
+          .called(1);
     });
 
     test('updates version key on first run if missing', () async {
       final store = EncryptedCacheStore(
         version: 'v1',
         storage: mockStorage,
+        storePath: p.join(tempDir.path, 'version_update_cache'),
       );
 
       // Trigger load
       await store.exists('anything');
 
-      final version = await mockStorage.read(key: 'acdc_cache_version');
-      expect(version, equals('v1'));
+      verify(mockStorage.write(key: 'acdc_cache_version', value: 'v1'))
+          .called(1);
     });
 
     test('calls onError when storage read fails', () async {
@@ -87,37 +128,39 @@ void main() {
         onError: (error, stack) {
           capturedError = error;
         },
+        storePath: tempDir.path,
       );
 
-      await store.get('test_key');
+      await expectLater(store.get('test_key'), throwsException);
 
       expect(capturedError, isNotNull);
       expect(capturedError.toString(), contains('Storage read error'));
     });
 
-    test('calls onError when storage write fails', () async {
-      final failingStorage = MockFlutterSecureStorage();
+    test('calls onError when initialization fails', () async {
+      final errorLog = <Object>[];
 
-      // Mock read to allow metadata loading (or fail there too, fine either way)
-      when(failingStorage.read(key: anyNamed('key')))
+      // Make generic write fail to trigger initialization error (key generation)
+      when(mockStorage.read(key: anyNamed('key')))
           .thenAnswer((_) async => null);
+      when(mockStorage.write(key: anyNamed('key'), value: anyNamed('value')))
+          .thenThrow(Exception('Storage write failed'));
 
-      when(failingStorage.write(key: anyNamed('key'), value: anyNamed('value')))
-          .thenThrow(Exception('Storage write error'));
-
-      Object? capturedError;
+      // Passing storePath so directory creation succeeds,
+      // but key generation in _initialize will fail due to write error
       final store = EncryptedCacheStore(
-        storage: failingStorage,
-        onError: (error, stack) {
-          capturedError = error;
-        },
+        maxSize: 1024 * 1024,
+        onError: (e, s) => errorLog.add(e),
+        storage: mockStorage,
+        storePath: tempDir.path,
       );
 
-      final response = _createCacheResponse(key: 'test_key');
-      await store.set(response);
+      // Attempting to use the store triggers initialization which fails
+      await expectLater(
+          () => store.set(_createCacheResponse(key: 'key1')), throwsException);
 
-      expect(capturedError, isNotNull);
-      expect(capturedError.toString(), contains('Storage write error'));
+      expect(errorLog, isNotEmpty);
+      expect(errorLog.first.toString(), contains('Storage write failed'));
     });
   });
 }

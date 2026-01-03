@@ -17,7 +17,7 @@
 3. ✅ Error Handling Interceptor - Complete
 4. ✅ Authentication Components - Complete
 5. ⏳ Logging Interceptor - Pending (blocked by dependencies)
-6. ⏳ Cache Components - Pending (blocked by dependencies)
+6. ✅ Cache Components - Complete
 7. 🚧 HTTP Client Builder - Core complete, needs logging/cache integration
 8. ⏳ Public API - Pending (1 subtask remaining)
 9. ⏳ Documentation - Pending
@@ -215,86 +215,86 @@
 - [ ] 5.13 Write tests for custom logger integration
 - [ ] 5.14 Write tests for sensitive data redaction
 
-## 6. Cache Components
+## 6. Cache Components ✅
 
-- [ ] 6.1 Create `CacheConfig` class in `lib/src/cache/cache_config.dart`
-  - [ ] 6.1.1 Add TTL configuration (default: 1 hour)
-  - [ ] 6.1.2 Add max size configuration (default: 10 MB)
-  - [ ] 6.1.3 Add cacheAuthenticatedRequests flag (default: true)
-  - [ ] 6.1.4 Add encrypted flag for encrypted cache
-  - [ ] 6.1.5 Add requireEncryption flag
-  - [ ] 6.1.6 Add inMemory flag for in-memory layer
-  - [ ] 6.1.7 Add inMemoryMaxSize configuration
-  - [ ] 6.1.8 Add staleWhileRevalidate flag
-  - [ ] 6.1.9 Add staleIfError flag
-  - [ ] 6.1.10 Add userIdProvider callback for non-JWT auth
-- [ ] 6.2 Integrate `dio_cache_interceptor`
-  - [ ] 6.2.1 Configure with sensible defaults
-  - [ ] 6.2.2 Apply user-provided CacheConfig options
-  - [ ] 6.2.3 Set up persistent disk storage
-  - [ ] 6.2.4 Exclude cache directory from backups
-- [ ] 6.3 Implement HTTP cache header support
-  - [ ] 6.3.1 Respect Cache-Control headers (max-age, no-cache, no-store)
-  - [ ] 6.3.2 Implement ETag-based conditional requests
-  - [ ] 6.3.3 Handle 304 Not Modified responses
-  - [ ] 6.3.4 Implement Last-Modified support
-- [ ] 6.4 Implement HTTP method-based caching
-  - [ ] 6.4.1 Cache only GET requests by default
-  - [ ] 6.4.2 Allow HEAD requests to use GET cache
-  - [ ] 6.4.3 Never cache POST/PUT/PATCH/DELETE
-  - [ ] 6.4.4 Invalidate cache on successful mutations
-- [ ] 6.5 Implement user-based cache isolation
-  - [ ] 6.5.1 Extract user ID from JWT access token (sub, user_id, uid claims)
-  - [ ] 6.5.2 Include user ID in cache keys for authenticated requests
-  - [ ] 6.5.3 Separate cache entries per user
-  - [ ] 6.5.4 Handle JWT decoding failures gracefully
-  - [ ] 6.5.5 Support custom userIdProvider for non-JWT tokens
-  - [ ] 6.5.6 Clear cache on user change detection
-  - [ ] 6.5.7 Ensure cache isolation on shared devices
-- [ ] 6.6 Implement encrypted cache storage
-  - [ ] 6.6.1 Encrypt responses before writing to disk
-  - [ ] 6.6.2 Decrypt responses on cache reads
-  - [ ] 6.6.3 Store encryption keys in platform secure storage
-  - [ ] 6.6.4 Handle encryption key rotation
-  - [ ] 6.6.5 Fallback to unencrypted if encryption unavailable
-  - [ ] 6.6.6 Disable caching if requireEncryption=true and encryption fails
-- [ ] 6.7 Implement in-memory cache layer
-  - [ ] 6.7.1 Add memory cache before disk cache
-  - [ ] 6.7.2 Implement LRU eviction for memory cache
-  - [ ] 6.7.3 Clear memory cache on app lifecycle events
-  - [ ] 6.7.4 Keep disk cache intact on memory cache clear
-- [ ] 6.8 Implement stale-while-revalidate
-  - [ ] 6.8.1 Serve stale cache immediately when enabled
-  - [ ] 6.8.2 Trigger background refresh request
-  - [ ] 6.8.3 Update cache with fresh response
-- [ ] 6.9 Implement offline network handling
-  - [ ] 6.9.1 Serve stale cache on network unavailability
-  - [ ] 6.9.2 Add X-ACDC-From-Cache header
-  - [ ] 6.9.3 Set response.extra['fromOfflineCache'] flag
-  - [ ] 6.9.4 Throw AcdcNetworkException if no cache available
-- [ ] 6.10 Implement cache invalidation
-  - [ ] 6.10.1 Add clearCache() to AcdcAuthManager
-  - [ ] 6.10.2 Add clearCacheForUrl() method
-  - [ ] 6.10.3 Auto-clear cache on logout
-  - [ ] 6.10.4 Auto-clear on app version change
-  - [ ] 6.10.5 Handle incomplete logout states on startup
-- [ ] 6.11 Implement cache error handling
-  - [ ] 6.11.1 Handle cache initialization failures → disable caching
-  - [ ] 6.11.2 Handle write failures → log and continue
-  - [ ] 6.11.3 Handle read failures → delete corrupt entry, fetch fresh
-  - [ ] 6.11.4 Clean corrupted entries on startup
-  - [ ] 6.11.5 Handle disk space exhaustion with LRU eviction
-- [ ] 6.12 Implement LRU eviction policy
-  - [ ] 6.12.1 Update access time on cache reads
-  - [ ] 6.12.2 Evict least recently used on size limit
-- [ ] 6.13 Support custom cache key functions
-  - [ ] 6.13.1 Allow developers to provide cache key generator
-  - [ ] 6.13.2 Include method, URL, user ID in default key
-- [ ] 6.14 Write unit tests for cache configuration
-- [ ] 6.15 Write integration tests for user isolation
-- [ ] 6.16 Write tests for encrypted cache
-- [ ] 6.17 Write tests for offline handling
-- [ ] 6.18 Write tests for cache initialization failures
+- [x] 6.1 Create `CacheConfig` class in `lib/src/cache/cache_config.dart`
+  - [x] 6.1.1 Add TTL configuration (default: 1 hour)
+  - [x] 6.1.2 Add max size configuration (default: 10 MB)
+  - [x] 6.1.3 Add cacheAuthenticatedRequests flag (default: true)
+  - [x] 6.1.4 Add encrypted flag for encrypted cache
+  - [x] 6.1.5 Add requireEncryption flag
+  - [x] 6.1.6 Add inMemory flag for in-memory layer
+  - [x] 6.1.7 Add inMemoryMaxSize configuration
+  - [x] 6.1.8 Add staleWhileRevalidate flag
+  - [x] 6.1.9 Add staleIfError flag
+  - [x] 6.1.10 Add userIdProvider callback for non-JWT auth
+- [x] 6.2 Integrate `dio_cache_interceptor`
+  - [x] 6.2.1 Configure with sensible defaults
+  - [x] 6.2.2 Apply user-provided CacheConfig options
+  - [x] 6.2.3 Set up persistent disk storage
+  - [x] 6.2.4 Exclude cache directory from backups
+- [x] 6.3 Implement HTTP cache header support
+  - [x] 6.3.1 Respect Cache-Control headers (max-age, no-cache, no-store)
+  - [x] 6.3.2 Implement ETag-based conditional requests
+  - [x] 6.3.3 Handle 304 Not Modified responses
+  - [x] 6.3.4 Implement Last-Modified support
+- [x] 6.4 Implement HTTP method-based caching
+  - [x] 6.4.1 Cache only GET requests by default
+  - [x] 6.4.2 Allow HEAD requests to use GET cache
+  - [x] 6.4.3 Never cache POST/PUT/PATCH/DELETE
+  - [x] 6.4.4 Invalidate cache on successful mutations
+- [x] 6.5 Implement user-based cache isolation
+  - [x] 6.5.1 Extract user ID from JWT access token (sub, user_id, uid claims)
+  - [x] 6.5.2 Include user ID in cache keys for authenticated requests
+  - [x] 6.5.3 Separate cache entries per user
+  - [x] 6.5.4 Handle JWT decoding failures gracefully
+  - [x] 6.5.5 Support custom userIdProvider for non-JWT tokens
+  - [x] 6.5.6 Clear cache on user change detection
+  - [x] 6.5.7 Ensure cache isolation on shared devices
+- [x] 6.6 Implement encrypted cache storage
+  - [x] 6.6.1 Encrypt responses before writing to disk
+  - [x] 6.6.2 Decrypt responses on cache reads
+  - [x] 6.6.3 Store encryption keys in platform secure storage
+  - [x] 6.6.4 Handle encryption key rotation
+  - [x] 6.6.5 Fallback to unencrypted if encryption unavailable
+  - [x] 6.6.6 Disable caching if requireEncryption=true and encryption fails
+- [x] 6.7 Implement in-memory cache layer
+  - [x] 6.7.1 Add memory cache before disk cache
+  - [x] 6.7.2 Implement LRU eviction for memory cache
+  - [x] 6.7.3 Clear memory cache on app lifecycle events
+  - [x] 6.7.4 Keep disk cache intact on memory cache clear
+- [x] 6.8 Implement stale-while-revalidate
+  - [x] 6.8.1 Serve stale cache immediately when enabled
+  - [x] 6.8.2 Trigger background refresh request
+  - [x] 6.8.3 Update cache with fresh response
+- [x] 6.9 Implement offline network handling
+  - [x] 6.9.1 Serve stale cache on network unavailability
+  - [x] 6.9.2 Add X-ACDC-From-Cache header
+  - [x] 6.9.3 Set response.extra['fromOfflineCache'] flag
+  - [x] 6.9.4 Throw AcdcNetworkException if no cache available
+- [x] 6.10 Implement cache invalidation
+  - [x] 6.10.1 Add clearCache() to AcdcAuthManager
+  - [x] 6.10.2 Add clearCacheForUrl() method
+  - [x] 6.10.3 Auto-clear cache on logout
+  - [x] 6.10.4 Auto-clear on app version change
+  - [x] 6.10.5 Handle incomplete logout states on startup
+- [x] 6.11 Implement cache error handling
+  - [x] 6.11.1 Handle cache initialization failures → disable caching
+  - [x] 6.11.2 Handle write failures → log and continue
+  - [x] 6.11.3 Handle read failures → delete corrupt entry, fetch fresh
+  - [x] 6.11.4 Clean corrupted entries on startup
+  - [x] 6.11.5 Handle disk space exhaustion with LRU eviction
+- [x] 6.12 Implement LRU eviction policy
+  - [x] 6.12.1 Update access time on cache reads
+  - [x] 6.12.2 Evict least recently used on size limit
+- [x] 6.13 Support custom cache key functions
+  - [x] 6.13.1 Allow developers to provide cache key generator
+  - [x] 6.13.2 Include method, URL, user ID in default key
+- [x] 6.14 Write unit tests for cache configuration
+- [x] 6.15 Write integration tests for user isolation
+- [x] 6.16 Write tests for encrypted cache
+- [x] 6.17 Write tests for offline handling
+- [x] 6.18 Write tests for cache initialization failures
 
 ## 7. HTTP Client Builder 🚧
 

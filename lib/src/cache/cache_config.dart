@@ -1,4 +1,7 @@
 /// Configuration for HTTP response caching.
+import 'package:dio/dio.dart';
+
+/// Configuration for HTTP response caching.
 ///
 /// Defines caching behavior including TTL, size limits, encryption, and
 /// user isolation settings.
@@ -27,9 +30,18 @@ class CacheConfig {
     this.staleWhileRevalidate = false,
     this.staleIfError = true,
     this.userIdProvider,
+    this.keyBuilder,
     this.version,
     this.onError,
   });
+
+  /// Custom cache key builder.
+  ///
+  /// Allows customizing how cache keys are generated from requests.
+  /// If provided, this is used instead of the default key builder.
+  /// User isolation is still enforced by appending the user ID to the
+  /// custom key for authenticated requests.
+  final String Function(RequestOptions request)? keyBuilder;
 
   /// Cache entry time-to-live.
   ///
@@ -118,5 +130,6 @@ class CacheConfig {
       'staleWhileRevalidate: $staleWhileRevalidate, '
       'staleIfError: $staleIfError, '
       'hasUserIdProvider: ${userIdProvider != null}, '
+      'hasKeyBuilder: ${keyBuilder != null}, '
       'version: $version)';
 }

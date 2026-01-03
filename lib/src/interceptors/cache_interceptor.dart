@@ -54,7 +54,10 @@ class AcdcCacheInterceptor extends Interceptor {
           hitCacheOnErrorExcept: config.staleIfError ? [] : [401, 403],
 
           // Custom key builder that includes user ID for isolation
-          keyBuilder: buildCacheKeyWithUserIsolation,
+          keyBuilder: (request) => buildCacheKeyWithUserIsolation(
+            request,
+            customKeyBuilder: config.keyBuilder,
+          ),
         ),
         _dioCacheInterceptor = DioCacheInterceptor(
           options: CacheOptions(
@@ -64,7 +67,10 @@ class AcdcCacheInterceptor extends Interceptor {
                 : CachePolicy.request,
             maxStale: config.staleIfError ? const Duration(days: 7) : null,
             hitCacheOnErrorExcept: config.staleIfError ? [] : [401, 403],
-            keyBuilder: buildCacheKeyWithUserIsolation,
+            keyBuilder: (request) => buildCacheKeyWithUserIsolation(
+              request,
+              customKeyBuilder: config.keyBuilder,
+            ),
           ),
         );
 
@@ -138,12 +144,16 @@ class AcdcCacheInterceptor extends Interceptor {
   ///
   /// This method is public to enable testing but should not be called directly
   /// by library users.
-  static String buildCacheKeyWithUserIsolation(RequestOptions options) {
+  static String buildCacheKeyWithUserIsolation(
+    RequestOptions options, {
+    String Function(RequestOptions)? customKeyBuilder,
+  }) {
     final userId = options.extra['_acdc_user_id'] as String?;
     final hasAuth = options.extra['_acdc_has_auth'] as bool? ?? false;
 
     // Build base cache key
-    final baseKey = CacheOptions.defaultCacheKeyBuilder(options);
+    final baseKey = customKeyBuilder?.call(options) ??
+        CacheOptions.defaultCacheKeyBuilder(options);
 
     if (!hasAuth) {
       // Unauthenticated request - use standard shared cache
