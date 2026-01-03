@@ -289,10 +289,14 @@ void main() {
         final refreshTokenRequest = captureInterceptor.capturedRequests[0];
         expect(refreshTokenRequest['path'], 'https://auth.example.com/revoke');
         expect(refreshTokenRequest['method'], 'POST');
-        expect(refreshTokenRequest['contentType'],
-            'application/x-www-form-urlencoded',);
-        expect((refreshTokenRequest['headers'] as Map)['Accept'],
-            'application/json',);
+        expect(
+          refreshTokenRequest['contentType'],
+          'application/x-www-form-urlencoded',
+        );
+        expect(
+          (refreshTokenRequest['headers'] as Map)['Accept'],
+          'application/json',
+        );
         expect(refreshTokenRequest['data'], {
           'token': 'test-refresh-token',
           'token_type_hint': 'refresh_token',
@@ -303,10 +307,14 @@ void main() {
         final accessTokenRequest = captureInterceptor.capturedRequests[1];
         expect(accessTokenRequest['path'], 'https://auth.example.com/revoke');
         expect(accessTokenRequest['method'], 'POST');
-        expect(accessTokenRequest['contentType'],
-            'application/x-www-form-urlencoded',);
-        expect((accessTokenRequest['headers'] as Map)['Accept'],
-            'application/json',);
+        expect(
+          accessTokenRequest['contentType'],
+          'application/x-www-form-urlencoded',
+        );
+        expect(
+          (accessTokenRequest['headers'] as Map)['Accept'],
+          'application/json',
+        );
         expect(accessTokenRequest['data'], {
           'token': 'test-access-token',
           'token_type_hint': 'access_token',
@@ -331,18 +339,6 @@ void main() {
           authManager.refreshNow(),
           completes,
         );
-      });
-    });
-
-    group('clearCache()', () {
-      test('completes without error', () async {
-        authManager = AcdcAuthManager(
-          tokenProvider: tokenProvider,
-          authInterceptor: authInterceptor,
-        );
-
-        // clearCache is currently a no-op pending cache interceptor implementation
-        await expectLater(authManager.clearCache(), completes);
       });
     });
   });

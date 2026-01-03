@@ -1,11 +1,13 @@
 import 'package:dart_acdc/dart_acdc.dart';
 import 'package:dio/dio.dart';
+import 'package:flutter_test/flutter_test.dart';
 import 'package:http_mock_adapter/http_mock_adapter.dart';
-import 'package:test/test.dart';
 
 import '../helpers/fake_token_provider.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
   group('Builder Reusability Integration', () {
     late AcdcClientBuilder builder;
 

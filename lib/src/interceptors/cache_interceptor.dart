@@ -87,25 +87,12 @@ class AcdcCacheInterceptor extends Interceptor {
   ///
   /// Throws [StateError] if encryption is required but unavailable.
   static CacheStore _buildCacheStore(CacheConfig config) {
-    // Build persistent store if encryption is enabled
-    CacheStore? persistentStore;
-    if (config.encrypted) {
-      try {
-        persistentStore = EncryptedCacheStore(
-          maxSize: config.maxSize,
-          version: config.version,
-          onError: config.onError,
-        );
-      } on Exception catch (e) {
-        if (config.requireEncryption) {
-          throw StateError(
-            'Encryption required but unavailable: ${e.toString()}',
-          );
-        }
-        // Fall back to unencrypted cache if encryption not required
-        persistentStore = null;
-      }
-    }
+    // Build persistent store (always encrypted)
+    final persistentStore = EncryptedCacheStore(
+      maxSize: config.maxSize,
+      version: config.version,
+      onError: config.onError,
+    );
 
     // Build two-tier cache if inMemory is enabled
     if (config.inMemory) {
@@ -113,23 +100,15 @@ class AcdcCacheInterceptor extends Interceptor {
         maxSize: config.inMemoryMaxSize,
       );
 
-      if (persistentStore != null) {
-        // Two-tier: memory + encrypted persistent
-        return TwoTierCacheStore(
-          memoryStore: memoryStore,
-          persistentStore: persistentStore,
-        );
-      }
-
-      // Memory-only cache
-      return memoryStore;
+      // Two-tier: memory + encrypted persistent
+      return TwoTierCacheStore(
+        memoryStore: memoryStore,
+        persistentStore: persistentStore,
+      );
     }
 
-    // Persistent-only cache (encrypted or unencrypted)
-    return persistentStore ??
-        MemCacheStore(
-          maxSize: config.maxSize,
-        );
+    // Persistent-only cache (always encrypted)
+    return persistentStore;
   }
 
   /// Builds a cache key with user isolation.

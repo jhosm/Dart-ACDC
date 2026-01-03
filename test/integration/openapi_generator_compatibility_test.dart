@@ -3,10 +3,10 @@ import 'dart:io';
 
 import 'package:dart_acdc/dart_acdc.dart';
 import 'package:dio/dio.dart';
+import 'package:flutter_test/flutter_test.dart';
 import 'package:openapi/openapi.dart';
 import 'package:shelf/shelf.dart' as shelf;
 import 'package:shelf/shelf_io.dart' as shelf_io;
-import 'package:test/test.dart';
 
 import '../helpers/fake_oauth_server.dart';
 
@@ -17,6 +17,8 @@ import '../helpers/fake_oauth_server.dart';
 /// a standard Dio instance (not a wrapper) that maintains full ecosystem
 /// compatibility with code generation tools like openapi-generator.
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
   group('OpenAPI Generator Compatibility', () {
     late FakeOAuthServer oauthServer;
     late FakePostsApiServer apiServer;

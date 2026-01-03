@@ -64,14 +64,11 @@ final dio = AcdcClientBuilder()
     url: 'https://api.example.com/oauth/token',
     clientId: 'your-client-id',
   )
+  .withInitialTokens(
+    accessToken: '...',
+    refreshToken: '...',
+  )
   .build();
-
-// ... login your user ...
-// You can use the built-in AuthManager to set initial tokens after login
-await dio.auth.setTokens(
-  accessToken: '...',
-  refreshToken: '...',
-);
 
 // All subsequent requests will have the token injected and refreshed automatically
 final response = await dio.get('/protected/endpoint');
@@ -145,7 +142,7 @@ final dio = AcdcClientBuilder()
   .withCache(CacheConfig(
     ttl: Duration(hours: 1),
     maxSize: 10 * 1024 * 1024, // 10 MB
-    encrypted: true, // Encrypts cache on disk
+    // Encrypted on disk by default
     inMemory: true,
   ))
   .build();
@@ -213,7 +210,7 @@ Dart-ACDC is built with security as a priority:
 
 1.  **Secure Storage**: All tokens are stored using specific OS-level encryption (Keychain on iOS, EncryptedSharedPreferences on Android) by default.
 2.  **Memory Protection**: Authentication headers are stripped from logs by default.
-3.  **Cache Encryption**: If `encrypted: true` is set in cache config, response data cached on disk is AES-256 encrypted.
+3.  **Cache Encryption**: Response data cached on disk is always AES-256 encrypted.
 4.  **Least Privilege**: The library only requests the permissions it needs.
 
 ## Documentation

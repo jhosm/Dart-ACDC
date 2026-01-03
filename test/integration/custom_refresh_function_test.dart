@@ -3,9 +3,9 @@ import 'dart:io';
 
 import 'package:dart_acdc/dart_acdc.dart';
 import 'package:dio/dio.dart';
+import 'package:flutter_test/flutter_test.dart';
 import 'package:shelf/shelf.dart' as shelf;
 import 'package:shelf/shelf_io.dart' as shelf_io;
-import 'package:test/test.dart';
 
 /// Integration test for custom token refresh function.
 ///
@@ -15,6 +15,8 @@ import 'package:test/test.dart';
 /// - Its returned TokenRefreshResult is used to update tokens
 /// - Works for both proactive and reactive refresh scenarios
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
   group('Custom Token Refresh Function', () {
     late FakeApiServer apiServer;
     late TestTokenProvider tokenProvider;

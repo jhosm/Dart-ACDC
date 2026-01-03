@@ -562,8 +562,7 @@ void main() {
       expect(config.ttl, const Duration(hours: 1));
       expect(config.maxSize, 10 * 1024 * 1024);
       expect(config.cacheAuthenticatedRequests, true);
-      expect(config.encrypted, false);
-      expect(config.requireEncryption, false);
+      expect(config.cacheAuthenticatedRequests, true);
       expect(config.inMemory, true);
       expect(config.inMemoryMaxSize, 5 * 1024 * 1024);
       expect(config.staleWhileRevalidate, false);
@@ -576,8 +575,6 @@ void main() {
         ttl: Duration(hours: 2),
         maxSize: 20 * 1024 * 1024,
         cacheAuthenticatedRequests: false,
-        encrypted: true,
-        requireEncryption: true,
         inMemory: false,
         inMemoryMaxSize: 10 * 1024 * 1024,
         staleWhileRevalidate: true,
@@ -587,8 +584,6 @@ void main() {
       expect(config.ttl, const Duration(hours: 2));
       expect(config.maxSize, 20 * 1024 * 1024);
       expect(config.cacheAuthenticatedRequests, false);
-      expect(config.encrypted, true);
-      expect(config.requireEncryption, true);
       expect(config.inMemory, false);
       expect(config.inMemoryMaxSize, 10 * 1024 * 1024);
       expect(config.staleWhileRevalidate, true);
@@ -603,7 +598,6 @@ void main() {
       expect(string, contains('ttl:'));
       expect(string, contains('maxSize:'));
       expect(string, contains('cacheAuthenticatedRequests:'));
-      expect(string, contains('encrypted:'));
     });
 
     test('accepts custom userIdProvider', () {

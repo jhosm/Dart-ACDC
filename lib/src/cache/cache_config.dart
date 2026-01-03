@@ -23,8 +23,6 @@ class CacheConfig {
     this.ttl = const Duration(hours: 1),
     this.maxSize = 10 * 1024 * 1024, // 10 MB
     this.cacheAuthenticatedRequests = true,
-    this.encrypted = false,
-    this.requireEncryption = false,
     this.inMemory = true,
     this.inMemoryMaxSize = 5 * 1024 * 1024, // 5 MB
     this.staleWhileRevalidate = false,
@@ -61,19 +59,6 @@ class CacheConfig {
   /// user-based isolation to prevent data leakage.
   /// Defaults to true.
   final bool cacheAuthenticatedRequests;
-
-  /// Enable encrypted cache storage.
-  ///
-  /// When true, cache entries are encrypted before writing to disk.
-  /// Defaults to false.
-  final bool encrypted;
-
-  /// Require encryption or disable caching.
-  ///
-  /// When true and encryption is unavailable, caching is disabled entirely.
-  /// When false and encryption is unavailable, falls back to unencrypted cache.
-  /// Defaults to false.
-  final bool requireEncryption;
 
   /// Enable in-memory cache layer.
   ///
@@ -123,8 +108,6 @@ class CacheConfig {
       'ttl: $ttl, '
       'maxSize: $maxSize, '
       'cacheAuthenticatedRequests: $cacheAuthenticatedRequests, '
-      'encrypted: $encrypted, '
-      'requireEncryption: $requireEncryption, '
       'inMemory: $inMemory, '
       'inMemoryMaxSize: $inMemoryMaxSize, '
       'staleWhileRevalidate: $staleWhileRevalidate, '

@@ -1,5 +1,5 @@
 import 'package:dart_acdc/dart_acdc.dart';
-import 'package:test/test.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 import '../helpers/fake_oauth_server.dart';
 
@@ -11,6 +11,8 @@ import '../helpers/fake_oauth_server.dart';
 /// - Content type headers
 /// - Client authentication (public client pattern for mobile apps)
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
   group('OAuth 2.1 Compliance', () {
     late FakeOAuthServer oauthServer;
     late TestTokenProvider tokenProvider;

@@ -1,7 +1,7 @@
 import 'package:dart_acdc/src/auth/token_provider.dart';
+import 'package:dart_acdc/src/cache/acdc_cache_manager.dart';
 import 'package:dart_acdc/src/cache/jwt_utils.dart';
 import 'package:dart_acdc/src/interceptors/auth_interceptor.dart';
-import 'package:dart_acdc/src/interceptors/cache_interceptor.dart';
 import 'package:dio/dio.dart';
 
 /// Manager for authentication operations.
@@ -9,7 +9,6 @@ import 'package:dio/dio.dart';
 /// Provides methods for:
 /// - Logging out with token revocation
 /// - Forcing token refresh
-/// - Clearing cached responses
 /// - Detecting user changes and clearing cache
 ///
 /// Accessible via `dio.auth` extension.
@@ -18,19 +17,19 @@ class AcdcAuthManager {
   ///
   /// Use the `AcdcAuth` extension to access the manager: `dio.auth`
   /// [httpClient] is optional and primarily used for testing token revocation.
-  /// [cacheInterceptor] is optional - when provided, enables cache clearing.
+  /// [cacheManager] is optional - when provided, enables cache clearing during logout.
   AcdcAuthManager({
     TokenProvider? tokenProvider,
     AuthInterceptor? authInterceptor,
     String? revocationEndpointUrl,
     String? clientId,
-    AcdcCacheInterceptor? cacheInterceptor,
+    AcdcCacheManager? cacheManager,
     Dio? httpClient,
   })  : _tokenProvider = tokenProvider,
         _authInterceptor = authInterceptor,
         _revocationEndpointUrl = revocationEndpointUrl,
         _clientId = clientId,
-        _cacheInterceptor = cacheInterceptor,
+        _cacheManager = cacheManager,
         _httpClient = httpClient {
     // Track initial user ID for user change detection
     if (_tokenProvider != null) {
@@ -42,7 +41,7 @@ class AcdcAuthManager {
   final AuthInterceptor? _authInterceptor;
   final String? _revocationEndpointUrl;
   final String? _clientId;
-  final AcdcCacheInterceptor? _cacheInterceptor;
+  final AcdcCacheManager? _cacheManager;
   final Dio? _httpClient;
 
   /// Cached user ID for detecting user changes
@@ -79,7 +78,7 @@ class AcdcAuthManager {
     if (previousUserId != null &&
         _currentUserId != null &&
         previousUserId != _currentUserId) {
-      await clearCache();
+      await _clearCache();
     }
   }
 
@@ -108,7 +107,7 @@ class AcdcAuthManager {
     }
 
     // Clear cache before clearing tokens (cache needs user ID)
-    await clearCache();
+    await _clearCache();
 
     // Revoke tokens if endpoint is configured
     if (_revocationEndpointUrl != null && _clientId != null) {
@@ -162,33 +161,10 @@ class AcdcAuthManager {
     );
   }
 
-  /// Clears all cached HTTP responses.
-  ///
-  /// **When to use**:
-  /// - After logout to remove user-specific cached data
-  /// - When you need to force fresh data from the server
-  /// - After user changes (e.g., account switching)
-  ///
-  /// **Usage**:
-  /// ```dart
-  /// await dio.auth.clearCache();
-  /// // All cached responses have been cleared
-  /// ```
-  Future<void> clearCache() async {
-    if (_cacheInterceptor != null) {
-      await _cacheInterceptor!.clearCache();
-    }
-  }
-
-  /// Clears cached responses for a specific URL.
-  ///
-  /// **Usage**:
-  /// ```dart
-  /// await dio.auth.clearCacheForUrl('https://api.example.com/users');
-  /// ```
-  Future<void> clearCacheForUrl(String url) async {
-    if (_cacheInterceptor != null) {
-      await _cacheInterceptor!.clearCacheForUrl(url);
+  /// Internal helper to clear cache using the manager
+  Future<void> _clearCache() async {
+    if (_cacheManager != null) {
+      await _cacheManager!.clearCache();
     }
   }
 
@@ -272,7 +248,7 @@ class AcdcAuthManager {
 
 /// Extension on [Dio] to access authentication manager.
 ///
-/// Provides access to auth operations like logout, refresh, and cache clearing.
+/// Provides access to auth operations like logout and refresh.
 ///
 /// **Usage**:
 /// ```dart
@@ -284,7 +260,6 @@ class AcdcAuthManager {
 /// // Access auth manager
 /// await dio.auth.logout();
 /// await dio.auth.refreshNow();
-/// await dio.auth.clearCache();
 /// ```
 extension AcdcAuth on Dio {
   /// Gets the authentication manager for this Dio instance.
