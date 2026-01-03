@@ -17,7 +17,7 @@ import '../helpers/fake_oauth_server.dart';
 /// a standard Dio instance (not a wrapper) that maintains full ecosystem
 /// compatibility with code generation tools like openapi-generator.
 void main() {
-  TestWidgetsFlutterBinding.ensureInitialized();
+// TestWidgetsFlutterBinding.ensureInitialized();
 
   group('OpenAPI Generator Compatibility', () {
     late FakeOAuthServer oauthServer;
@@ -65,6 +65,7 @@ void main() {
             clientId: 'test-client',
           )
           .withLogLevel(LogLevel.info)
+          .disableCache()
           .build();
 
       // Pass to openapi-generated client - this should work without errors
@@ -99,6 +100,7 @@ void main() {
             clientId: 'test-client',
           )
           .withLogLevel(LogLevel.debug)
+          .disableCache()
           .build();
 
       final apiClient = Openapi(
@@ -162,6 +164,7 @@ void main() {
             url: oauthServer.tokenUrl,
             clientId: 'test-client',
           )
+          .disableCache()
           .build();
 
       final apiClient = Openapi(
@@ -212,6 +215,7 @@ void main() {
             url: oauthServer.tokenUrl,
             clientId: 'test-client',
           )
+          .disableCache()
           .build();
 
       final apiClient = Openapi(
@@ -245,6 +249,7 @@ void main() {
       final dio = await AcdcClientBuilder()
           .withBaseUrl(apiServer.baseUrl)
           .withTokenProvider(TestTokenProvider())
+          .disableCache()
           .build();
 
       final apiClient = Openapi(
@@ -304,6 +309,7 @@ void main() {
             clientId: 'test-client',
           )
           .withInterceptor(customInterceptor)
+          .disableCache()
           .build();
 
       final apiClient = Openapi(
@@ -345,6 +351,7 @@ void main() {
             url: oauthServer.tokenUrl,
             clientId: 'test-client',
           )
+          .disableCache()
           .build();
 
       final apiClient = Openapi(

@@ -11,7 +11,7 @@ import '../helpers/fake_oauth_server.dart';
 /// - Content type headers
 /// - Client authentication (public client pattern for mobile apps)
 void main() {
-  TestWidgetsFlutterBinding.ensureInitialized();
+  // TestWidgetsFlutterBinding.ensureInitialized(); // Not needed with cache disabled
 
   group('OAuth 2.1 Compliance', () {
     late FakeOAuthServer oauthServer;
@@ -54,6 +54,7 @@ void main() {
             url: oauthServer.tokenUrl,
             clientId: clientId,
           )
+          .disableCache()
           .build();
 
       // Trigger a proactive refresh by making a request
@@ -144,6 +145,7 @@ void main() {
             url: oauthServer.tokenUrl,
             clientId: clientId,
           )
+          .disableCache()
           .build();
 
       try {
@@ -188,6 +190,7 @@ void main() {
             url: oauthServer.tokenUrl,
             clientId: clientId,
           )
+          .disableCache()
           .build();
 
       try {
@@ -229,6 +232,7 @@ void main() {
             url: oauthServer.tokenUrl,
             clientId: clientId,
           )
+          .disableCache()
           .build();
 
       try {

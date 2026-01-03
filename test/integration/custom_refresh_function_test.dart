@@ -15,7 +15,7 @@ import 'package:shelf/shelf_io.dart' as shelf_io;
 /// - Its returned TokenRefreshResult is used to update tokens
 /// - Works for both proactive and reactive refresh scenarios
 void main() {
-  TestWidgetsFlutterBinding.ensureInitialized();
+// TestWidgetsFlutterBinding.ensureInitialized();
 
   group('Custom Token Refresh Function', () {
     late FakeApiServer apiServer;
@@ -60,6 +60,7 @@ void main() {
           .withBaseUrl(apiServer.baseUrl)
           .withTokenProvider(tokenProvider)
           .withCustomTokenRefresh(customRefresh)
+          .disableCache()
           .build();
 
       apiServer.respondWith(200, {'result': 'success'});
@@ -113,6 +114,7 @@ void main() {
           .withBaseUrl(apiServer.baseUrl)
           .withTokenProvider(tokenProvider)
           .withCustomTokenRefresh(customRefresh)
+          .disableCache()
           .build();
 
       // Configure server to respond with 401 first, then success on retry
@@ -165,6 +167,7 @@ void main() {
           .withBaseUrl(apiServer.baseUrl)
           .withTokenProvider(tokenProvider)
           .withCustomTokenRefresh(customRefresh)
+          .disableCache()
           .build();
 
       apiServer.respondWith(200, {'data': 'test'});
@@ -199,6 +202,7 @@ void main() {
           .withBaseUrl(apiServer.baseUrl)
           .withTokenProvider(tokenProvider)
           .withCustomTokenRefresh(customRefresh)
+          .disableCache()
           .build();
 
       apiServer.respondWith(200, {'data': 'test'});
@@ -237,6 +241,7 @@ void main() {
           .withBaseUrl(apiServer.baseUrl)
           .withTokenProvider(tokenProvider)
           .withCustomTokenRefresh(customRefresh)
+          .disableCache()
           .build();
 
       apiServer.respondWith(200, {'data': 'test'});
@@ -272,6 +277,7 @@ void main() {
           .withBaseUrl(apiServer.baseUrl)
           .withTokenProvider(tokenProvider)
           .withCustomTokenRefresh(customRefresh)
+          .disableCache()
           .build();
 
       // Server returns 401 to trigger reactive refresh
