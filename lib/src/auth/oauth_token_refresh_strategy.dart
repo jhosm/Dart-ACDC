@@ -1,6 +1,8 @@
 import 'package:dart_acdc/src/auth/token_refresh_result.dart';
 import 'package:dart_acdc/src/auth/token_refresh_strategy.dart';
 import 'package:dart_acdc/src/exceptions/acdc_auth_exception.dart';
+import 'package:dart_acdc/src/exceptions/acdc_network_exception.dart';
+import 'package:dart_acdc/src/exceptions/acdc_server_exception.dart';
 import 'package:dio/dio.dart';
 
 /// OAuth 2.1 token refresh strategy implementation.
@@ -117,7 +119,21 @@ class OAuthTokenRefreshStrategy implements TokenRefreshStrategy {
         }
       }
 
-      // Network or server errors
+      // Handle server errors (5xx)
+      if (e.response?.statusCode != null && e.response!.statusCode! >= 500) {
+        throw AcdcServerException.fromDioException(e);
+      }
+
+      // Handle network errors
+      if (e.type == DioExceptionType.connectionTimeout ||
+          e.type == DioExceptionType.sendTimeout ||
+          e.type == DioExceptionType.receiveTimeout ||
+          e.type == DioExceptionType.connectionError ||
+          e.type == DioExceptionType.unknown) {
+        throw AcdcNetworkException.fromDioException(e);
+      }
+
+      // Other errors
       rethrow;
     }
   }

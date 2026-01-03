@@ -14,7 +14,6 @@ import 'package:dio/dio.dart';
 ///
 /// Accessible via `dio.auth` extension.
 class AcdcAuthManager {
-
   /// Internal constructor.
   ///
   /// Use the `AcdcAuth` extension to access the manager: `dio.auth`

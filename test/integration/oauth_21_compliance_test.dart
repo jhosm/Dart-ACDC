@@ -45,7 +45,7 @@ void main() {
       );
 
       // Build client with OAuth token refresh endpoint
-      final dio = const AcdcClientBuilder()
+      final dio = await const AcdcClientBuilder()
           .withBaseUrl('http://localhost:9999')
           .withTokenProvider(tokenProvider)
           .withTokenRefreshEndpoint(
@@ -135,7 +135,7 @@ void main() {
         accessExpiry: expiry,
       );
 
-      final dio = const AcdcClientBuilder()
+      final dio = await const AcdcClientBuilder()
           .withBaseUrl('http://localhost:9999')
           .withTokenProvider(tokenProvider)
           .withTokenRefreshEndpoint(
@@ -179,7 +179,7 @@ void main() {
         accessExpiry: expiry,
       );
 
-      final dio = const AcdcClientBuilder()
+      final dio = await const AcdcClientBuilder()
           .withBaseUrl('http://localhost:9999')
           .withTokenProvider(tokenProvider)
           .withTokenRefreshEndpoint(
@@ -220,7 +220,7 @@ void main() {
         accessExpiry: expiry,
       );
 
-      final dio = const AcdcClientBuilder()
+      final dio = await const AcdcClientBuilder()
           .withBaseUrl('http://localhost:9999')
           .withTokenProvider(tokenProvider)
           .withTokenRefreshEndpoint(

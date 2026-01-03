@@ -66,7 +66,7 @@ void main() {
         accessExpiry: expiry,
       );
 
-      final dio = const AcdcClientBuilder()
+      final dio = await const AcdcClientBuilder()
           .withBaseUrl(apiServer.baseUrl)
           .withTokenProvider(tokenProvider)
           .withTokenRefreshEndpoint(
@@ -114,7 +114,7 @@ void main() {
         accessExpiry: expiry,
       );
 
-      final dio = const AcdcClientBuilder()
+      final dio = await const AcdcClientBuilder()
           .withBaseUrl(apiServer.baseUrl)
           .withTokenProvider(tokenProvider)
           .withTokenRefreshEndpoint(
@@ -174,7 +174,7 @@ void main() {
         accessExpiry: expiry,
       );
 
-      final dio = const AcdcClientBuilder()
+      final dio = await const AcdcClientBuilder()
           .withBaseUrl(apiServer.baseUrl)
           .withTokenProvider(tokenProvider)
           .withTokenRefreshEndpoint(
@@ -269,7 +269,7 @@ void main() {
         accessExpiry: expiry,
       );
 
-      final dio = const AcdcClientBuilder()
+      final dio = await const AcdcClientBuilder()
           .withBaseUrl(apiServer.baseUrl)
           .withTokenProvider(tokenProvider)
           .withTokenRefreshEndpoint(
@@ -324,7 +324,7 @@ void main() {
         accessExpiry: expiry,
       );
 
-      final dio = const AcdcClientBuilder()
+      final dio = await const AcdcClientBuilder()
           .withBaseUrl(apiServer.baseUrl)
           .withTokenProvider(tokenProvider)
           .withTokenRefreshEndpoint(

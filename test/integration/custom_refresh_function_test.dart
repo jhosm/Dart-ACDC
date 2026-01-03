@@ -54,7 +54,7 @@ void main() {
         accessExpiry: expiry,
       );
 
-      final dio = const AcdcClientBuilder()
+      final dio = await const AcdcClientBuilder()
           .withBaseUrl(apiServer.baseUrl)
           .withTokenProvider(tokenProvider)
           .withCustomTokenRefresh(customRefresh)
@@ -107,7 +107,7 @@ void main() {
         refreshToken: 'valid-refresh-token',
       );
 
-      final dio = const AcdcClientBuilder()
+      final dio = await const AcdcClientBuilder()
           .withBaseUrl(apiServer.baseUrl)
           .withTokenProvider(tokenProvider)
           .withCustomTokenRefresh(customRefresh)
@@ -159,7 +159,7 @@ void main() {
         accessExpiry: expiry,
       );
 
-      final dio = const AcdcClientBuilder()
+      final dio = await const AcdcClientBuilder()
           .withBaseUrl(apiServer.baseUrl)
           .withTokenProvider(tokenProvider)
           .withCustomTokenRefresh(customRefresh)
@@ -193,7 +193,7 @@ void main() {
         accessExpiry: expiry,
       );
 
-      final dio = const AcdcClientBuilder()
+      final dio = await const AcdcClientBuilder()
           .withBaseUrl(apiServer.baseUrl)
           .withTokenProvider(tokenProvider)
           .withCustomTokenRefresh(customRefresh)
@@ -231,7 +231,7 @@ void main() {
         accessExpiry: expiry,
       );
 
-      final dio = const AcdcClientBuilder()
+      final dio = await const AcdcClientBuilder()
           .withBaseUrl(apiServer.baseUrl)
           .withTokenProvider(tokenProvider)
           .withCustomTokenRefresh(customRefresh)
@@ -266,7 +266,7 @@ void main() {
         refreshToken: 'refresh-token',
       );
 
-      final dio = const AcdcClientBuilder()
+      final dio = await const AcdcClientBuilder()
           .withBaseUrl(apiServer.baseUrl)
           .withTokenProvider(tokenProvider)
           .withCustomTokenRefresh(customRefresh)

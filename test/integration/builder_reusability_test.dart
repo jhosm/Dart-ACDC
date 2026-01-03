@@ -3,6 +3,8 @@ import 'package:dio/dio.dart';
 import 'package:http_mock_adapter/http_mock_adapter.dart';
 import 'package:test/test.dart';
 
+import '../helpers/fake_token_provider.dart';
+
 void main() {
   group('Builder Reusability Integration', () {
     late AcdcClientBuilder builder;
@@ -10,12 +12,13 @@ void main() {
     setUp(() {
       builder = const AcdcClientBuilder()
           .withBaseUrl('https://api.example.com')
+          .withTokenProvider(FakeTokenProvider())
           .withTimeout(const Duration(seconds: 5));
     });
 
     test('builds independent Dio instances', () async {
-      final client1 = builder.build();
-      final client2 = builder.build();
+      final client1 = await builder.build();
+      final client2 = await builder.build();
 
       // Verify they are different instances
       expect(client1, isNot(same(client2)));
@@ -37,8 +40,8 @@ void main() {
     });
 
     test('clients work independently', () async {
-      final client1 = builder.build();
-      final client2 = builder.build();
+      final client1 = await builder.build();
+      final client2 = await builder.build();
 
       final adapter1 = DioAdapter(dio: client1);
       final adapter2 = DioAdapter(dio: client2);

@@ -58,7 +58,7 @@ void main() {
           accessToken: 'refreshed-token',
         );
 
-      final dio = const AcdcClientBuilder()
+      final dio = await const AcdcClientBuilder()
           .withBaseUrl(apiServer.baseUrl)
           .withTokenProvider(tokenProvider)
           .withTokenRefreshEndpoint(
@@ -108,7 +108,7 @@ void main() {
         refreshToken: 'active-refresh-token',
       );
 
-      final dio = const AcdcClientBuilder()
+      final dio = await const AcdcClientBuilder()
           .withBaseUrl(apiServer.baseUrl)
           .withTokenProvider(tokenProvider)
           .withTokenRefreshEndpoint(
@@ -141,7 +141,7 @@ void main() {
       // Configure OAuth server to fail revocation
       oauthServer.respondWithServerError();
 
-      final dio = const AcdcClientBuilder()
+      final dio = await const AcdcClientBuilder()
           .withBaseUrl(apiServer.baseUrl)
           .withTokenProvider(tokenProvider)
           .withTokenRefreshEndpoint(
@@ -168,7 +168,7 @@ void main() {
         accessExpiry: expiry,
       );
 
-      final dio = const AcdcClientBuilder()
+      final dio = await const AcdcClientBuilder()
           .withBaseUrl(apiServer.baseUrl)
           .withTokenProvider(tokenProvider)
           .withTokenRefreshEndpoint(

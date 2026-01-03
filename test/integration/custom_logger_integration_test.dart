@@ -3,13 +3,15 @@ import 'package:dio/dio.dart';
 import 'package:http_mock_adapter/http_mock_adapter.dart';
 import 'package:test/test.dart';
 
+import '../helpers/fake_token_provider.dart';
+
 void main() {
   group('Custom Logger Integration', () {
     late Dio dio;
     late DioAdapter dioAdapter;
     late List<String> logs;
 
-    setUp(() {
+    setUp(() async {
       logs = [];
 
       // Define custom logger
@@ -25,8 +27,9 @@ void main() {
       }
 
       // Build client with custom logger
-      dio = const AcdcClientBuilder()
+      dio = await AcdcClientBuilder()
           .withBaseUrl('https://api.example.com')
+          .withTokenProvider(FakeTokenProvider())
           .withLogger(customLogger)
           .withLogLevel(LogLevel.info)
           .build();

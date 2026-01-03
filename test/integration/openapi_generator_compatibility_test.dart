@@ -54,7 +54,7 @@ void main() {
       );
 
       // Build ACDC-configured Dio instance
-      final dio = const AcdcClientBuilder()
+      final dio = await const AcdcClientBuilder()
           .withBaseUrl(apiServer.baseUrl)
           .withTimeout(const Duration(seconds: 5))
           .withTokenProvider(tokenProvider)
@@ -89,7 +89,7 @@ void main() {
         refreshToken: 'api-refresh',
       );
 
-      final dio = const AcdcClientBuilder()
+      final dio = await const AcdcClientBuilder()
           .withBaseUrl(apiServer.baseUrl)
           .withTokenProvider(tokenProvider)
           .withTokenRefreshEndpoint(
@@ -153,7 +153,7 @@ void main() {
         accessToken: 'refreshed-token',
       );
 
-      final dio = const AcdcClientBuilder()
+      final dio = await const AcdcClientBuilder()
           .withBaseUrl(apiServer.baseUrl)
           .withTokenProvider(tokenProvider)
           .withTokenRefreshEndpoint(
@@ -203,7 +203,7 @@ void main() {
 
       oauthServer.respondWithSuccess();
 
-      final dio = const AcdcClientBuilder()
+      final dio = await const AcdcClientBuilder()
           .withBaseUrl(apiServer.baseUrl)
           .withTokenProvider(tokenProvider)
           .withTokenRefreshEndpoint(
@@ -240,8 +240,10 @@ void main() {
       // Expected: ACDC error interceptor converts to AcdcException types,
       // which propagate through openapi-generated client.
 
-      final dio =
-          const AcdcClientBuilder().withBaseUrl(apiServer.baseUrl).build();
+      final dio = await AcdcClientBuilder()
+          .withBaseUrl(apiServer.baseUrl)
+          .withTokenProvider(TestTokenProvider())
+          .build();
 
       final apiClient = Openapi(
         dio: dio,
@@ -292,7 +294,7 @@ void main() {
         refreshToken: 'test-refresh',
       );
 
-      final dio = const AcdcClientBuilder()
+      final dio = await const AcdcClientBuilder()
           .withBaseUrl(apiServer.baseUrl)
           .withTokenProvider(tokenProvider)
           .withTokenRefreshEndpoint(
@@ -334,7 +336,7 @@ void main() {
         refreshToken: 'post-refresh',
       );
 
-      final dio = const AcdcClientBuilder()
+      final dio = await const AcdcClientBuilder()
           .withBaseUrl(apiServer.baseUrl)
           .withTokenProvider(tokenProvider)
           .withTokenRefreshEndpoint(

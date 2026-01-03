@@ -93,21 +93,25 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
-  void _initializeClient() {
+  Future<void> _initializeClient() async {
     // 1. Create a Dio instance using Dart ACDC Builder
     // This automatically configures:
     // - Token management (if configured)
     // - Logging with custom logger
     // - Error handling
     // - Timeouts
-    final dio = AcdcClientBuilder()
+    final dio = await AcdcClientBuilder()
         .withBaseUrl('https://jsonplaceholder.typicode.com')
         .withLogger(_addLog)
         .withLogLevel(LogLevel.info)
         .build();
 
+    if (!mounted) return;
+
     // 2. Inject Dio into the generated OpenAPI client
-    _client = Openapi(dio: dio);
+    setState(() {
+      _client = Openapi(dio: dio);
+    });
 
     _addLog('ACDC Client initialized', LogLevel.info, {
       'base_url': 'https://jsonplaceholder.typicode.com',
@@ -294,7 +298,9 @@ class _MyHomePageState extends State<MyHomePage> {
                             itemBuilder: (context, index) {
                               final post = _posts[index];
                               return ListTile(
-                                leading: CircleAvatar(child: Text('${post.id}')),
+                                leading: CircleAvatar(
+                                  child: Text('${post.id}'),
+                                ),
                                 title: Text(post.title ?? ''),
                                 subtitle: Text(
                                   post.body ?? '',

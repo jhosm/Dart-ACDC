@@ -72,11 +72,11 @@ class TrackingInterceptorWrapper extends Interceptor {
 
 void main() {
   group('Interceptor Chain Order', () {
-    test('verifies full interceptor chain order', () async {
+    test('Default interceptor order matches specification', () async {
       final tracker = ExecutionTracker();
 
       // Build client with all features enabled
-      var dio = AcdcClientBuilder()
+      var dio = await AcdcClientBuilder()
           .withBaseUrl('https://api.example.com')
           .withTokenProvider(MockTokenProvider())
           .withTokenRefreshEndpoint(

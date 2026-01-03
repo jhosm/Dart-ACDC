@@ -1,34 +1,22 @@
 import 'package:dart_acdc/dart_acdc.dart';
 import 'package:dio/dio.dart';
-import 'package:test/test.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:dart_acdc/src/interceptors/cache_interceptor.dart';
+import 'package:dart_acdc/src/interceptors/error_interceptor.dart';
 
-// Mock TokenProvider for testing
-class MockTokenProvider implements TokenProvider {
-  @override
-  Future<String?> getAccessToken() async => 'mock_access_token';
-
-  @override
-  Future<String?> getRefreshToken() async => 'mock_refresh_token';
-
-  @override
-  Future<DateTime?> getAccessTokenExpiry() async => null;
-
-  @override
-  Future<DateTime?> getRefreshTokenExpiry() async => null;
-
-  @override
-  Future<void> setTokens({
-    required String accessToken,
-    String? refreshToken,
-    DateTime? accessExpiry,
-    DateTime? refreshExpiry,
-  }) async {}
-
-  @override
-  Future<void> clearTokens() async {}
-}
+import 'helpers/fake_token_provider.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
+  setUp(() {
+    const MethodChannel('plugins.it_nomads.com/flutter_secure_storage')
+        .setMockMethodCallHandler((call) async {
+      return null;
+    });
+  });
+
   group('Public API Exports', () {
     test('AcdcClientBuilder is exported and accessible', () {
       expect(AcdcClientBuilder, isNotNull);
@@ -37,7 +25,7 @@ void main() {
     });
 
     test('TokenProvider interface is exported', () {
-      final provider = MockTokenProvider();
+      final provider = FakeTokenProvider();
       expect(provider, isA<TokenProvider>());
     });
 
@@ -51,9 +39,9 @@ void main() {
       expect(result.refreshToken, 'new_refresh');
     });
 
-    test('AcdcAuthManager and AcdcAuth extension are exported', () {
-      final dio = const AcdcClientBuilder()
-          .withTokenProvider(MockTokenProvider())
+    test('AcdcAuthManager and AcdcAuth extension are exported', () async {
+      final dio = await const AcdcClientBuilder()
+          .withTokenProvider(FakeTokenProvider())
           .withTokenRefreshEndpoint(
             url: 'https://auth.example.com/token',
             clientId: 'test',
@@ -108,18 +96,51 @@ void main() {
 
     test('AcdcLogger typedef is exported', () {
       // Type check that AcdcLogger function signature is correct
-      void logger(message, level,
-          metadata,) {
+      void logger(
+        message,
+        level,
+        metadata,
+      ) {
         // Mock logger
       }
       expect(logger, isNotNull);
     });
 
-    test('Builder can be used with all exported types', () {
+    test(
+        'default client setup includes all standard interceptors and configuration',
+        () async {
+      final dio = await const AcdcClientBuilder()
+          .withBaseUrl('https://api.example.com')
+          .build();
+
+      // Check interceptors
+      final interceptors = dio.interceptors;
+      expect(
+        interceptors.any((i) => i is ErrorInterceptor),
+        isTrue,
+        reason: 'ErrorInterceptor should be present',
+      );
+      expect(
+        interceptors.any((i) => i is AcdcCacheInterceptor),
+        isTrue,
+        reason: 'CacheInterceptor should be present by default',
+      );
+
+      // Check timeouts
+      const defaultTimeout = Duration(seconds: 5);
+      expect(dio.options.connectTimeout, defaultTimeout);
+      expect(dio.options.receiveTimeout, defaultTimeout);
+      expect(dio.options.sendTimeout, defaultTimeout);
+
+      // Check base URL
+      expect(dio.options.baseUrl, 'https://api.example.com');
+    });
+
+    test('Builder can be used with all exported types', () async {
       final builder = const AcdcClientBuilder()
           .withBaseUrl('https://api.example.com')
           .withTimeout(const Duration(seconds: 30))
-          .withTokenProvider(MockTokenProvider())
+          .withTokenProvider(FakeTokenProvider())
           .withTokenRefreshEndpoint(
             url: 'https://auth.example.com/token',
             clientId: 'test-client',
@@ -127,11 +148,13 @@ void main() {
           .withLogLevel(LogLevel.debug)
           .withLogger((message, level, metadata) {
         // Custom logger
-      }).withCache(const CacheConfig(
-            encrypted: true,
-          ),);
+      }).withCache(
+        const CacheConfig(
+          encrypted: true,
+        ),
+      );
 
-      final dio = builder.build();
+      final dio = await builder.build();
       expect(dio, isA<Dio>());
       expect(dio.options.baseUrl, 'https://api.example.com');
     });
@@ -146,11 +169,35 @@ void main() {
       // - ErrorInterceptor (internal)
       // - Internal exception details beyond public API
     });
+
+    test('custom interceptors are added correctly', () async {
+      final customInterceptor = InterceptorsWrapper();
+
+      final dio = await const AcdcClientBuilder()
+          .withBaseUrl('https://api.example.com')
+          .withInterceptor(customInterceptor)
+          .build();
+
+      expect(dio.interceptors.contains(customInterceptor), isTrue);
+    });
+
+    test('Auth extension is available on Dio', () async {
+      final dio = await const AcdcClientBuilder()
+          .withBaseUrl('https://api.example.com')
+          .withTokenProvider(FakeTokenProvider())
+          .withTokenRefreshEndpoint(
+            url: 'https://auth.example.com/token',
+            clientId: 'test-client',
+          )
+          .build();
+
+      expect(dio.auth, isNotNull);
+    });
   });
 
   group('Public API Usage Examples', () {
-    test('Zero-config client creation works', () {
-      final dio = const AcdcClientBuilder()
+    test('Zero-config client creation works', () async {
+      final dio = await const AcdcClientBuilder()
           .withBaseUrl('https://api.example.com')
           .build();
 
@@ -158,10 +205,10 @@ void main() {
       expect(dio.options.baseUrl, 'https://api.example.com');
     });
 
-    test('Authenticated client creation works', () {
-      final dio = const AcdcClientBuilder()
+    test('Authenticated client creation works', () async {
+      final dio = await const AcdcClientBuilder()
           .withBaseUrl('https://api.example.com')
-          .withTokenProvider(MockTokenProvider())
+          .withTokenProvider(FakeTokenProvider())
           .withTokenRefreshEndpoint(
             url: 'https://auth.example.com/oauth/token',
             clientId: 'my-client-id',
@@ -175,16 +222,18 @@ void main() {
       expect(dio.auth, isA<AcdcAuthManager>());
     });
 
-    test('Custom configured client creation works', () {
-      final dio = const AcdcClientBuilder()
+    test('Custom configured client creation works', () async {
+      final dio = await const AcdcClientBuilder()
           .withBaseUrl('https://api.example.com')
           .withTimeout(const Duration(seconds: 45))
           .withLogLevel(LogLevel.warning)
-          .withCache(const CacheConfig(
-            ttl: Duration(hours: 2),
-            encrypted: true,
-            staleWhileRevalidate: true,
-          ),)
+          .withCache(
+            const CacheConfig(
+              ttl: Duration(hours: 2),
+              encrypted: true,
+              staleWhileRevalidate: true,
+            ),
+          )
           .build();
 
       expect(dio, isA<Dio>());

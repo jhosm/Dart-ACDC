@@ -44,7 +44,7 @@ void main() {
       // Configure provider to throw on getAccessToken
       tokenProvider.throwOnGetAccessToken = true;
 
-      final dio = const AcdcClientBuilder()
+      final dio = await const AcdcClientBuilder()
           .withBaseUrl(apiServer.baseUrl)
           .withTokenProvider(tokenProvider)
           .withTokenRefreshEndpoint(
@@ -70,7 +70,7 @@ void main() {
       // Configure provider to throw on getAccessTokenExpiry
       tokenProvider.throwOnGetAccessTokenExpiry = true;
 
-      final dio = const AcdcClientBuilder()
+      final dio = await const AcdcClientBuilder()
           .withBaseUrl(apiServer.baseUrl)
           .withTokenProvider(tokenProvider)
           .withTokenRefreshEndpoint(
@@ -97,7 +97,7 @@ void main() {
         ..throwOnGetRefreshToken = true
         ..accessToken = 'test-token';
 
-      final dio = const AcdcClientBuilder()
+      final dio = await const AcdcClientBuilder()
           .withBaseUrl(apiServer.baseUrl)
           .withTokenProvider(tokenProvider)
           .withTokenRefreshEndpoint(
@@ -133,7 +133,7 @@ void main() {
         accessToken: 'new-token',
       );
 
-      final dio = const AcdcClientBuilder()
+      final dio = await const AcdcClientBuilder()
           .withBaseUrl(apiServer.baseUrl)
           .withTokenProvider(tokenProvider)
           .withTokenRefreshEndpoint(
@@ -165,7 +165,7 @@ void main() {
         ..refreshToken = 'active-refresh'
         ..throwOnClearTokens = true;
 
-      final dio = const AcdcClientBuilder()
+      final dio = await const AcdcClientBuilder()
           .withBaseUrl(apiServer.baseUrl)
           .withTokenProvider(tokenProvider)
           .withTokenRefreshEndpoint(
@@ -193,7 +193,7 @@ void main() {
         ..throwOnSetTokens = true
         ..throwOnClearTokens = true;
 
-      final dio = const AcdcClientBuilder()
+      final dio = await const AcdcClientBuilder()
           .withBaseUrl(apiServer.baseUrl)
           .withTokenProvider(tokenProvider)
           .withTokenRefreshEndpoint(
@@ -231,7 +231,7 @@ void main() {
         accessToken: 'refreshed-token',
       );
 
-      final dio = const AcdcClientBuilder()
+      final dio = await const AcdcClientBuilder()
           .withBaseUrl(apiServer.baseUrl)
           .withTokenProvider(tokenProvider)
           .withTokenRefreshEndpoint(
@@ -256,7 +256,7 @@ void main() {
         ..accessToken = 'valid-token'
         ..throwOnGetRefreshToken = true;
 
-      final dio = const AcdcClientBuilder()
+      final dio = await const AcdcClientBuilder()
           .withBaseUrl(apiServer.baseUrl)
           .withTokenProvider(tokenProvider)
           .withTokenRefreshEndpoint(

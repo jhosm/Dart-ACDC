@@ -94,13 +94,13 @@ void main() {
       });
 
       test(
-          'throws ArgumentError if neither refresh endpoint nor custom function provided',
+          'accepts configuration with only token provider (generic token injection only)',
           () {
         expect(
           () => AuthInterceptor(
             tokenProvider: tokenProvider,
           ),
-          throwsArgumentError,
+          returnsNormally,
         );
       });
 
@@ -608,7 +608,9 @@ void main() {
 
         // Request should proceed without auth (refresh failed, tokens cleared)
         expect(
-            handler.nextOptions?.headers.containsKey('Authorization'), false,);
+          handler.nextOptions?.headers.containsKey('Authorization'),
+          false,
+        );
 
         // Tokens should be cleared after OAuth error
         expect(tokenProvider._accessToken, isNull);
@@ -617,7 +619,9 @@ void main() {
 
       test('handles invalid_client error', () async {
         final mockDio = _createMockOAuthErrorDio(
-            'invalid_client', 'Client authentication failed',);
+          'invalid_client',
+          'Client authentication failed',
+        );
 
         interceptor = AuthInterceptor(
           tokenProvider: tokenProvider,
@@ -640,7 +644,9 @@ void main() {
 
         // Request should proceed without auth
         expect(
-            handler.nextOptions?.headers.containsKey('Authorization'), false,);
+          handler.nextOptions?.headers.containsKey('Authorization'),
+          false,
+        );
 
         // Tokens should be cleared
         expect(tokenProvider._accessToken, isNull);
@@ -649,7 +655,9 @@ void main() {
 
       test('handles unauthorized_client error', () async {
         final mockDio = _createMockOAuthErrorDio(
-            'unauthorized_client', 'Client not authorized',);
+          'unauthorized_client',
+          'Client not authorized',
+        );
 
         interceptor = AuthInterceptor(
           tokenProvider: tokenProvider,
@@ -672,7 +680,9 @@ void main() {
 
         // Request should proceed without auth
         expect(
-            handler.nextOptions?.headers.containsKey('Authorization'), false,);
+          handler.nextOptions?.headers.containsKey('Authorization'),
+          false,
+        );
 
         // Tokens should be cleared
         expect(tokenProvider._accessToken, isNull);
@@ -681,7 +691,9 @@ void main() {
 
       test('handles unsupported_grant_type error', () async {
         final mockDio = _createMockOAuthErrorDio(
-            'unsupported_grant_type', 'Grant type not supported',);
+          'unsupported_grant_type',
+          'Grant type not supported',
+        );
 
         interceptor = AuthInterceptor(
           tokenProvider: tokenProvider,
@@ -704,7 +716,9 @@ void main() {
 
         // Request should proceed without auth
         expect(
-            handler.nextOptions?.headers.containsKey('Authorization'), false,);
+          handler.nextOptions?.headers.containsKey('Authorization'),
+          false,
+        );
 
         // Tokens should be cleared
         expect(tokenProvider._accessToken, isNull);
@@ -736,7 +750,9 @@ void main() {
 
         // Request should proceed without auth
         expect(
-            handler.nextOptions?.headers.containsKey('Authorization'), false,);
+          handler.nextOptions?.headers.containsKey('Authorization'),
+          false,
+        );
 
         // Tokens should be cleared
         expect(tokenProvider._accessToken, isNull);

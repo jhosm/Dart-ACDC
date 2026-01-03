@@ -9,6 +9,7 @@ import 'package:shelf/shelf_io.dart' as shelf_io;
 import 'package:test/test.dart';
 
 import '../helpers/fake_oauth_server.dart';
+import '../helpers/fake_token_provider.dart';
 
 /// Integration test for a fully-configured ACDC client.
 ///
@@ -21,7 +22,7 @@ void main() {
   group('Complete Client Integration', () {
     late FakeOAuthServer oauthServer;
     late FakeApiServer apiServer;
-    late TestTokenProvider tokenProvider;
+    late FakeTokenProvider tokenProvider;
 
     setUp(() async {
       oauthServer = FakeOAuthServer();
@@ -30,7 +31,7 @@ void main() {
       apiServer = FakeApiServer();
       await apiServer.start();
 
-      tokenProvider = TestTokenProvider();
+      tokenProvider = FakeTokenProvider();
 
       // Reset servers for each test
       oauthServer.reset();
@@ -45,13 +46,13 @@ void main() {
     test('fully-configured client makes successful authenticated request',
         () async {
       // Configure token provider with valid token
-      tokenProvider.initializeTokens(
+      tokenProvider.setInitialState(
         accessToken: 'valid-access-token',
         refreshToken: 'valid-refresh-token',
       );
 
       // Build fully-configured client
-      final dio = const AcdcClientBuilder()
+      final dio = await const AcdcClientBuilder()
           .withBaseUrl(apiServer.baseUrl)
           .withTimeout(const Duration(seconds: 5))
           .withTokenProvider(tokenProvider)
@@ -82,7 +83,7 @@ void main() {
         () async {
       // Set token expiring in 30 seconds (within default 60s threshold)
       final expiry = DateTime.now().toUtc().add(const Duration(seconds: 30));
-      tokenProvider.initializeTokens(
+      tokenProvider.setInitialState(
         accessToken: 'expiring-token',
         refreshToken: 'valid-refresh-token',
         accessExpiry: expiry,
@@ -93,7 +94,7 @@ void main() {
         accessToken: 'refreshed-token',
       );
 
-      final dio = const AcdcClientBuilder()
+      final dio = await const AcdcClientBuilder()
           .withBaseUrl(apiServer.baseUrl)
           .withTokenProvider(tokenProvider)
           .withTokenRefreshEndpoint(
@@ -122,14 +123,14 @@ void main() {
     });
 
     test('client reactively refreshes token on 401 response', () async {
-      tokenProvider.initializeTokens(
+      tokenProvider.setInitialState(
         accessToken: 'expired-token',
         refreshToken: 'valid-refresh-token',
       );
 
       oauthServer.respondWithSuccess();
 
-      final dio = const AcdcClientBuilder()
+      final dio = await const AcdcClientBuilder()
           .withBaseUrl(apiServer.baseUrl)
           .withTokenProvider(tokenProvider)
           .withTokenRefreshEndpoint(
@@ -157,8 +158,10 @@ void main() {
       apiServer
         ..reset()
         ..respondWith(400, {'error': 'Bad request'});
-      final dio1 =
-          const AcdcClientBuilder().withBaseUrl(apiServer.baseUrl).build();
+      final dio1 = await const AcdcClientBuilder()
+          .withBaseUrl(apiServer.baseUrl)
+          .withTokenProvider(tokenProvider)
+          .build();
 
       await expectLater(
         dio1.get<dynamic>('/bad-request'),
@@ -175,8 +178,10 @@ void main() {
       apiServer
         ..reset()
         ..respondWith(500, {'error': 'Internal error'});
-      final dio2 =
-          const AcdcClientBuilder().withBaseUrl(apiServer.baseUrl).build();
+      final dio2 = await const AcdcClientBuilder()
+          .withBaseUrl(apiServer.baseUrl)
+          .withTokenProvider(tokenProvider)
+          .build();
 
       await expectLater(
         dio2.get<dynamic>('/server-error'),
@@ -193,8 +198,10 @@ void main() {
       apiServer
         ..reset()
         ..respondWith(401, {'error': 'Unauthorized'});
-      final dio3 =
-          const AcdcClientBuilder().withBaseUrl(apiServer.baseUrl).build();
+      final dio3 = await const AcdcClientBuilder()
+          .withBaseUrl(apiServer.baseUrl)
+          .withTokenProvider(tokenProvider)
+          .build();
 
       await expectLater(
         dio3.get<dynamic>('/unauthorized'),
@@ -218,12 +225,12 @@ void main() {
         },
       );
 
-      tokenProvider.initializeTokens(
+      tokenProvider.setInitialState(
         accessToken: 'test-token',
         refreshToken: 'test-refresh',
       );
 
-      final dio = const AcdcClientBuilder()
+      final dio = await const AcdcClientBuilder()
           .withBaseUrl(apiServer.baseUrl)
           .withTokenProvider(tokenProvider)
           .withTokenRefreshEndpoint(
@@ -248,7 +255,7 @@ void main() {
     test('client handles concurrent requests during token refresh', () async {
       // Token expiring soon to trigger proactive refresh
       final expiry = DateTime.now().toUtc().add(const Duration(seconds: 30));
-      tokenProvider.initializeTokens(
+      tokenProvider.setInitialState(
         accessToken: 'expiring-token',
         refreshToken: 'valid-refresh-token',
         accessExpiry: expiry,
@@ -261,7 +268,7 @@ void main() {
           accessToken: 'refreshed-token',
         );
 
-      final dio = const AcdcClientBuilder()
+      final dio = await const AcdcClientBuilder()
           .withBaseUrl(apiServer.baseUrl)
           .withTokenProvider(tokenProvider)
           .withTokenRefreshEndpoint(
@@ -295,12 +302,12 @@ void main() {
     });
 
     test('auth manager logout revokes tokens and clears storage', () async {
-      tokenProvider.initializeTokens(
+      tokenProvider.setInitialState(
         accessToken: 'active-token',
         refreshToken: 'active-refresh',
       );
 
-      final dio = const AcdcClientBuilder()
+      final dio = await const AcdcClientBuilder()
           .withBaseUrl(apiServer.baseUrl)
           .withTokenProvider(tokenProvider)
           .withTokenRefreshEndpoint(
@@ -322,8 +329,9 @@ void main() {
     });
 
     test('network errors are converted to AcdcNetworkException', () async {
-      final dio = const AcdcClientBuilder()
+      final dio = await const AcdcClientBuilder()
           .withBaseUrl('http://invalid-host-that-does-not-exist.test')
+          .withTokenProvider(tokenProvider)
           .withTimeout(const Duration(milliseconds: 100))
           .build();
 
@@ -333,60 +341,6 @@ void main() {
       );
     });
   });
-}
-
-/// Test implementation of TokenProvider.
-class TestTokenProvider implements TokenProvider {
-  String? _accessToken;
-  String? _refreshToken;
-  DateTime? _accessExpiry;
-  DateTime? _refreshExpiry;
-
-  /// Helper method to initialize tokens for tests.
-  void initializeTokens({
-    required String? accessToken,
-    required String? refreshToken,
-    DateTime? accessExpiry,
-    DateTime? refreshExpiry,
-  }) {
-    _accessToken = accessToken;
-    _refreshToken = refreshToken;
-    _accessExpiry = accessExpiry;
-    _refreshExpiry = refreshExpiry;
-  }
-
-  @override
-  Future<String?> getAccessToken() async => _accessToken;
-
-  @override
-  Future<String?> getRefreshToken() async => _refreshToken;
-
-  @override
-  Future<DateTime?> getAccessTokenExpiry() async => _accessExpiry;
-
-  @override
-  Future<DateTime?> getRefreshTokenExpiry() async => _refreshExpiry;
-
-  @override
-  Future<void> setTokens({
-    required String accessToken,
-    String? refreshToken,
-    DateTime? accessExpiry,
-    DateTime? refreshExpiry,
-  }) async {
-    _accessToken = accessToken;
-    _refreshToken = refreshToken;
-    _accessExpiry = accessExpiry;
-    _refreshExpiry = refreshExpiry;
-  }
-
-  @override
-  Future<void> clearTokens() async {
-    _accessToken = null;
-    _refreshToken = null;
-    _accessExpiry = null;
-    _refreshExpiry = null;
-  }
 }
 
 /// Fake API server for testing.

@@ -1,4 +1,5 @@
 import 'package:dart_acdc/src/auth/acdc_auth_manager.dart';
+import 'package:dart_acdc/src/auth/secure_token_provider.dart';
 import 'package:dart_acdc/src/auth/token_provider.dart';
 import 'package:dart_acdc/src/auth/token_refresh_result.dart';
 import 'package:dart_acdc/src/cache/cache_config.dart';
@@ -42,6 +43,10 @@ class AcdcClientBuilder {
     CacheConfig? cacheConfig,
     bool? cacheDisabled,
     List<Interceptor>? customInterceptors,
+    String? initialAccessToken,
+    String? initialRefreshToken,
+    DateTime? initialAccessExpiry,
+    DateTime? initialRefreshExpiry,
   })  : _baseUrl = baseUrl,
         _timeout = timeout,
         _tokenProvider = tokenProvider,
@@ -57,7 +62,11 @@ class AcdcClientBuilder {
         _largePayloadThreshold = largePayloadThreshold,
         _cacheConfig = cacheConfig,
         _cacheDisabled = cacheDisabled ?? false,
-        _customInterceptors = customInterceptors;
+        _customInterceptors = customInterceptors,
+        _initialAccessToken = initialAccessToken,
+        _initialRefreshToken = initialRefreshToken,
+        _initialAccessExpiry = initialAccessExpiry,
+        _initialRefreshExpiry = initialRefreshExpiry;
 
   final String? _baseUrl;
   final Duration? _timeout;
@@ -75,6 +84,10 @@ class AcdcClientBuilder {
   final CacheConfig? _cacheConfig;
   final bool _cacheDisabled;
   final List<Interceptor>? _customInterceptors;
+  final String? _initialAccessToken;
+  final String? _initialRefreshToken;
+  final DateTime? _initialAccessExpiry;
+  final DateTime? _initialRefreshExpiry;
 
   /// Configures the base URL for all requests.
   ///
@@ -98,6 +111,10 @@ class AcdcClientBuilder {
         cacheConfig: _cacheConfig,
         cacheDisabled: _cacheDisabled,
         customInterceptors: _customInterceptors,
+        initialAccessToken: _initialAccessToken,
+        initialRefreshToken: _initialRefreshToken,
+        initialAccessExpiry: _initialAccessExpiry,
+        initialRefreshExpiry: _initialRefreshExpiry,
       );
 
   /// Configures timeout for connection, send, and receive operations.
@@ -127,6 +144,10 @@ class AcdcClientBuilder {
       cacheConfig: _cacheConfig,
       cacheDisabled: _cacheDisabled,
       customInterceptors: _customInterceptors,
+      initialAccessToken: _initialAccessToken,
+      initialRefreshToken: _initialRefreshToken,
+      initialAccessExpiry: _initialAccessExpiry,
+      initialRefreshExpiry: _initialRefreshExpiry,
     );
   }
 
@@ -151,6 +172,10 @@ class AcdcClientBuilder {
         cacheConfig: _cacheConfig,
         cacheDisabled: _cacheDisabled,
         customInterceptors: _customInterceptors,
+        initialAccessToken: _initialAccessToken,
+        initialRefreshToken: _initialRefreshToken,
+        initialAccessExpiry: _initialAccessExpiry,
+        initialRefreshExpiry: _initialRefreshExpiry,
       );
 
   /// Configures the OAuth 2.1 token refresh endpoint.
@@ -186,6 +211,10 @@ class AcdcClientBuilder {
         cacheConfig: _cacheConfig,
         cacheDisabled: _cacheDisabled,
         customInterceptors: _customInterceptors,
+        initialAccessToken: _initialAccessToken,
+        initialRefreshToken: _initialRefreshToken,
+        initialAccessExpiry: _initialAccessExpiry,
+        initialRefreshExpiry: _initialRefreshExpiry,
       );
 
   /// Configures a custom token refresh function.
@@ -226,6 +255,10 @@ class AcdcClientBuilder {
         cacheConfig: _cacheConfig,
         cacheDisabled: _cacheDisabled,
         customInterceptors: _customInterceptors,
+        initialAccessToken: _initialAccessToken,
+        initialRefreshToken: _initialRefreshToken,
+        initialAccessExpiry: _initialAccessExpiry,
+        initialRefreshExpiry: _initialRefreshExpiry,
       );
 
   /// Configures the OAuth 2.1 token revocation endpoint.
@@ -251,6 +284,10 @@ class AcdcClientBuilder {
         cacheConfig: _cacheConfig,
         cacheDisabled: _cacheDisabled,
         customInterceptors: _customInterceptors,
+        initialAccessToken: _initialAccessToken,
+        initialRefreshToken: _initialRefreshToken,
+        initialAccessExpiry: _initialAccessExpiry,
+        initialRefreshExpiry: _initialRefreshExpiry,
       );
 
   /// Configures the token refresh threshold.
@@ -280,6 +317,10 @@ class AcdcClientBuilder {
         cacheConfig: _cacheConfig,
         cacheDisabled: _cacheDisabled,
         customInterceptors: _customInterceptors,
+        initialAccessToken: _initialAccessToken,
+        initialRefreshToken: _initialRefreshToken,
+        initialAccessExpiry: _initialAccessExpiry,
+        initialRefreshExpiry: _initialRefreshExpiry,
       );
 
   /// Configures the logging verbosity level.
@@ -305,6 +346,10 @@ class AcdcClientBuilder {
         cacheConfig: _cacheConfig,
         cacheDisabled: _cacheDisabled,
         customInterceptors: _customInterceptors,
+        initialAccessToken: _initialAccessToken,
+        initialRefreshToken: _initialRefreshToken,
+        initialAccessExpiry: _initialAccessExpiry,
+        initialRefreshExpiry: _initialRefreshExpiry,
       );
 
   /// Configures a custom logger function.
@@ -337,6 +382,10 @@ class AcdcClientBuilder {
         cacheConfig: _cacheConfig,
         cacheDisabled: _cacheDisabled,
         customInterceptors: _customInterceptors,
+        initialAccessToken: _initialAccessToken,
+        initialRefreshToken: _initialRefreshToken,
+        initialAccessExpiry: _initialAccessExpiry,
+        initialRefreshExpiry: _initialRefreshExpiry,
       );
 
   /// Configures sensitive fields to redact from logs.
@@ -366,6 +415,10 @@ class AcdcClientBuilder {
         cacheConfig: _cacheConfig,
         cacheDisabled: _cacheDisabled,
         customInterceptors: _customInterceptors,
+        initialAccessToken: _initialAccessToken,
+        initialRefreshToken: _initialRefreshToken,
+        initialAccessExpiry: _initialAccessExpiry,
+        initialRefreshExpiry: _initialRefreshExpiry,
       );
 
   /// Configures the threshold for slow request warnings.
@@ -395,6 +448,10 @@ class AcdcClientBuilder {
         cacheConfig: _cacheConfig,
         cacheDisabled: _cacheDisabled,
         customInterceptors: _customInterceptors,
+        initialAccessToken: _initialAccessToken,
+        initialRefreshToken: _initialRefreshToken,
+        initialAccessExpiry: _initialAccessExpiry,
+        initialRefreshExpiry: _initialRefreshExpiry,
       );
 
   /// Configures the threshold for large payload warnings.
@@ -423,6 +480,10 @@ class AcdcClientBuilder {
         cacheConfig: _cacheConfig,
         cacheDisabled: _cacheDisabled,
         customInterceptors: _customInterceptors,
+        initialAccessToken: _initialAccessToken,
+        initialRefreshToken: _initialRefreshToken,
+        initialAccessExpiry: _initialAccessExpiry,
+        initialRefreshExpiry: _initialRefreshExpiry,
       );
 
   /// Configures HTTP caching with custom settings.
@@ -455,6 +516,10 @@ class AcdcClientBuilder {
         cacheConfig: config,
         cacheDisabled: false,
         customInterceptors: _customInterceptors,
+        initialAccessToken: _initialAccessToken,
+        initialRefreshToken: _initialRefreshToken,
+        initialAccessExpiry: _initialAccessExpiry,
+        initialRefreshExpiry: _initialRefreshExpiry,
       );
 
   /// Disables HTTP caching.
@@ -481,6 +546,10 @@ class AcdcClientBuilder {
         largePayloadThreshold: _largePayloadThreshold,
         cacheDisabled: true,
         customInterceptors: _customInterceptors,
+        initialAccessToken: _initialAccessToken,
+        initialRefreshToken: _initialRefreshToken,
+        initialAccessExpiry: _initialAccessExpiry,
+        initialRefreshExpiry: _initialRefreshExpiry,
       );
 
   /// Adds a custom interceptor to the interceptor chain.
@@ -520,6 +589,44 @@ class AcdcClientBuilder {
       cacheConfig: _cacheConfig,
       cacheDisabled: _cacheDisabled,
       customInterceptors: updatedInterceptors,
+      initialAccessToken: _initialAccessToken,
+      initialRefreshToken: _initialRefreshToken,
+      initialAccessExpiry: _initialAccessExpiry,
+      initialRefreshExpiry: _initialRefreshExpiry,
+    );
+  }
+
+  /// Configures initial authentication tokens.
+  ///
+  /// Using this allows initializing the client with known tokens (e.g. after login),
+  /// which will be written to the configured TokenProvider before the client is built.
+  AcdcClientBuilder withInitialTokens({
+    required String accessToken,
+    String? refreshToken,
+    DateTime? accessExpiry,
+    DateTime? refreshExpiry,
+  }) {
+    return AcdcClientBuilder(
+      baseUrl: _baseUrl,
+      timeout: _timeout,
+      tokenProvider: _tokenProvider,
+      tokenRefreshEndpointUrl: _tokenRefreshEndpointUrl,
+      tokenRefreshClientId: _tokenRefreshClientId,
+      customTokenRefresh: _customTokenRefresh,
+      tokenRevocationEndpoint: _tokenRevocationEndpoint,
+      tokenRefreshThreshold: _tokenRefreshThreshold,
+      logLevel: _logLevel,
+      logger: _logger,
+      sensitiveFields: _sensitiveFields,
+      slowRequestThreshold: _slowRequestThreshold,
+      largePayloadThreshold: _largePayloadThreshold,
+      cacheConfig: _cacheConfig,
+      cacheDisabled: _cacheDisabled,
+      customInterceptors: _customInterceptors,
+      initialAccessToken: accessToken,
+      initialRefreshToken: refreshToken,
+      initialAccessExpiry: accessExpiry,
+      initialRefreshExpiry: refreshExpiry,
     );
   }
 
@@ -536,10 +643,10 @@ class AcdcClientBuilder {
   /// final builder = AcdcClientBuilder()
   ///   .withBaseUrl('https://api.example.com');
   ///
-  /// final dio1 = builder.build();  // First instance
-  /// final dio2 = builder.build();  // Second instance, independent
+  /// final dio1 = await builder.build();  // First instance
+  /// final dio2 = await builder.build();  // Second instance, independent
   /// ```
-  Dio build() {
+  Future<Dio> build() async {
     // Validate base URL format if provided
     if (_baseUrl != null && _baseUrl!.isNotEmpty) {
       final uri = Uri.tryParse(_baseUrl!);
@@ -574,30 +681,39 @@ class AcdcClientBuilder {
       cacheInterceptor = AcdcCacheInterceptor(config: cacheConfig);
     }
 
-    // Set up authentication if configured
-    AuthInterceptor? authInterceptor;
-    if (_tokenProvider != null) {
-      // Create auth interceptor
-      authInterceptor = AuthInterceptor(
-        tokenProvider: _tokenProvider!,
-        refreshEndpointUrl: _tokenRefreshEndpointUrl,
-        clientId: _tokenRefreshClientId,
-        customRefreshFn: _customTokenRefresh,
-        refreshThreshold: _tokenRefreshThreshold ?? const Duration(seconds: 60),
-      );
+    // Set up authentication (defaults to SecureTokenProvider)
+    final tokenProvider = _tokenProvider ?? const SecureTokenProvider();
 
-      // Create auth manager and store in Dio options
-      final authManager = AcdcAuthManager(
-        tokenProvider: _tokenProvider!,
-        authInterceptor: authInterceptor,
-        revocationEndpointUrl: _tokenRevocationEndpoint,
-        clientId: _tokenRefreshClientId,
-        cacheInterceptor: cacheInterceptor,
+    // Handle initial tokens if provided
+    if (_initialAccessToken != null) {
+      await tokenProvider.setTokens(
+        accessToken: _initialAccessToken!,
+        refreshToken: _initialRefreshToken,
+        accessExpiry: _initialAccessExpiry,
+        refreshExpiry: _initialRefreshExpiry,
       );
-
-      // Store auth manager in Dio options for extension access
-      dio.options.extra['_acdc_auth_manager'] = authManager;
     }
+
+    // Create auth interceptor
+    final authInterceptor = AuthInterceptor(
+      tokenProvider: tokenProvider,
+      refreshEndpointUrl: _tokenRefreshEndpointUrl,
+      clientId: _tokenRefreshClientId,
+      customRefreshFn: _customTokenRefresh,
+      refreshThreshold: _tokenRefreshThreshold ?? const Duration(seconds: 60),
+    );
+
+    // Create auth manager and store in Dio options
+    final authManager = AcdcAuthManager(
+      tokenProvider: tokenProvider,
+      authInterceptor: authInterceptor,
+      revocationEndpointUrl: _tokenRevocationEndpoint,
+      clientId: _tokenRefreshClientId,
+      cacheInterceptor: cacheInterceptor,
+    );
+
+    // Store auth manager in Dio options for extension access
+    dio.options.extra['_acdc_auth_manager'] = authManager;
 
     // Set up interceptor chain in correct order
     // Request phase: Logging → Error → Auth → Cache
@@ -618,10 +734,8 @@ class AcdcClientBuilder {
     // 2. Add error interceptor
     dio.interceptors.add(const ErrorInterceptor());
 
-    // 3. Add auth interceptor if configured
-    if (authInterceptor != null) {
-      dio.interceptors.add(authInterceptor);
-    }
+    // 3. Add auth interceptor
+    dio.interceptors.add(authInterceptor);
 
     // 4. Add cache interceptor if caching is enabled
     if (cacheInterceptor != null) {

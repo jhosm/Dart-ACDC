@@ -67,18 +67,16 @@ class AuthInterceptor extends Interceptor {
       _refreshStrategy = CustomTokenRefreshStrategy(
         refreshFn: customRefreshFn,
       );
-    } else {
-      throw ArgumentError(
-        'Either refreshStrategy, refreshEndpointUrl+clientId, OR customRefreshFn must be provided',
-      );
     }
+    // No strategy configured - generic token injection only
   }
 
   final TokenProvider _tokenProvider;
-  late final TokenRefreshStrategy _refreshStrategy;
+  TokenRefreshStrategy? _refreshStrategy;
   final Duration _refreshThreshold;
   final Duration _refreshQueueTimeout;
 
+  // Refresh state management
   // Refresh state management
   Completer<void>? _refreshCompleter;
   bool _isRefreshing = false;
@@ -109,20 +107,25 @@ class AuthInterceptor extends Interceptor {
       }
 
       // Check if token needs proactive refresh
-      final needsRefresh = await _needsProactiveRefresh();
-      if (needsRefresh) {
-        // Refresh token before proceeding
-        await _refreshTokenWithQueue();
+      // Only attempt refresh if strategy is configured
+      if (_refreshStrategy != null) {
+        final needsRefresh = await _needsProactiveRefresh();
+        if (needsRefresh) {
+          // Refresh token before proceeding
+          await _refreshTokenWithQueue();
 
-        // Get the new token after refresh
-        final newToken = await _tokenProvider.getAccessToken();
-        if (newToken != null) {
-          AuthRequestHelper.injectBearerToken(options, newToken);
+          // Get the new token after refresh
+          final newToken = await _tokenProvider.getAccessToken();
+          if (newToken != null) {
+            AuthRequestHelper.injectBearerToken(options, newToken);
+          }
+          handler.next(options);
+          return;
         }
-      } else {
-        // Token is valid, inject it
-        AuthRequestHelper.injectBearerToken(options, accessToken);
       }
+
+      // Token is valid (or we can't refresh), inject it
+      AuthRequestHelper.injectBearerToken(options, accessToken);
 
       handler.next(options);
     } on Exception {
@@ -140,6 +143,12 @@ class AuthInterceptor extends Interceptor {
   ) async {
     // Only handle 401 Unauthorized responses
     if (err.response?.statusCode != 401) {
+      handler.next(err);
+      return;
+    }
+
+    // If no refresh strategy is configured, we can't handle 401s
+    if (_refreshStrategy == null) {
       handler.next(err);
       return;
     }
@@ -264,7 +273,10 @@ class AuthInterceptor extends Interceptor {
       await _validateRefreshTokenExpiry();
 
       // Perform refresh using the strategy
-      final result = await _refreshStrategy.refresh(refreshToken);
+      if (_refreshStrategy == null) {
+        throw _createAuthException('No refresh strategy configured');
+      }
+      final result = await _refreshStrategy!.refresh(refreshToken);
 
       // Store new tokens
       await _storeRefreshedTokens(result);
@@ -306,7 +318,8 @@ class AuthInterceptor extends Interceptor {
       if (refreshExpiry != null &&
           refreshExpiry.isBefore(DateTime.now().toUtc())) {
         await _clearTokensSafely();
-        throw _createAuthException('Refresh token expired. Please log in again.');
+        throw _createAuthException(
+            'Refresh token expired. Please log in again.');
       }
     } on AcdcAuthException {
       rethrow;
@@ -342,7 +355,8 @@ class AuthInterceptor extends Interceptor {
   /// Cancels any in-progress refresh operation.
   void cancelRefresh() {
     if (_isRefreshing && _refreshCompleter != null) {
-      _refreshCompleter!.completeError(_createAuthException('Token refresh cancelled'));
+      _refreshCompleter!
+          .completeError(_createAuthException('Token refresh cancelled'));
       _isRefreshing = false;
       _refreshCompleter = null;
     }
