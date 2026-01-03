@@ -600,31 +600,12 @@ class AcdcClientBuilder {
     }
 
     // Set up interceptor chain in correct order
-    // Request phase: [Logging →] Auth [→ Cache]
-    // Response phase: [Cache →] Auth → Error [→ Logging]
+    // Request phase: Logging → Error → Auth → Cache
+    // Response phase: Cache → Auth → Error → Logging
     // Custom interceptors are added at the end
 
-    // Add auth interceptor if configured
-    if (authInterceptor != null) {
-      dio.interceptors.add(authInterceptor);
-    }
-
-    // Add cache interceptor if caching is enabled
-    if (cacheInterceptor != null) {
-      dio.interceptors.add(cacheInterceptor);
-    }
-
-    // Add error interceptor (always present)
-    dio.interceptors.add(const ErrorInterceptor());
-
-    // Add logging interceptor (before auth in request, after error in response)
-    // Note: Due to Dio's FIFO interceptor handling, we add it first so it's first in request chain
-    // and last in response chain (wrapping everything).
-
-    // Default to info level if not specified
+    // 1. Add logging interceptor (Outer-most)
     final logLevel = _logLevel ?? LogLevel.info;
-
-    // Only add if logging is enabled (not none)
     if (logLevel != LogLevel.none) {
       dio.interceptors.add(
         LoggingInterceptor(
@@ -634,7 +615,20 @@ class AcdcClientBuilder {
       );
     }
 
-    // Add custom interceptors at the end
+    // 2. Add error interceptor
+    dio.interceptors.add(const ErrorInterceptor());
+
+    // 3. Add auth interceptor if configured
+    if (authInterceptor != null) {
+      dio.interceptors.add(authInterceptor);
+    }
+
+    // 4. Add cache interceptor if caching is enabled
+    if (cacheInterceptor != null) {
+      dio.interceptors.add(cacheInterceptor);
+    }
+
+    // 5. Add custom interceptors at the end
     if (_customInterceptors != null) {
       dio.interceptors.addAll(_customInterceptors!);
     }
