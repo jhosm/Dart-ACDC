@@ -105,4 +105,29 @@ class AcdcException extends DioException {
 
     return uri.replace(queryParameters: redactedParams).toString();
   }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+
+    return other is AcdcException &&
+        other.runtimeType == runtimeType &&
+        other.message == message &&
+        other.statusCode == statusCode &&
+        other.requestUrl == requestUrl &&
+        // Use toString for responseData comparison to handle complex objects
+        // that might not implement equality (like Maps from JSON)
+        other.responseData.toString() == responseData.toString();
+  }
+
+  @override
+  int get hashCode {
+    return Object.hash(
+      runtimeType,
+      message,
+      statusCode,
+      requestUrl,
+      responseData.toString(),
+    );
+  }
 }

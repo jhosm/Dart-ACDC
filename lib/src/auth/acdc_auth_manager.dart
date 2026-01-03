@@ -20,8 +20,8 @@ class AcdcAuthManager {
   /// [httpClient] is optional and primarily used for testing token revocation.
   /// [cacheInterceptor] is optional - when provided, enables cache clearing.
   AcdcAuthManager({
-    required TokenProvider tokenProvider,
-    required AuthInterceptor authInterceptor,
+    TokenProvider? tokenProvider,
+    AuthInterceptor? authInterceptor,
     String? revocationEndpointUrl,
     String? clientId,
     AcdcCacheInterceptor? cacheInterceptor,
@@ -33,11 +33,13 @@ class AcdcAuthManager {
         _cacheInterceptor = cacheInterceptor,
         _httpClient = httpClient {
     // Track initial user ID for user change detection
-    _initializeUserTracking();
+    if (_tokenProvider != null) {
+      _initializeUserTracking();
+    }
   }
 
-  final TokenProvider _tokenProvider;
-  final AuthInterceptor _authInterceptor;
+  final TokenProvider? _tokenProvider;
+  final AuthInterceptor? _authInterceptor;
   final String? _revocationEndpointUrl;
   final String? _clientId;
   final AcdcCacheInterceptor? _cacheInterceptor;
@@ -55,9 +57,11 @@ class AcdcAuthManager {
   /// Updates the cached user ID from the current access token.
   Future<void> _updateCurrentUserId() async {
     try {
-      final accessToken = await _tokenProvider.getAccessToken();
-      if (accessToken != null) {
-        _currentUserId = JwtUtils.extractUserId(accessToken);
+      if (_tokenProvider != null) {
+        final accessToken = await _tokenProvider!.getAccessToken();
+        if (accessToken != null) {
+          _currentUserId = JwtUtils.extractUserId(accessToken);
+        }
       }
     } on Exception catch (_) {
       // Ignore errors - user tracking is best-effort
@@ -99,7 +103,9 @@ class AcdcAuthManager {
   /// ```
   Future<void> logout() async {
     // Cancel any in-progress refresh
-    _authInterceptor.cancelRefresh();
+    if (_authInterceptor != null) {
+      _authInterceptor!.cancelRefresh();
+    }
 
     // Clear cache before clearing tokens (cache needs user ID)
     await clearCache();
@@ -110,11 +116,13 @@ class AcdcAuthManager {
     }
 
     // Clear tokens from local storage
-    try {
-      await _tokenProvider.clearTokens();
-    } on Exception {
-      // Log warning but continue - storage might have failed but logout succeeds
-      // TODO(auth): Add logging when logging interceptor is implemented
+    if (_tokenProvider != null) {
+      try {
+        await _tokenProvider!.clearTokens();
+      } on Exception {
+        // Log warning but continue - storage might have failed but logout succeeds
+        // TODO(auth): Add logging when logging interceptor is implemented
+      }
     }
 
     // Reset user tracking
@@ -142,10 +150,13 @@ class AcdcAuthManager {
   /// }
   /// ```
   Future<void> refreshNow() async {
+    if (_authInterceptor == null) {
+      throw StateError('Authentication is disabled. Cannot refresh tokens.');
+    }
     // Trigger refresh through the auth interceptor
     // This reuses the same refresh logic and queuing mechanism
     final options = RequestOptions(path: '/refresh-trigger');
-    await _authInterceptor.onRequest(
+    await _authInterceptor!.onRequest(
       options,
       RequestInterceptorHandler(),
     );
@@ -200,8 +211,10 @@ class AcdcAuthManager {
     String? refreshToken;
     String? accessToken;
     try {
-      refreshToken = await _tokenProvider.getRefreshToken();
-      accessToken = await _tokenProvider.getAccessToken();
+      if (_tokenProvider != null) {
+        refreshToken = await _tokenProvider!.getRefreshToken();
+        accessToken = await _tokenProvider!.getAccessToken();
+      }
     } on Exception {
       // If we can't get tokens, skip revocation (best-effort)
       return;

@@ -11,7 +11,7 @@ Dart-ACDC provides a production-ready HTTP client built on top of [Dio](https://
 - **Logging**: Environment-aware logging with sensitive data redaction
 - **Error Handling**: Type-safe exceptions with developer-friendly messages
 
-Designed to integrate seamlessly with [OpenAPI Generator](https://github.com/OpenAPITools/openapi-generator) Dart clients.
+Designed to be the "missing link" between [OpenAPI Generator](https://github.com/OpenAPITools/openapi-generator) Dart clients and production-ready Flutter apps.
 
 ## Features
 
@@ -50,33 +50,41 @@ final dio = AcdcClientBuilder().build();
 final response = await dio.get('https://api.example.com/data');
 ```
 
-### With Authentication
+### With Authentication (Zero-Config)
+
+Dart-ACDC comes with a secure, encrypted token store (`SecureTokenProvider`) out of the box. You don't need to write any storage code.
 
 ```dart
 import 'package:dart_acdc/dart_acdc.dart';
 
-// Implement TokenProvider (e.g., using flutter_secure_storage)
-class MyTokenProvider implements TokenProvider {
-  // ... implement token storage methods
-}
-
 final dio = AcdcClientBuilder()
   .withBaseUrl('https://api.example.com')
-  .withTokenProvider(MyTokenProvider())
+  // Automatically uses FlutterSecureStorage
   .withTokenRefreshEndpoint(
-    url: 'https://api.example.com/auth/refresh',
+    url: 'https://api.example.com/oauth/token',
     clientId: 'your-client-id',
   )
   .build();
 
-// Tokens are automatically injected and refreshed
+// ... login your user ...
+// You can use the built-in AuthManager to set initial tokens after login
+await dio.auth.setTokens(
+  accessToken: '...',
+  refreshToken: '...',
+);
+
+// All subsequent requests will have the token injected and refreshed automatically
 final response = await dio.get('/protected/endpoint');
 
-// Logout with token revocation
+// Logout: clears tokens from secure storage and revokes them if endpoint provided
 await dio.auth.logout();
 ```
 
 ### With OpenAPI Generator
+
+1. Generate your client using `openapi-generator-cli` (dart-dio generator).
+2. Create your configured Dio instance with Dart-ACDC.
+3. Pass it to your generated API client.
 
 ```dart
 import 'package:your_openapi_client/api.dart';
@@ -84,24 +92,48 @@ import 'package:dart_acdc/dart_acdc.dart';
 
 final dio = AcdcClientBuilder()
   .withBaseUrl('https://api.example.com')
-  .withTokenProvider(MyTokenProvider())
+  .withTokenRefreshEndpoint(...)
   .build();
 
 // Inject into OpenAPI-generated client
+// The generated DefaultApi (and others) accept a Dio instance in the constructor.
 final api = DefaultApi(dio);
+
+// Now all API calls have auth, caching, logging, and error handling!
 final users = await api.getUsers();
+```
+
+## Advanced Usage
+
+### Custom Token Storage
+
+If you need to store tokens somewhere other than `flutter_secure_storage` (e.g., Hive or SharedPreferences), implement `TokenProvider`:
+
+```dart
+class MyTokenProvider implements TokenProvider {
+  @override
+  Future<String?> getAccessToken() async { ... }
+  // ... implement other methods
+}
+
+final dio = AcdcClientBuilder()
+  .withTokenProvider(MyTokenProvider())
+  .build();
 ```
 
 ## Configuration
 
-### Logging
+### Logging & Redaction
+
+By default, logs are pretty-printed to the console. You can redact sensitive keys to prevent leaking secrets.
 
 ```dart
 final dio = AcdcClientBuilder()
-  .withLogLevel(LogLevel.debug) // debug, info, warning, error, none
+  .withLogLevel(LogLevel.debug)
+  .withSensitiveFields(['password', 'accessToken', 'secret']) // Redacts these keys in JSON
   .withLogger((message, level, metadata) {
-    // Custom logger integration
-    myLogger.log(message, level: level);
+    // Optional: pipe logs to Crashlytics or Datadog
+    Crashlytics.instance.log(message);
   })
   .build();
 ```
@@ -113,12 +145,12 @@ final dio = AcdcClientBuilder()
   .withCache(CacheConfig(
     ttl: Duration(hours: 1),
     maxSize: 10 * 1024 * 1024, // 10 MB
-    encrypted: true,
+    encrypted: true, // Encrypts cache on disk
     inMemory: true,
   ))
   .build();
 
-// Clear cache
+// Manually clear cache if needed
 await dio.auth.clearCache();
 ```
 
@@ -174,6 +206,15 @@ Run tests with coverage reporting:
 ```
 
 Current coverage: **91.76%** ✅ (exceeds 80% target)
+
+## Security Best Practices
+
+Dart-ACDC is built with security as a priority:
+
+1.  **Secure Storage**: All tokens are stored using specific OS-level encryption (Keychain on iOS, EncryptedSharedPreferences on Android) by default.
+2.  **Memory Protection**: Authentication headers are stripped from logs by default.
+3.  **Cache Encryption**: If `encrypted: true` is set in cache config, response data cached on disk is AES-256 encrypted.
+4.  **Least Privilege**: The library only requests the permissions it needs.
 
 ## Documentation
 
