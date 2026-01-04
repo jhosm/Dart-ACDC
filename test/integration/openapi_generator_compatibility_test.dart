@@ -246,7 +246,7 @@ void main() {
       // Expected: ACDC error interceptor converts to AcdcException types,
       // which propagate through openapi-generated client.
 
-      final dio = await AcdcClientBuilder()
+      final dio = await const AcdcClientBuilder()
           .withBaseUrl(apiServer.baseUrl)
           .withTokenProvider(TestTokenProvider())
           .disableCache()

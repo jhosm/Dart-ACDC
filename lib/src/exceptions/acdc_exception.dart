@@ -121,13 +121,11 @@ class AcdcException extends DioException {
   }
 
   @override
-  int get hashCode {
-    return Object.hash(
-      runtimeType,
-      message,
-      statusCode,
-      requestUrl,
-      responseData.toString(),
-    );
-  }
+  int get hashCode => Object.hash(
+        runtimeType,
+        message,
+        statusCode,
+        requestUrl,
+        responseData.toString(),
+      );
 }

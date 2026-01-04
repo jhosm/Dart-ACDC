@@ -27,7 +27,7 @@ void main() {
       }
 
       // Build client with custom logger
-      dio = await AcdcClientBuilder()
+      dio = await const AcdcClientBuilder()
           .withBaseUrl('https://api.example.com')
           .withTokenProvider(FakeTokenProvider())
           .withLogger(customLogger)

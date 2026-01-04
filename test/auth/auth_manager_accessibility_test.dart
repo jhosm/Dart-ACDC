@@ -4,7 +4,7 @@ import 'package:test/test.dart';
 
 void main() {
   test('AuthManager is accessible when auth is disabled', () async {
-    final dio = await AcdcClientBuilder().disableAuth().build();
+    final dio = await const AcdcClientBuilder().disableAuth().build();
 
     expect(() => dio.auth, returnsNormally);
     expect(dio.auth, isNotNull);
@@ -17,8 +17,14 @@ void main() {
 
     // refreshNow should throw StateError
     expect(
-        () => dio.auth.refreshNow(),
-        throwsA(isA<StateError>().having((e) => e.message, 'message',
-            contains('Authentication is disabled'))));
+      () => dio.auth.refreshNow(),
+      throwsA(
+        isA<StateError>().having(
+          (e) => e.message,
+          'message',
+          contains('Authentication is disabled'),
+        ),
+      ),
+    );
   });
 }

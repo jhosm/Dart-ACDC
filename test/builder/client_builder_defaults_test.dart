@@ -10,7 +10,7 @@ void main() {
 
   setUp(() {
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-        .setMockMethodCallHandler(channel, (MethodCall methodCall) async {
+        .setMockMethodCallHandler(channel, (methodCall) async {
       // Return null for all storage reads/writes to simulate empty/working storage
       return null;
     });
@@ -19,15 +19,18 @@ void main() {
   group('AcdcClientBuilder Defaults', () {
     test('build() adds AuthInterceptor with SecureTokenProvider by default',
         () async {
-      final builder = AcdcClientBuilder();
+      const builder = AcdcClientBuilder();
       final dio = await builder.build();
 
       // Verify that AuthInterceptor is in the list of interceptors
       final authInterceptor =
           dio.interceptors.whereType<AuthInterceptor>().firstOrNull;
 
-      expect(authInterceptor, isNotNull,
-          reason: 'AuthInterceptor should be present using default builder');
+      expect(
+        authInterceptor,
+        isNotNull,
+        reason: 'AuthInterceptor should be present using default builder',
+      );
 
       // Since we can't easily inspect private fields, we rely on the fact that
       // we didn't crash and the interceptor exists.

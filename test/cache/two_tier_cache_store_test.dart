@@ -104,7 +104,9 @@ void main() {
 
       expect(results.length, equals(2));
       expect(
-          results.map((r) => r.key), containsAll(['mem_key', 'persist_key']));
+        results.map((r) => r.key),
+        containsAll(['mem_key', 'persist_key']),
+      );
     });
 
     test('getFromPath removes duplicates when merging', () async {

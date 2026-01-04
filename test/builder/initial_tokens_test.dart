@@ -19,7 +19,7 @@ void main() {
       final accessExpiry = now.add(const Duration(hours: 1));
       final refreshExpiry = now.add(const Duration(days: 30));
 
-      final builder = AcdcClientBuilder()
+      final builder = const AcdcClientBuilder()
           .withBaseUrl('https://api.example.com')
           .withTokenProvider(tokenProvider)
           .withInitialTokens(
@@ -42,7 +42,7 @@ void main() {
       // Create a slow token provider to verify await behavior
       final slowProvider = SlowTokenProvider();
 
-      final builder = AcdcClientBuilder()
+      final builder = const AcdcClientBuilder()
           .withBaseUrl('https://api.example.com')
           .withTokenProvider(slowProvider)
           .withInitialTokens(

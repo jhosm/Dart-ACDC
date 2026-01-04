@@ -1,4 +1,6 @@
 /// Configuration for HTTP response caching.
+library;
+
 import 'package:dio/dio.dart';
 
 /// Configuration for HTTP response caching.

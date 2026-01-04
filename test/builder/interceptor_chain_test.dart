@@ -45,11 +45,10 @@ class ExecutionTracker {
 
 // Wraps existing interceptor to track execution
 class TrackingInterceptorWrapper extends Interceptor {
+  TrackingInterceptorWrapper(this._inner, this._name, this._tracker);
   final Interceptor _inner;
   final String _name;
   final ExecutionTracker _tracker;
-
-  TrackingInterceptorWrapper(this._inner, this._name, this._tracker);
 
   @override
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
@@ -76,28 +75,32 @@ void main() {
       final tracker = ExecutionTracker();
 
       // Build client with all features enabled
-      var dio = await AcdcClientBuilder()
+      final dio = await const AcdcClientBuilder()
           .withBaseUrl('https://api.example.com')
           .withTokenProvider(MockTokenProvider())
           .withTokenRefreshEndpoint(
-              url: 'https://auth.example.com', clientId: 'client')
+            url: 'https://auth.example.com',
+            clientId: 'client',
+          )
           .withLogLevel(LogLevel.info) // Enables LoggingInterceptor
-          .withCache(CacheConfig(inMemory: true)) // Enables CacheInterceptor
-          .withInterceptor(InterceptorsWrapper(
-            // Custom Interceptor
-            onRequest: (options, handler) {
-              tracker.add('Custom:onRequest');
-              handler.next(options);
-            },
-            onResponse: (response, handler) {
-              tracker.add('Custom:onResponse');
-              handler.next(response);
-            },
-            onError: (err, handler) {
-              tracker.add('Custom:onError');
-              handler.next(err);
-            },
-          ))
+          .withCache(CacheConfig()) // Enables CacheInterceptor
+          .withInterceptor(
+            InterceptorsWrapper(
+              // Custom Interceptor
+              onRequest: (options, handler) {
+                tracker.add('Custom:onRequest');
+                handler.next(options);
+              },
+              onResponse: (response, handler) {
+                tracker.add('Custom:onResponse');
+                handler.next(response);
+              },
+              onError: (err, handler) {
+                tracker.add('Custom:onError');
+                handler.next(err);
+              },
+            ),
+          )
           .build();
 
       // We need to wrap existing interceptors to track them because they are added internally.
@@ -133,12 +136,14 @@ void main() {
       // In our case we added one InterceptorsWrapper.
       // But Dio might wrap things internally? No, usually not.
       // Let's assume the last one is our custom one if it's InterceptorsWrapper
-      final customIndex = interceptors.lastIndexWhere((i) =>
-          i is InterceptorsWrapper &&
-          i is! ErrorInterceptor &&
-          i is! LoggingInterceptor &&
-          i is! AuthInterceptor &&
-          i is! AcdcCacheInterceptor);
+      final customIndex = interceptors.lastIndexWhere(
+        (i) =>
+            i is InterceptorsWrapper &&
+            i is! ErrorInterceptor &&
+            i is! LoggingInterceptor &&
+            i is! AuthInterceptor &&
+            i is! AcdcCacheInterceptor,
+      );
 
       // Verify presence
       expect(loggingIndex, isNot(-1), reason: 'LoggingInterceptor missing');
@@ -151,18 +156,27 @@ void main() {
       // So Logging index < Auth index < Cache index
 
       // Logging should be first
-      expect(loggingIndex, lessThan(authIndex),
-          reason: 'Logging should be before Auth');
-      expect(authIndex, lessThan(cacheIndex),
-          reason: 'Auth should be before Cache');
+      expect(
+        loggingIndex,
+        lessThan(authIndex),
+        reason: 'Logging should be before Auth',
+      );
+      expect(
+        authIndex,
+        lessThan(cacheIndex),
+        reason: 'Auth should be before Cache',
+      );
 
       // Spec: Response phase: Cache -> Auth -> Error -> Logging
       // Response is LIFO (Last added -> First added)
       // So List Order must be: Logging < Error < Auth < Cache
 
       // Verify Error is nested inside Logging but outside Auth
-      expect(loggingIndex, lessThan(errorIndex),
-          reason: 'Logging should wrap Error');
+      expect(
+        loggingIndex,
+        lessThan(errorIndex),
+        reason: 'Logging should wrap Error',
+      );
       expect(errorIndex, lessThan(authIndex), reason: 'Error should wrap Auth');
 
       // Verify Cache is innermost (Last in list)
@@ -174,8 +188,11 @@ void main() {
       // => List: Logging, Auth, Cache, Error, Custom
 
       if (customIndex != -1) {
-        expect(errorIndex, lessThan(customIndex),
-            reason: 'Error should be before Custom');
+        expect(
+          errorIndex,
+          lessThan(customIndex),
+          reason: 'Error should be before Custom',
+        );
       }
 
       // Execution Test (Optional but good)

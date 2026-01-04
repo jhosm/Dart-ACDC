@@ -12,9 +12,7 @@ void main() {
 
   setUp(() {
     const MethodChannel('plugins.it_nomads.com/flutter_secure_storage')
-        .setMockMethodCallHandler((call) async {
-      return null;
-    });
+        .setMockMethodCallHandler((call) async => null);
   });
 
   group('Public API Exports', () {

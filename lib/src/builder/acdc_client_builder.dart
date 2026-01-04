@@ -312,14 +312,13 @@ class AcdcClientBuilder {
     String? refreshToken,
     DateTime? accessExpiry,
     DateTime? refreshExpiry,
-  }) {
-    return _copyWith(
-      initialAccessToken: accessToken,
-      initialRefreshToken: refreshToken,
-      initialAccessExpiry: accessExpiry,
-      initialRefreshExpiry: refreshExpiry,
-    );
-  }
+  }) =>
+      _copyWith(
+        initialAccessToken: accessToken,
+        initialRefreshToken: refreshToken,
+        initialAccessExpiry: accessExpiry,
+        initialRefreshExpiry: refreshExpiry,
+      );
 
   AcdcClientBuilder _copyWith({
     String? baseUrl,
@@ -343,33 +342,32 @@ class AcdcClientBuilder {
     String? initialRefreshToken,
     DateTime? initialAccessExpiry,
     DateTime? initialRefreshExpiry,
-  }) {
-    return AcdcClientBuilder(
-      baseUrl: baseUrl ?? _baseUrl,
-      timeout: timeout ?? _timeout,
-      tokenProvider: tokenProvider ?? _tokenProvider,
-      tokenRefreshEndpointUrl:
-          tokenRefreshEndpointUrl ?? _tokenRefreshEndpointUrl,
-      tokenRefreshClientId: tokenRefreshClientId ?? _tokenRefreshClientId,
-      customTokenRefresh: customTokenRefresh ?? _customTokenRefresh,
-      tokenRevocationEndpoint:
-          tokenRevocationEndpoint ?? _tokenRevocationEndpoint,
-      tokenRefreshThreshold: tokenRefreshThreshold ?? _tokenRefreshThreshold,
-      logLevel: logLevel ?? _logLevel,
-      logger: logger ?? _logger,
-      sensitiveFields: sensitiveFields ?? _sensitiveFields,
-      slowRequestThreshold: slowRequestThreshold ?? _slowRequestThreshold,
-      largePayloadThreshold: largePayloadThreshold ?? _largePayloadThreshold,
-      cacheConfig: cacheConfig ?? _cacheConfig,
-      cacheDisabled: cacheDisabled ?? _cacheDisabled,
-      authDisabled: authDisabled ?? _authDisabled,
-      customInterceptors: customInterceptors ?? _customInterceptors,
-      initialAccessToken: initialAccessToken ?? _initialAccessToken,
-      initialRefreshToken: initialRefreshToken ?? _initialRefreshToken,
-      initialAccessExpiry: initialAccessExpiry ?? _initialAccessExpiry,
-      initialRefreshExpiry: initialRefreshExpiry ?? _initialRefreshExpiry,
-    );
-  }
+  }) =>
+      AcdcClientBuilder(
+        baseUrl: baseUrl ?? _baseUrl,
+        timeout: timeout ?? _timeout,
+        tokenProvider: tokenProvider ?? _tokenProvider,
+        tokenRefreshEndpointUrl:
+            tokenRefreshEndpointUrl ?? _tokenRefreshEndpointUrl,
+        tokenRefreshClientId: tokenRefreshClientId ?? _tokenRefreshClientId,
+        customTokenRefresh: customTokenRefresh ?? _customTokenRefresh,
+        tokenRevocationEndpoint:
+            tokenRevocationEndpoint ?? _tokenRevocationEndpoint,
+        tokenRefreshThreshold: tokenRefreshThreshold ?? _tokenRefreshThreshold,
+        logLevel: logLevel ?? _logLevel,
+        logger: logger ?? _logger,
+        sensitiveFields: sensitiveFields ?? _sensitiveFields,
+        slowRequestThreshold: slowRequestThreshold ?? _slowRequestThreshold,
+        largePayloadThreshold: largePayloadThreshold ?? _largePayloadThreshold,
+        cacheConfig: cacheConfig ?? _cacheConfig,
+        cacheDisabled: cacheDisabled ?? _cacheDisabled,
+        authDisabled: authDisabled ?? _authDisabled,
+        customInterceptors: customInterceptors ?? _customInterceptors,
+        initialAccessToken: initialAccessToken ?? _initialAccessToken,
+        initialRefreshToken: initialRefreshToken ?? _initialRefreshToken,
+        initialAccessExpiry: initialAccessExpiry ?? _initialAccessExpiry,
+        initialRefreshExpiry: initialRefreshExpiry ?? _initialRefreshExpiry,
+      );
 
   /// Builds and returns a configured Dio instance.
   ///

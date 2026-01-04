@@ -192,11 +192,6 @@ library dart_acdc;
 /// Access via `dio.auth` extension after configuring authentication.
 export 'src/auth/acdc_auth_manager.dart' show AcdcAuthManager, AcdcAuth;
 
-/// Manager for cache operations.
-///
-/// Access via `dio.cache` extension.
-export 'src/cache/acdc_cache_manager.dart' show AcdcCacheManager, AcdcCache;
-
 /// Interface for storing and retrieving authentication tokens.
 ///
 /// Implement this to integrate with your secure storage solution
@@ -214,6 +209,11 @@ export 'src/auth/token_refresh_result.dart' show TokenRefreshResult;
 /// Use this to configure and create Dio instances with authentication,
 /// caching, logging, and error handling built-in.
 export 'src/builder/acdc_client_builder.dart' show AcdcClientBuilder;
+
+/// Manager for cache operations.
+///
+/// Access via `dio.cache` extension.
+export 'src/cache/acdc_cache_manager.dart' show AcdcCacheManager, AcdcCache;
 
 /// Configuration for HTTP response caching.
 ///

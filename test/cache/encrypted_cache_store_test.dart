@@ -1,8 +1,9 @@
+import 'dart:io';
+
 import 'package:dart_acdc/src/cache/encrypted_cache_store.dart';
 import 'package:dio_cache_interceptor/dio_cache_interceptor.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
-import 'dart:io';
 
 import 'cache_invalidation_test.mocks.dart';
 

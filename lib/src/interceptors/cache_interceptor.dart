@@ -253,20 +253,30 @@ class AcdcCacheInterceptor extends Interceptor {
       _invalidateCacheForUrl(response.requestOptions.uri.toString());
     }
 
-    // HACK: For demonstration purposes (and often practical usage with uncooperative APIs),
-    // we override the server's Cache-Control headers if they forbid caching,
-    // using our configured TTL instead.
-    if (response.extra['from_cache'] != true) {
-      response.headers.removeAll('cache-control');
-      response.headers.removeAll('pragma');
-      response.headers.removeAll('expires');
-
-      response.headers
-          .add('cache-control', 'public, max-age=${_config.ttl.inSeconds}');
-    }
+    // Add cache metadata to response
+    _addCacheMetadata(response);
 
     // Delegate to dio_cache_interceptor
     _dioCacheInterceptor.onResponse(response, handler);
+  }
+
+  /// Adds cache metadata to response.
+  ///
+  /// Adds:
+  /// - X-ACDC-From-Cache header when response came from cache
+  /// - response.extra['fromOfflineCache'] flag (set in onError for offline scenarios)
+  void _addCacheMetadata(Response<dynamic> response) {
+    // Check if response came from cache
+    // dio_cache_interceptor adds CacheResponse.cacheKey to extra when serving from cache
+    final fromCache = response.extra[CacheResponse.cacheKey] != null;
+
+    if (fromCache) {
+      // Add X-ACDC-From-Cache header
+      response.headers.add('X-ACDC-From-Cache', 'true');
+
+      // Note: fromOfflineCache flag is set in onError when serving
+      // stale cache during network failures
+    }
   }
 
   @override
@@ -326,8 +336,10 @@ class _CacheAwareRequestHandler extends RequestInterceptorHandler {
   }
 
   @override
-  void resolve(Response response,
-      [bool callFollowingResponseInterceptor = false]) {
+  void resolve(
+    Response response, [
+    bool callFollowingResponseInterceptor = false,
+  ]) {
     // This is called when dio_cache_interceptor finds a valid cache entry.
     // Mark the response as being from cache.
     response.extra['from_cache'] = true;
@@ -336,8 +348,10 @@ class _CacheAwareRequestHandler extends RequestInterceptorHandler {
   }
 
   @override
-  void reject(DioException error,
-      [bool callFollowingErrorInterceptor = false]) {
+  void reject(
+    DioException error, [
+    bool callFollowingErrorInterceptor = false,
+  ]) {
     handler.reject(error, callFollowingErrorInterceptor);
   }
 }

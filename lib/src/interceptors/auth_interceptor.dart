@@ -319,7 +319,8 @@ class AuthInterceptor extends Interceptor {
           refreshExpiry.isBefore(DateTime.now().toUtc())) {
         await _clearTokensSafely();
         throw _createAuthException(
-            'Refresh token expired. Please log in again.');
+          'Refresh token expired. Please log in again.',
+        );
       }
     } on AcdcAuthException {
       rethrow;

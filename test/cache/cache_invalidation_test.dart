@@ -157,7 +157,9 @@ void main() {
 
       // Attempting to use the store triggers initialization which fails
       await expectLater(
-          () => store.set(_createCacheResponse(key: 'key1')), throwsException);
+        () => store.set(_createCacheResponse(key: 'key1')),
+        throwsException,
+      );
 
       expect(errorLog, isNotEmpty);
       expect(errorLog.first.toString(), contains('Storage write failed'));

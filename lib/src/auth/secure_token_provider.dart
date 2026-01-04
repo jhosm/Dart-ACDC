@@ -1,4 +1,7 @@
+import 'package:dart_acdc/dart_acdc.dart' show AcdcClientBuilder;
 import 'package:dart_acdc/src/auth/token_provider.dart';
+import 'package:dart_acdc/src/builder/acdc_client_builder.dart'
+    show AcdcClientBuilder;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 /// A secure implementation of [TokenProvider] using [FlutterSecureStorage].

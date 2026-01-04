@@ -38,7 +38,7 @@ void main() {
     });
 
     test('getAccessTokenExpiry returns parsed DateTime', () async {
-      final now = DateTime.utc(2024, 1, 1);
+      final now = DateTime.utc(2024, 1);
       when(mockStorage.read(key: 'acdc_access_expiry'))
           .thenAnswer((_) async => now.toIso8601String());
 
@@ -58,7 +58,7 @@ void main() {
     });
 
     test('getRefreshTokenExpiry returns parsed DateTime', () async {
-      final now = DateTime.utc(2024, 1, 1);
+      final now = DateTime.utc(2024, 1);
       when(mockStorage.read(key: 'acdc_refresh_expiry'))
           .thenAnswer((_) async => now.toIso8601String());
 
@@ -69,7 +69,7 @@ void main() {
     });
 
     test('setTokens writes all values to secure storage', () async {
-      final accessExpiry = DateTime.utc(2024, 1, 1);
+      final accessExpiry = DateTime.utc(2024, 1);
       final refreshExpiry = DateTime.utc(2024, 1, 2);
 
       when(mockStorage.write(key: anyNamed('key'), value: anyNamed('value')))
@@ -86,13 +86,18 @@ void main() {
           .called(1);
       verify(mockStorage.write(key: 'acdc_refresh_token', value: 'refresh_123'))
           .called(1);
-      verify(mockStorage.write(
-              key: 'acdc_access_expiry', value: accessExpiry.toIso8601String()))
-          .called(1);
-      verify(mockStorage.write(
-              key: 'acdc_refresh_expiry',
-              value: refreshExpiry.toIso8601String()))
-          .called(1);
+      verify(
+        mockStorage.write(
+          key: 'acdc_access_expiry',
+          value: accessExpiry.toIso8601String(),
+        ),
+      ).called(1);
+      verify(
+        mockStorage.write(
+          key: 'acdc_refresh_expiry',
+          value: refreshExpiry.toIso8601String(),
+        ),
+      ).called(1);
     });
 
     test('clearTokens deletes all keys', () async {

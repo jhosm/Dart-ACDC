@@ -119,8 +119,9 @@ class EncryptedCacheStore implements CacheStore {
 
   /// Gets existing key or generates a new one.
   static Future<Uint8List> _getOrGenerateKey(
-      FlutterSecureStorage storage) async {
-    String? base64Key = await storage.read(key: _keyStorageKey);
+    FlutterSecureStorage storage,
+  ) async {
+    var base64Key = await storage.read(key: _keyStorageKey);
 
     if (base64Key == null) {
       final key = Key.fromSecureRandom(32); // 256 bits

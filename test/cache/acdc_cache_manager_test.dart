@@ -5,7 +5,7 @@ void main() {
   group('AcdcCacheManager', () {
     test('is accessible via dio.cache extension', () async {
       // successful build requires valid token provider or disabled auth in test environment
-      final dio = await AcdcClientBuilder().disableAuth().build();
+      final dio = await const AcdcClientBuilder().disableAuth().build();
 
       expect(() => dio.cache, returnsNormally);
       expect(dio.cache, isNotNull);
@@ -18,7 +18,7 @@ void main() {
       // but the manager is still created with null interceptor by default logic in builder?
       // Let's check builder logic: builder creates manager regardless.
       final dio =
-          await AcdcClientBuilder().disableCache().disableAuth().build();
+          await const AcdcClientBuilder().disableCache().disableAuth().build();
 
       expect(() => dio.cache, returnsNormally);
       expect(dio.cache, isNotNull);
@@ -30,12 +30,12 @@ void main() {
     test('clearCache delegates to interceptor', () async {
       // White-box testing implies we'd mock interceptor, but we are using public API.
       // We can verify it doesn't crash.
-      final dio = await AcdcClientBuilder().disableAuth().build();
+      final dio = await const AcdcClientBuilder().disableAuth().build();
       await expectLater(dio.cache.clearCache(), completes);
     });
 
     test('clearCacheForUrl delegates to interceptor', () async {
-      final dio = await AcdcClientBuilder().disableAuth().build();
+      final dio = await const AcdcClientBuilder().disableAuth().build();
       await expectLater(
         dio.cache.clearCacheForUrl('https://example.com'),
         completes,
