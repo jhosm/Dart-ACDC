@@ -327,6 +327,50 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
+  Future<void> _fetchEtagData() async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+
+    try {
+      // Fetch data from public API with ETag
+      // httpbin.org/etag/{etag} returns the provided etag in header.
+      // Subsequent calls with If-None-Match should return 304.
+      final response = await _dio.get(
+        'https://httpbin.org/etag/test-etag-123',
+        options: Options(headers: {'Authorization': ''}),
+      );
+
+      final dataStr = response.data.toString();
+      final preview = dataStr.length > 50
+          ? '${dataStr.substring(0, 50)}...'
+          : dataStr;
+
+      _addLog('Public ETag Data fetched', LogLevel.info, {
+        'status': response.statusCode,
+        'cached': response.extra['from_cache'] ?? false,
+        'data': preview,
+      });
+    } on DioException catch (e) {
+      _addLog('Public ETag API Error', LogLevel.error, {
+        'error': e.toString(),
+        'status': e.response?.statusCode,
+      });
+      setState(() {
+        _error = 'Public Call Error: ${e.message}';
+      });
+    } catch (e) {
+      setState(() {
+        _error = 'Error: $e';
+      });
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -482,14 +526,25 @@ class _MyHomePageState extends State<MyHomePage> {
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            'Calls httpbin.org/cache/10',
+                            'Calls httpbin.org',
                             style: Theme.of(context).textTheme.bodySmall,
                           ),
                           const SizedBox(height: 8),
-                          ElevatedButton.icon(
-                            onPressed: _isLoading ? null : _fetchPublicData,
-                            icon: const Icon(Icons.public),
-                            label: const Text('Fetch Public (Max-Age: 10s)'),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: [
+                              ElevatedButton.icon(
+                                onPressed: _isLoading ? null : _fetchPublicData,
+                                icon: const Icon(Icons.public),
+                                label: const Text('Fetch (Max-Age: 10s)'),
+                              ),
+                              ElevatedButton.icon(
+                                onPressed: _isLoading ? null : _fetchEtagData,
+                                icon: const Icon(Icons.cached),
+                                label: const Text('Fetch (ETag)'),
+                              ),
+                            ],
                           ),
                         ],
                       ),
