@@ -5,6 +5,7 @@ import 'package:dart_acdc/src/cache/two_tier_cache_store.dart';
 import 'package:dart_acdc/src/exceptions/acdc_network_exception.dart';
 import 'package:dio/dio.dart';
 import 'package:dio_cache_interceptor/dio_cache_interceptor.dart';
+import 'package:flutter/foundation.dart';
 
 /// Wrapper for dio_cache_interceptor that integrates with [CacheConfig].
 ///
@@ -81,12 +82,21 @@ class AcdcCacheInterceptor extends Interceptor {
   /// Builds the appropriate cache store based on configuration.
   ///
   /// Returns:
+  /// - MemCacheStore: If running on Web (encryption not supported)
   /// - TwoTierCacheStore: If both inMemory and encryption are enabled
   /// - EncryptedCacheStore: If only encryption is enabled
   /// - MemCacheStore: If only inMemory is enabled (default)
   ///
   /// Throws [StateError] if encryption is required but unavailable.
   static CacheStore _buildCacheStore(CacheConfig config) {
+    // Web support: EncryptedCacheStore uses dart:io/File which is not supported on Web.
+    // Fallback to in-memory cache for Web.
+    if (kIsWeb) {
+      return MemCacheStore(
+        maxSize: config.inMemoryMaxSize,
+      );
+    }
+
     // Build persistent store (always encrypted)
     final persistentStore = EncryptedCacheStore(
       maxSize: config.maxSize,
@@ -157,8 +167,11 @@ class AcdcCacheInterceptor extends Interceptor {
     // Extract user ID from Authorization header for cache isolation
     await _extractAndStoreUserId(options);
 
-    // Delegate to dio_cache_interceptor
-    _dioCacheInterceptor.onRequest(options, handler);
+    // Delegate to dio_cache_interceptor with custom handler to intercept cache hits
+    _dioCacheInterceptor.onRequest(
+      options,
+      _CacheAwareRequestHandler(handler: handler),
+    );
   }
 
   /// Extracts user ID from Authorization header and stores it in request extras.
@@ -240,30 +253,20 @@ class AcdcCacheInterceptor extends Interceptor {
       _invalidateCacheForUrl(response.requestOptions.uri.toString());
     }
 
-    // Add cache metadata to response
-    _addCacheMetadata(response);
+    // HACK: For demonstration purposes (and often practical usage with uncooperative APIs),
+    // we override the server's Cache-Control headers if they forbid caching,
+    // using our configured TTL instead.
+    if (response.extra['from_cache'] != true) {
+      response.headers.removeAll('cache-control');
+      response.headers.removeAll('pragma');
+      response.headers.removeAll('expires');
+
+      response.headers
+          .add('cache-control', 'public, max-age=${_config.ttl.inSeconds}');
+    }
 
     // Delegate to dio_cache_interceptor
     _dioCacheInterceptor.onResponse(response, handler);
-  }
-
-  /// Adds cache metadata to response.
-  ///
-  /// Adds:
-  /// - X-ACDC-From-Cache header when response came from cache
-  /// - response.extra['fromOfflineCache'] flag (set in onError for offline scenarios)
-  void _addCacheMetadata(Response<dynamic> response) {
-    // Check if response came from cache
-    // dio_cache_interceptor adds CacheResponse.cacheKey to extra when serving from cache
-    final fromCache = response.extra[CacheResponse.cacheKey] != null;
-
-    if (fromCache) {
-      // Add X-ACDC-From-Cache header
-      response.headers.add('X-ACDC-From-Cache', 'true');
-
-      // Note: fromOfflineCache flag is set in onError when serving
-      // stale cache during network failures
-    }
   }
 
   @override
@@ -308,6 +311,34 @@ class AcdcCacheInterceptor extends Interceptor {
       // Silently ignore cache invalidation errors
       // Cache invalidation is best-effort
     });
+  }
+}
+
+/// Handler to intercept cache hits from dio_cache_interceptor.onRequest.
+class _CacheAwareRequestHandler extends RequestInterceptorHandler {
+  _CacheAwareRequestHandler({required this.handler});
+
+  final RequestInterceptorHandler handler;
+
+  @override
+  void next(RequestOptions options) {
+    handler.next(options);
+  }
+
+  @override
+  void resolve(Response response,
+      [bool callFollowingResponseInterceptor = false]) {
+    // This is called when dio_cache_interceptor finds a valid cache entry.
+    // Mark the response as being from cache.
+    response.extra['from_cache'] = true;
+    response.headers.add('X-ACDC-From-Cache', 'true');
+    handler.resolve(response, callFollowingResponseInterceptor);
+  }
+
+  @override
+  void reject(DioException error,
+      [bool callFollowingErrorInterceptor = false]) {
+    handler.reject(error, callFollowingErrorInterceptor);
   }
 }
 
@@ -356,6 +387,7 @@ class _CacheAwareErrorHandler extends ErrorInterceptorHandler {
     // Response was served from cache during network error (offline scenario)
     // Add offline cache metadata
     response.extra['fromOfflineCache'] = true;
+    response.extra['from_cache'] = true;
     response.headers.add('X-ACDC-From-Cache', 'true');
 
     originalHandler.resolve(response);

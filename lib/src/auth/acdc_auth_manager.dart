@@ -44,6 +44,9 @@ class AcdcAuthManager {
   final AcdcCacheManager? _cacheManager;
   final Dio? _httpClient;
 
+  /// Returns true if authentication is configured (TokenProvider is present).
+  bool get isConfigured => _tokenProvider != null;
+
   /// Cached user ID for detecting user changes
   String? _currentUserId;
 

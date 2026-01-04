@@ -191,6 +191,7 @@ class LoggingInterceptor extends Interceptor {
         final redactedBody = _redactBody(response.data);
         final redactedHeaders = _redactHeaders(response.headers.map);
         final durationMs = _calculateDuration(response);
+        final fromCache = response.extra['from_cache'] as bool? ?? false;
 
         _safeLog(
           'Response: ${response.statusCode} ${response.requestOptions.uri}',
@@ -202,6 +203,7 @@ class LoggingInterceptor extends Interceptor {
             'headers': redactedHeaders,
             'body': redactedBody,
             'duration_ms': durationMs,
+            'from_cache': fromCache,
             'timestamp': DateTime.now().toIso8601String(),
           },
         );

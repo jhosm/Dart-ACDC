@@ -98,29 +98,7 @@ class AcdcClientBuilder {
   /// Example: `https://api.example.com`
   ///
   /// Throws [ArgumentError] if the URL format is invalid.
-  AcdcClientBuilder withBaseUrl(String url) => AcdcClientBuilder(
-        baseUrl: url,
-        timeout: _timeout,
-        tokenProvider: _tokenProvider,
-        tokenRefreshEndpointUrl: _tokenRefreshEndpointUrl,
-        tokenRefreshClientId: _tokenRefreshClientId,
-        customTokenRefresh: _customTokenRefresh,
-        tokenRevocationEndpoint: _tokenRevocationEndpoint,
-        tokenRefreshThreshold: _tokenRefreshThreshold,
-        logLevel: _logLevel,
-        logger: _logger,
-        sensitiveFields: _sensitiveFields,
-        slowRequestThreshold: _slowRequestThreshold,
-        largePayloadThreshold: _largePayloadThreshold,
-        cacheConfig: _cacheConfig,
-        cacheDisabled: _cacheDisabled,
-        authDisabled: _authDisabled,
-        customInterceptors: _customInterceptors,
-        initialAccessToken: _initialAccessToken,
-        initialRefreshToken: _initialRefreshToken,
-        initialAccessExpiry: _initialAccessExpiry,
-        initialRefreshExpiry: _initialRefreshExpiry,
-      );
+  AcdcClientBuilder withBaseUrl(String url) => _copyWith(baseUrl: url);
 
   /// Configures timeout for connection, send, and receive operations.
   ///
@@ -132,58 +110,14 @@ class AcdcClientBuilder {
       throw ArgumentError('Timeout duration must be positive');
     }
 
-    return AcdcClientBuilder(
-      baseUrl: _baseUrl,
-      timeout: timeout,
-      tokenProvider: _tokenProvider,
-      tokenRefreshEndpointUrl: _tokenRefreshEndpointUrl,
-      tokenRefreshClientId: _tokenRefreshClientId,
-      customTokenRefresh: _customTokenRefresh,
-      tokenRevocationEndpoint: _tokenRevocationEndpoint,
-      tokenRefreshThreshold: _tokenRefreshThreshold,
-      logLevel: _logLevel,
-      logger: _logger,
-      sensitiveFields: _sensitiveFields,
-      slowRequestThreshold: _slowRequestThreshold,
-      largePayloadThreshold: _largePayloadThreshold,
-      cacheConfig: _cacheConfig,
-      cacheDisabled: _cacheDisabled,
-      authDisabled: _authDisabled,
-      customInterceptors: _customInterceptors,
-      initialAccessToken: _initialAccessToken,
-      initialRefreshToken: _initialRefreshToken,
-      initialAccessExpiry: _initialAccessExpiry,
-      initialRefreshExpiry: _initialRefreshExpiry,
-    );
+    return _copyWith(timeout: timeout);
   }
 
   /// Configures the token provider for authentication.
   ///
   /// When configured, enables automatic token injection and refresh.
   AcdcClientBuilder withTokenProvider(TokenProvider provider) =>
-      AcdcClientBuilder(
-        baseUrl: _baseUrl,
-        timeout: _timeout,
-        tokenProvider: provider,
-        tokenRefreshEndpointUrl: _tokenRefreshEndpointUrl,
-        tokenRefreshClientId: _tokenRefreshClientId,
-        customTokenRefresh: _customTokenRefresh,
-        tokenRevocationEndpoint: _tokenRevocationEndpoint,
-        tokenRefreshThreshold: _tokenRefreshThreshold,
-        logLevel: _logLevel,
-        logger: _logger,
-        sensitiveFields: _sensitiveFields,
-        slowRequestThreshold: _slowRequestThreshold,
-        largePayloadThreshold: _largePayloadThreshold,
-        cacheConfig: _cacheConfig,
-        cacheDisabled: _cacheDisabled,
-        authDisabled: _authDisabled,
-        customInterceptors: _customInterceptors,
-        initialAccessToken: _initialAccessToken,
-        initialRefreshToken: _initialRefreshToken,
-        initialAccessExpiry: _initialAccessExpiry,
-        initialRefreshExpiry: _initialRefreshExpiry,
-      );
+      _copyWith(tokenProvider: provider);
 
   /// Configures the OAuth 2.1 token refresh endpoint.
   ///
@@ -201,28 +135,9 @@ class AcdcClientBuilder {
     required String url,
     required String clientId,
   }) =>
-      AcdcClientBuilder(
-        baseUrl: _baseUrl,
-        timeout: _timeout,
-        tokenProvider: _tokenProvider,
+      _copyWith(
         tokenRefreshEndpointUrl: url,
         tokenRefreshClientId: clientId,
-        customTokenRefresh: _customTokenRefresh,
-        tokenRevocationEndpoint: _tokenRevocationEndpoint,
-        tokenRefreshThreshold: _tokenRefreshThreshold,
-        logLevel: _logLevel,
-        logger: _logger,
-        sensitiveFields: _sensitiveFields,
-        slowRequestThreshold: _slowRequestThreshold,
-        largePayloadThreshold: _largePayloadThreshold,
-        cacheConfig: _cacheConfig,
-        cacheDisabled: _cacheDisabled,
-        authDisabled: _authDisabled,
-        customInterceptors: _customInterceptors,
-        initialAccessToken: _initialAccessToken,
-        initialRefreshToken: _initialRefreshToken,
-        initialAccessExpiry: _initialAccessExpiry,
-        initialRefreshExpiry: _initialRefreshExpiry,
       );
 
   /// Configures a custom token refresh function.
@@ -246,29 +161,7 @@ class AcdcClientBuilder {
   AcdcClientBuilder withCustomTokenRefresh(
     Future<TokenRefreshResult> Function(String) refreshFn,
   ) =>
-      AcdcClientBuilder(
-        baseUrl: _baseUrl,
-        timeout: _timeout,
-        tokenProvider: _tokenProvider,
-        tokenRefreshEndpointUrl: _tokenRefreshEndpointUrl,
-        tokenRefreshClientId: _tokenRefreshClientId,
-        customTokenRefresh: refreshFn,
-        tokenRevocationEndpoint: _tokenRevocationEndpoint,
-        tokenRefreshThreshold: _tokenRefreshThreshold,
-        logLevel: _logLevel,
-        logger: _logger,
-        sensitiveFields: _sensitiveFields,
-        slowRequestThreshold: _slowRequestThreshold,
-        largePayloadThreshold: _largePayloadThreshold,
-        cacheConfig: _cacheConfig,
-        cacheDisabled: _cacheDisabled,
-        authDisabled: _authDisabled,
-        customInterceptors: _customInterceptors,
-        initialAccessToken: _initialAccessToken,
-        initialRefreshToken: _initialRefreshToken,
-        initialAccessExpiry: _initialAccessExpiry,
-        initialRefreshExpiry: _initialRefreshExpiry,
-      );
+      _copyWith(customTokenRefresh: refreshFn);
 
   /// Configures the OAuth 2.1 token revocation endpoint.
   ///
@@ -276,29 +169,7 @@ class AcdcClientBuilder {
   ///
   /// Example: `https://auth.example.com/oauth/revoke`
   AcdcClientBuilder withTokenRevocationEndpoint(String url) =>
-      AcdcClientBuilder(
-        baseUrl: _baseUrl,
-        timeout: _timeout,
-        tokenProvider: _tokenProvider,
-        tokenRefreshEndpointUrl: _tokenRefreshEndpointUrl,
-        tokenRefreshClientId: _tokenRefreshClientId,
-        customTokenRefresh: _customTokenRefresh,
-        tokenRevocationEndpoint: url,
-        tokenRefreshThreshold: _tokenRefreshThreshold,
-        logLevel: _logLevel,
-        logger: _logger,
-        sensitiveFields: _sensitiveFields,
-        slowRequestThreshold: _slowRequestThreshold,
-        largePayloadThreshold: _largePayloadThreshold,
-        cacheConfig: _cacheConfig,
-        cacheDisabled: _cacheDisabled,
-        authDisabled: _authDisabled,
-        customInterceptors: _customInterceptors,
-        initialAccessToken: _initialAccessToken,
-        initialRefreshToken: _initialRefreshToken,
-        initialAccessExpiry: _initialAccessExpiry,
-        initialRefreshExpiry: _initialRefreshExpiry,
-      );
+      _copyWith(tokenRevocationEndpoint: url);
 
   /// Configures the token refresh threshold.
   ///
@@ -310,29 +181,7 @@ class AcdcClientBuilder {
   /// builder.withTokenRefreshThreshold(Duration(seconds: 120))
   /// ```
   AcdcClientBuilder withTokenRefreshThreshold(Duration threshold) =>
-      AcdcClientBuilder(
-        baseUrl: _baseUrl,
-        timeout: _timeout,
-        tokenProvider: _tokenProvider,
-        tokenRefreshEndpointUrl: _tokenRefreshEndpointUrl,
-        tokenRefreshClientId: _tokenRefreshClientId,
-        customTokenRefresh: _customTokenRefresh,
-        tokenRevocationEndpoint: _tokenRevocationEndpoint,
-        tokenRefreshThreshold: threshold,
-        logLevel: _logLevel,
-        logger: _logger,
-        sensitiveFields: _sensitiveFields,
-        slowRequestThreshold: _slowRequestThreshold,
-        largePayloadThreshold: _largePayloadThreshold,
-        cacheConfig: _cacheConfig,
-        cacheDisabled: _cacheDisabled,
-        authDisabled: _authDisabled,
-        customInterceptors: _customInterceptors,
-        initialAccessToken: _initialAccessToken,
-        initialRefreshToken: _initialRefreshToken,
-        initialAccessExpiry: _initialAccessExpiry,
-        initialRefreshExpiry: _initialRefreshExpiry,
-      );
+      _copyWith(tokenRefreshThreshold: threshold);
 
   /// Configures the logging verbosity level.
   ///
@@ -340,29 +189,7 @@ class AcdcClientBuilder {
   /// disable HTTP logging entirely.
   ///
   /// Defaults to [LogLevel.info] for production builds.
-  AcdcClientBuilder withLogLevel(LogLevel level) => AcdcClientBuilder(
-        baseUrl: _baseUrl,
-        timeout: _timeout,
-        tokenProvider: _tokenProvider,
-        tokenRefreshEndpointUrl: _tokenRefreshEndpointUrl,
-        tokenRefreshClientId: _tokenRefreshClientId,
-        customTokenRefresh: _customTokenRefresh,
-        tokenRevocationEndpoint: _tokenRevocationEndpoint,
-        tokenRefreshThreshold: _tokenRefreshThreshold,
-        logLevel: level,
-        logger: _logger,
-        sensitiveFields: _sensitiveFields,
-        slowRequestThreshold: _slowRequestThreshold,
-        largePayloadThreshold: _largePayloadThreshold,
-        cacheConfig: _cacheConfig,
-        cacheDisabled: _cacheDisabled,
-        authDisabled: _authDisabled,
-        customInterceptors: _customInterceptors,
-        initialAccessToken: _initialAccessToken,
-        initialRefreshToken: _initialRefreshToken,
-        initialAccessExpiry: _initialAccessExpiry,
-        initialRefreshExpiry: _initialRefreshExpiry,
-      );
+  AcdcClientBuilder withLogLevel(LogLevel level) => _copyWith(logLevel: level);
 
   /// Configures a custom logger function.
   ///
@@ -377,29 +204,7 @@ class AcdcClientBuilder {
   ///   }
   /// })
   /// ```
-  AcdcClientBuilder withLogger(AcdcLogger logger) => AcdcClientBuilder(
-        baseUrl: _baseUrl,
-        timeout: _timeout,
-        tokenProvider: _tokenProvider,
-        tokenRefreshEndpointUrl: _tokenRefreshEndpointUrl,
-        tokenRefreshClientId: _tokenRefreshClientId,
-        customTokenRefresh: _customTokenRefresh,
-        tokenRevocationEndpoint: _tokenRevocationEndpoint,
-        tokenRefreshThreshold: _tokenRefreshThreshold,
-        logLevel: _logLevel,
-        logger: logger,
-        sensitiveFields: _sensitiveFields,
-        slowRequestThreshold: _slowRequestThreshold,
-        largePayloadThreshold: _largePayloadThreshold,
-        cacheConfig: _cacheConfig,
-        cacheDisabled: _cacheDisabled,
-        authDisabled: _authDisabled,
-        customInterceptors: _customInterceptors,
-        initialAccessToken: _initialAccessToken,
-        initialRefreshToken: _initialRefreshToken,
-        initialAccessExpiry: _initialAccessExpiry,
-        initialRefreshExpiry: _initialRefreshExpiry,
-      );
+  AcdcClientBuilder withLogger(AcdcLogger logger) => _copyWith(logger: logger);
 
   /// Configures sensitive fields to redact from logs.
   ///
@@ -411,29 +216,7 @@ class AcdcClientBuilder {
   /// builder.withSensitiveFields(['password', 'ssn', 'credit_card'])
   /// ```
   AcdcClientBuilder withSensitiveFields(List<dynamic> fields) =>
-      AcdcClientBuilder(
-        baseUrl: _baseUrl,
-        timeout: _timeout,
-        tokenProvider: _tokenProvider,
-        tokenRefreshEndpointUrl: _tokenRefreshEndpointUrl,
-        tokenRefreshClientId: _tokenRefreshClientId,
-        customTokenRefresh: _customTokenRefresh,
-        tokenRevocationEndpoint: _tokenRevocationEndpoint,
-        tokenRefreshThreshold: _tokenRefreshThreshold,
-        logLevel: _logLevel,
-        logger: _logger,
-        sensitiveFields: fields,
-        slowRequestThreshold: _slowRequestThreshold,
-        largePayloadThreshold: _largePayloadThreshold,
-        cacheConfig: _cacheConfig,
-        cacheDisabled: _cacheDisabled,
-        authDisabled: _authDisabled,
-        customInterceptors: _customInterceptors,
-        initialAccessToken: _initialAccessToken,
-        initialRefreshToken: _initialRefreshToken,
-        initialAccessExpiry: _initialAccessExpiry,
-        initialRefreshExpiry: _initialRefreshExpiry,
-      );
+      _copyWith(sensitiveFields: fields);
 
   /// Configures the threshold for slow request warnings.
   ///
@@ -445,29 +228,7 @@ class AcdcClientBuilder {
   /// builder.withSlowRequestThreshold(Duration(seconds: 5))
   /// ```
   AcdcClientBuilder withSlowRequestThreshold(Duration threshold) =>
-      AcdcClientBuilder(
-        baseUrl: _baseUrl,
-        timeout: _timeout,
-        tokenProvider: _tokenProvider,
-        tokenRefreshEndpointUrl: _tokenRefreshEndpointUrl,
-        tokenRefreshClientId: _tokenRefreshClientId,
-        customTokenRefresh: _customTokenRefresh,
-        tokenRevocationEndpoint: _tokenRevocationEndpoint,
-        tokenRefreshThreshold: _tokenRefreshThreshold,
-        logLevel: _logLevel,
-        logger: _logger,
-        sensitiveFields: _sensitiveFields,
-        slowRequestThreshold: threshold,
-        largePayloadThreshold: _largePayloadThreshold,
-        cacheConfig: _cacheConfig,
-        cacheDisabled: _cacheDisabled,
-        authDisabled: _authDisabled,
-        customInterceptors: _customInterceptors,
-        initialAccessToken: _initialAccessToken,
-        initialRefreshToken: _initialRefreshToken,
-        initialAccessExpiry: _initialAccessExpiry,
-        initialRefreshExpiry: _initialRefreshExpiry,
-      );
+      _copyWith(slowRequestThreshold: threshold);
 
   /// Configures the threshold for large payload warnings.
   ///
@@ -478,29 +239,8 @@ class AcdcClientBuilder {
   /// ```dart
   /// builder.withLargePayloadThreshold(1024 * 1024) // 1 MB
   /// ```
-  AcdcClientBuilder withLargePayloadThreshold(int bytes) => AcdcClientBuilder(
-        baseUrl: _baseUrl,
-        timeout: _timeout,
-        tokenProvider: _tokenProvider,
-        tokenRefreshEndpointUrl: _tokenRefreshEndpointUrl,
-        tokenRefreshClientId: _tokenRefreshClientId,
-        customTokenRefresh: _customTokenRefresh,
-        tokenRevocationEndpoint: _tokenRevocationEndpoint,
-        tokenRefreshThreshold: _tokenRefreshThreshold,
-        logLevel: _logLevel,
-        logger: _logger,
-        sensitiveFields: _sensitiveFields,
-        slowRequestThreshold: _slowRequestThreshold,
-        largePayloadThreshold: bytes,
-        cacheConfig: _cacheConfig,
-        cacheDisabled: _cacheDisabled,
-        authDisabled: _authDisabled,
-        customInterceptors: _customInterceptors,
-        initialAccessToken: _initialAccessToken,
-        initialRefreshToken: _initialRefreshToken,
-        initialAccessExpiry: _initialAccessExpiry,
-        initialRefreshExpiry: _initialRefreshExpiry,
-      );
+  AcdcClientBuilder withLargePayloadThreshold(int bytes) =>
+      _copyWith(largePayloadThreshold: bytes);
 
   /// Configures HTTP caching with custom settings.
   ///
@@ -514,28 +254,9 @@ class AcdcClientBuilder {
   ///   maxSize: 20 * 1024 * 1024, // 20 MB
   /// ))
   /// ```
-  AcdcClientBuilder withCache(CacheConfig config) => AcdcClientBuilder(
-        baseUrl: _baseUrl,
-        timeout: _timeout,
-        tokenProvider: _tokenProvider,
-        tokenRefreshEndpointUrl: _tokenRefreshEndpointUrl,
-        tokenRefreshClientId: _tokenRefreshClientId,
-        customTokenRefresh: _customTokenRefresh,
-        tokenRevocationEndpoint: _tokenRevocationEndpoint,
-        tokenRefreshThreshold: _tokenRefreshThreshold,
-        logLevel: _logLevel,
-        logger: _logger,
-        sensitiveFields: _sensitiveFields,
-        slowRequestThreshold: _slowRequestThreshold,
-        largePayloadThreshold: _largePayloadThreshold,
+  AcdcClientBuilder withCache(CacheConfig config) => _copyWith(
         cacheConfig: config,
         cacheDisabled: false,
-        authDisabled: _authDisabled,
-        customInterceptors: _customInterceptors,
-        initialAccessToken: _initialAccessToken,
-        initialRefreshToken: _initialRefreshToken,
-        initialAccessExpiry: _initialAccessExpiry,
-        initialRefreshExpiry: _initialRefreshExpiry,
       );
 
   /// Disables HTTP caching.
@@ -546,28 +267,7 @@ class AcdcClientBuilder {
   /// ```dart
   /// builder.disableCache()
   /// ```
-  AcdcClientBuilder disableCache() => AcdcClientBuilder(
-        baseUrl: _baseUrl,
-        timeout: _timeout,
-        tokenProvider: _tokenProvider,
-        tokenRefreshEndpointUrl: _tokenRefreshEndpointUrl,
-        tokenRefreshClientId: _tokenRefreshClientId,
-        customTokenRefresh: _customTokenRefresh,
-        tokenRevocationEndpoint: _tokenRevocationEndpoint,
-        tokenRefreshThreshold: _tokenRefreshThreshold,
-        logLevel: _logLevel,
-        logger: _logger,
-        sensitiveFields: _sensitiveFields,
-        slowRequestThreshold: _slowRequestThreshold,
-        largePayloadThreshold: _largePayloadThreshold,
-        cacheDisabled: true,
-        authDisabled: _authDisabled,
-        customInterceptors: _customInterceptors,
-        initialAccessToken: _initialAccessToken,
-        initialRefreshToken: _initialRefreshToken,
-        initialAccessExpiry: _initialAccessExpiry,
-        initialRefreshExpiry: _initialRefreshExpiry,
-      );
+  AcdcClientBuilder disableCache() => _copyWith(cacheDisabled: true);
 
   /// Disables authentication.
   ///
@@ -578,29 +278,7 @@ class AcdcClientBuilder {
   /// ```dart
   /// builder.disableAuth()
   /// ```
-  AcdcClientBuilder disableAuth() => AcdcClientBuilder(
-        baseUrl: _baseUrl,
-        timeout: _timeout,
-        tokenProvider: _tokenProvider,
-        tokenRefreshEndpointUrl: _tokenRefreshEndpointUrl,
-        tokenRefreshClientId: _tokenRefreshClientId,
-        customTokenRefresh: _customTokenRefresh,
-        tokenRevocationEndpoint: _tokenRevocationEndpoint,
-        tokenRefreshThreshold: _tokenRefreshThreshold,
-        logLevel: _logLevel,
-        logger: _logger,
-        sensitiveFields: _sensitiveFields,
-        slowRequestThreshold: _slowRequestThreshold,
-        largePayloadThreshold: _largePayloadThreshold,
-        cacheConfig: _cacheConfig,
-        cacheDisabled: _cacheDisabled,
-        authDisabled: true,
-        customInterceptors: _customInterceptors,
-        initialAccessToken: _initialAccessToken,
-        initialRefreshToken: _initialRefreshToken,
-        initialAccessExpiry: _initialAccessExpiry,
-        initialRefreshExpiry: _initialRefreshExpiry,
-      );
+  AcdcClientBuilder disableAuth() => _copyWith(authDisabled: true);
 
   /// Adds a custom interceptor to the interceptor chain.
   ///
@@ -622,29 +300,7 @@ class AcdcClientBuilder {
       interceptor,
     ];
 
-    return AcdcClientBuilder(
-      baseUrl: _baseUrl,
-      timeout: _timeout,
-      tokenProvider: _tokenProvider,
-      tokenRefreshEndpointUrl: _tokenRefreshEndpointUrl,
-      tokenRefreshClientId: _tokenRefreshClientId,
-      customTokenRefresh: _customTokenRefresh,
-      tokenRevocationEndpoint: _tokenRevocationEndpoint,
-      tokenRefreshThreshold: _tokenRefreshThreshold,
-      logLevel: _logLevel,
-      logger: _logger,
-      sensitiveFields: _sensitiveFields,
-      slowRequestThreshold: _slowRequestThreshold,
-      largePayloadThreshold: _largePayloadThreshold,
-      cacheConfig: _cacheConfig,
-      cacheDisabled: _cacheDisabled,
-      authDisabled: _authDisabled,
-      customInterceptors: updatedInterceptors,
-      initialAccessToken: _initialAccessToken,
-      initialRefreshToken: _initialRefreshToken,
-      initialAccessExpiry: _initialAccessExpiry,
-      initialRefreshExpiry: _initialRefreshExpiry,
-    );
+    return _copyWith(customInterceptors: updatedInterceptors);
   }
 
   /// Configures initial authentication tokens.
@@ -657,28 +313,61 @@ class AcdcClientBuilder {
     DateTime? accessExpiry,
     DateTime? refreshExpiry,
   }) {
-    return AcdcClientBuilder(
-      baseUrl: _baseUrl,
-      timeout: _timeout,
-      tokenProvider: _tokenProvider,
-      tokenRefreshEndpointUrl: _tokenRefreshEndpointUrl,
-      tokenRefreshClientId: _tokenRefreshClientId,
-      customTokenRefresh: _customTokenRefresh,
-      tokenRevocationEndpoint: _tokenRevocationEndpoint,
-      tokenRefreshThreshold: _tokenRefreshThreshold,
-      logLevel: _logLevel,
-      logger: _logger,
-      sensitiveFields: _sensitiveFields,
-      slowRequestThreshold: _slowRequestThreshold,
-      largePayloadThreshold: _largePayloadThreshold,
-      cacheConfig: _cacheConfig,
-      cacheDisabled: _cacheDisabled,
-      authDisabled: _authDisabled,
-      customInterceptors: _customInterceptors,
+    return _copyWith(
       initialAccessToken: accessToken,
       initialRefreshToken: refreshToken,
       initialAccessExpiry: accessExpiry,
       initialRefreshExpiry: refreshExpiry,
+    );
+  }
+
+  AcdcClientBuilder _copyWith({
+    String? baseUrl,
+    Duration? timeout,
+    TokenProvider? tokenProvider,
+    String? tokenRefreshEndpointUrl,
+    String? tokenRefreshClientId,
+    Future<TokenRefreshResult> Function(String)? customTokenRefresh,
+    String? tokenRevocationEndpoint,
+    Duration? tokenRefreshThreshold,
+    LogLevel? logLevel,
+    AcdcLogger? logger,
+    List<dynamic>? sensitiveFields,
+    Duration? slowRequestThreshold,
+    int? largePayloadThreshold,
+    CacheConfig? cacheConfig,
+    bool? cacheDisabled,
+    bool? authDisabled,
+    List<Interceptor>? customInterceptors,
+    String? initialAccessToken,
+    String? initialRefreshToken,
+    DateTime? initialAccessExpiry,
+    DateTime? initialRefreshExpiry,
+  }) {
+    return AcdcClientBuilder(
+      baseUrl: baseUrl ?? _baseUrl,
+      timeout: timeout ?? _timeout,
+      tokenProvider: tokenProvider ?? _tokenProvider,
+      tokenRefreshEndpointUrl:
+          tokenRefreshEndpointUrl ?? _tokenRefreshEndpointUrl,
+      tokenRefreshClientId: tokenRefreshClientId ?? _tokenRefreshClientId,
+      customTokenRefresh: customTokenRefresh ?? _customTokenRefresh,
+      tokenRevocationEndpoint:
+          tokenRevocationEndpoint ?? _tokenRevocationEndpoint,
+      tokenRefreshThreshold: tokenRefreshThreshold ?? _tokenRefreshThreshold,
+      logLevel: logLevel ?? _logLevel,
+      logger: logger ?? _logger,
+      sensitiveFields: sensitiveFields ?? _sensitiveFields,
+      slowRequestThreshold: slowRequestThreshold ?? _slowRequestThreshold,
+      largePayloadThreshold: largePayloadThreshold ?? _largePayloadThreshold,
+      cacheConfig: cacheConfig ?? _cacheConfig,
+      cacheDisabled: cacheDisabled ?? _cacheDisabled,
+      authDisabled: authDisabled ?? _authDisabled,
+      customInterceptors: customInterceptors ?? _customInterceptors,
+      initialAccessToken: initialAccessToken ?? _initialAccessToken,
+      initialRefreshToken: initialRefreshToken ?? _initialRefreshToken,
+      initialAccessExpiry: initialAccessExpiry ?? _initialAccessExpiry,
+      initialRefreshExpiry: initialRefreshExpiry ?? _initialRefreshExpiry,
     );
   }
 

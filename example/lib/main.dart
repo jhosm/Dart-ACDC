@@ -2,6 +2,7 @@ import 'package:dart_acdc/dart_acdc.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:openapi/openapi.dart';
+import 'token_provider.dart';
 
 void main() {
   runApp(const MyApp());
@@ -32,12 +33,21 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  late final Openapi _client;
+  // Dependencies
+  final MockTokenProvider _tokenProvider = MockTokenProvider();
+  late Openapi _client;
+  late Dio _dio;
+
+  // State
   bool _isLoading = false;
   String? _error;
   List<Post> _posts = [];
   final List<String> _logs = [];
   final ScrollController _logScrollController = ScrollController();
+
+  // Settings
+  bool _isCacheEnabled = true;
+  final LogLevel _logLevel = LogLevel.info;
 
   @override
   void initState() {
@@ -52,20 +62,25 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   void _addLog(String message, LogLevel level, Map<String, dynamic>? metadata) {
+    if (!mounted) return;
+
     final timestamp = DateTime.now().toIso8601String().substring(11, 23);
     final metaStr = metadata != null ? ' ${_formatMetadata(metadata)}' : '';
 
     setState(() {
+      // Color code logs based on level or content
       _logs.add('[$timestamp] [$level] $message$metaStr');
 
       // Auto-scroll to bottom
       if (_logScrollController.hasClients) {
         Future.delayed(const Duration(milliseconds: 100), () {
-          _logScrollController.animateTo(
-            _logScrollController.position.maxScrollExtent,
-            duration: const Duration(milliseconds: 200),
-            curve: Curves.easeOut,
-          );
+          if (_logScrollController.hasClients) {
+            _logScrollController.animateTo(
+              _logScrollController.position.maxScrollExtent,
+              duration: const Duration(milliseconds: 200),
+              curve: Curves.easeOut,
+            );
+          }
         });
       }
     });
@@ -75,46 +90,60 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   String _formatMetadata(Map<String, dynamic> metadata) {
-    // Format specific metadata types for better readability
     final type = metadata['type'];
     switch (type) {
       case 'request':
         return '{${metadata['method']} ${metadata['url']}}';
       case 'response':
-        return '{${metadata['statusCode']} in ${metadata['duration_ms']}ms}';
+        final cache = metadata['from_cache'] == true ? ' [CACHE]' : '';
+        return '{${metadata['statusCode']} in ${metadata['duration_ms']}ms$cache}';
       case 'error':
         return '{${metadata['error_type']}: ${metadata['statusCode'] ?? 'N/A'}}';
-      case 'slow_request':
-        return '{${metadata['duration_ms']}ms > ${metadata['threshold_ms']}ms}';
-      case 'large_payload':
-        return '{${metadata['payload_type']}: ${metadata['size_mb']}MB}';
       default:
         return metadata.toString();
     }
   }
 
   Future<void> _initializeClient() async {
-    // 1. Create a Dio instance using Dart ACDC Builder
-    // This automatically configures:
-    // - Token management (if configured)
-    // - Logging with custom logger
-    // - Error handling
-    // - Timeouts
-    final dio = await AcdcClientBuilder()
+    _dio = await AcdcClientBuilder()
         .withBaseUrl('https://jsonplaceholder.typicode.com')
         .withLogger(_addLog)
-        .withLogLevel(LogLevel.info)
+        .withLogLevel(_logLevel)
+        // Authentication Configuration
+        .withTokenProvider(_tokenProvider)
+        // Since JSONPlaceholder doesn't support actual OAuth, we simulate a refresh
+        // loop that just returns new mock tokens.
+        .withCustomTokenRefresh((refreshToken) async {
+          _addLog('Executing custom token refresh...', LogLevel.info, null);
+          await Future.delayed(const Duration(milliseconds: 500));
+          return TokenRefreshResult(
+            accessToken:
+                'refreshed_access_${DateTime.now().millisecondsSinceEpoch}',
+            refreshToken:
+                'refreshed_refresh_${DateTime.now().millisecondsSinceEpoch}',
+          );
+        })
+        // Caching Configuration
+        .withCache(
+          CacheConfig(
+            // Enable/disable based on UI toggle
+            ttl: _isCacheEnabled ? const Duration(minutes: 5) : Duration.zero,
+            // Since we use mock tokens that aren't real JWTs, we must provide
+            // a way to identify the user for cache isolation.
+            userIdProvider: (token) async => 'mock_user_123',
+          ),
+        )
         .build();
 
     if (!mounted) return;
 
-    // 2. Inject Dio into the generated OpenAPI client
     setState(() {
-      _client = Openapi(dio: dio);
+      _client = Openapi(dio: _dio);
     });
 
-    _addLog('ACDC Client initialized', LogLevel.info, {
-      'base_url': 'https://jsonplaceholder.typicode.com',
+    _addLog('ACDC Client re-initialized', LogLevel.info, {
+      'cache': _isCacheEnabled,
+      'auth': _tokenProvider.isLoggedIn ? 'LoggedIn' : 'LoggedOut',
     });
   }
 
@@ -124,20 +153,61 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
-  Future<void> _fetchPosts() async {
+  Future<void> _login() async {
+    await _tokenProvider.login();
+    _addLog('User logged in locally', LogLevel.info, null);
+    // Re-initialize to ensure auth interceptor picks up new state or token provider is ready
+    await _initializeClient();
+    // In ACDC, the AuthInterceptor checks TokenProvider on every request,
+    // so we don't strictly *need* to rebuild the client, but for this demo
+    // we want to log the state change clearly.
+    setState(() {});
+  }
+
+  Future<void> _logout() async {
+    // Use the auth manager to logout
+    if (_dio.auth.isConfigured) {
+      await _dio.auth.logout();
+      _addLog('User logged out via dio.auth.logout()', LogLevel.info, null);
+    } else {
+      await _tokenProvider.clearTokens();
+      _addLog('User logged out (manual clear)', LogLevel.info, null);
+    }
+    setState(() {});
+  }
+
+  Future<void> _fetchPosts({bool forceRefresh = false}) async {
     setState(() {
       _isLoading = true;
       _error = null;
     });
 
     try {
+      if (forceRefresh) {
+        // Add cache control header to force network request
+        _dio.options.extra.addAll({
+          'force_refresh': true,
+          'dio_cache_force_refresh': true,
+        });
+
+        // Note: The generated client might not expose Options easily for every method.
+        // If we can't pass options, we can rely on standard cache behavior or
+        // clear the cache manually:
+        await _dio.cache.clearCache();
+        _addLog('Cache cleared before fetch', LogLevel.info, null);
+      } else {
+        // Reset force refresh flags
+        _dio.options.extra.remove('force_refresh');
+        _dio.options.extra.remove('dio_cache_force_refresh');
+      }
+
       // 3. Use the generated API
       final response = await _client.getDefaultApi().getPosts();
+
       setState(() {
         _posts = response.data?.toList() ?? [];
       });
     } on AcdcException catch (e) {
-      // Dart ACDC wraps errors in AcdcException
       setState(() {
         _error = 'ACDC Error: ${e.message}';
       });
@@ -152,167 +222,208 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
-  Future<void> _triggerError() async {
-    setState(() {
-      _isLoading = true;
-      _error = null;
-    });
-
-    try {
-      // Try to fetch a non-existent post to trigger 404
-      await _client.getDefaultApi().getPostById(id: 999999);
-    } catch (e) {
-      // The error interceptor in AcdcClient should catch this and we can see it in logs.
-      // The exception bubbling up depends on how the generated client handles DioExceptions.
-      // Usually it rethrows.
-      setState(() {
-        if (e is DioException) {
-          _error = 'DioError: ${e.message} (Status: ${e.response?.statusCode})';
-        } else {
-          _error = 'Error: $e';
-        }
-      });
-    } finally {
-      setState(() {
-        _isLoading = false;
-      });
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
+    final isLoggedIn = _tokenProvider.isLoggedIn;
+
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         title: Text(widget.title),
-      ),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                ElevatedButton(
-                  onPressed: _isLoading ? null : _fetchPosts,
-                  child: const Text('Fetch Posts'),
-                ),
-                const SizedBox(width: 16),
-                ElevatedButton(
-                  onPressed: _isLoading ? null : _triggerError,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Theme.of(
-                      context,
-                    ).colorScheme.errorContainer,
-                  ),
-                  child: const Text('Trigger Error'),
-                ),
-                const SizedBox(width: 16),
-                ElevatedButton(
-                  onPressed: _clearLogs,
-                  child: const Text('Clear Logs'),
-                ),
-              ],
-            ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            tooltip: 'Re-initialize Client',
+            onPressed: _initializeClient,
           ),
-          if (_isLoading) const CircularProgressIndicator(),
-          if (_error != null)
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Text(
-                _error!,
-                style: TextStyle(color: Theme.of(context).colorScheme.error),
-              ),
-            ),
-          // Log Viewer Section
+        ],
+      ),
+      body: Row(
+        children: [
+          // Left Panel: Controls & Logs
           Expanded(
             flex: 2,
             child: Container(
-              margin: const EdgeInsets.all(8.0),
-              decoration: BoxDecoration(
-                border: Border.all(color: Colors.grey),
-                borderRadius: BorderRadius.circular(8.0),
-              ),
+              color: Colors.grey.shade100,
+              padding: const EdgeInsets.all(16.0),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: Text(
-                      'Logs (${_logs.length})',
-                      style: Theme.of(context).textTheme.titleMedium,
+                  // Auth Section
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(12.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Authentication',
+                            style: Theme.of(context).textTheme.titleSmall,
+                          ),
+                          const SizedBox(height: 8),
+                          Row(
+                            children: [
+                              Icon(
+                                isLoggedIn ? Icons.check_circle : Icons.cancel,
+                                color: isLoggedIn ? Colors.green : Colors.grey,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(isLoggedIn ? 'Logged In' : 'Logged Out'),
+                              const Spacer(),
+                              if (!isLoggedIn)
+                                ElevatedButton(
+                                  onPressed: _login,
+                                  child: const Text('Login'),
+                                )
+                              else
+                                OutlinedButton(
+                                  onPressed: _logout,
+                                  child: const Text('Logout'),
+                                ),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                  const Divider(height: 1),
-                  Expanded(
-                    child: _logs.isEmpty
-                        ? const Center(
-                            child: Text('No logs yet. Try fetching posts!'),
-                          )
-                        : ListView.builder(
-                            controller: _logScrollController,
-                            itemCount: _logs.length,
-                            itemBuilder: (context, index) {
-                              final log = _logs[index];
-                              return Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 8.0,
-                                  vertical: 4.0,
-                                ),
-                                child: Text(
-                                  log,
-                                  style: const TextStyle(
-                                    fontFamily: 'monospace',
-                                    fontSize: 11,
-                                  ),
-                                ),
-                              );
-                            },
+                  const SizedBox(height: 16),
+
+                  // Cache Section
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(12.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Caching',
+                            style: Theme.of(context).textTheme.titleSmall,
                           ),
+                          SwitchListTile(
+                            title: const Text('Enable Cache'),
+                            subtitle: const Text('TTL: 5 mins'),
+                            value: _isCacheEnabled,
+                            onChanged: (val) {
+                              setState(() => _isCacheEnabled = val);
+                              _initializeClient();
+                            },
+                            dense: true,
+                            contentPadding: EdgeInsets.zero,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Actions
+                  ElevatedButton.icon(
+                    onPressed: _isLoading
+                        ? null
+                        : () => _fetchPosts(forceRefresh: false),
+                    icon: const Icon(Icons.download),
+                    label: const Text('Fetch Posts (Cache Preferred)'),
+                  ),
+                  const SizedBox(height: 8),
+                  OutlinedButton.icon(
+                    onPressed: _isLoading
+                        ? null
+                        : () => _fetchPosts(forceRefresh: true),
+                    icon: const Icon(Icons.refresh),
+                    label: const Text('Force Network Fetch'),
+                  ),
+
+                  const Divider(height: 32),
+
+                  // Logs Header
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Logs',
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      TextButton(
+                        onPressed: _clearLogs,
+                        child: const Text('Clear'),
+                      ),
+                    ],
+                  ),
+
+                  // Logs List
+                  Expanded(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.black87,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: _logs.isEmpty
+                          ? const Center(
+                              child: Text(
+                                'No logs',
+                                style: TextStyle(color: Colors.grey),
+                              ),
+                            )
+                          : ListView.builder(
+                              controller: _logScrollController,
+                              padding: const EdgeInsets.all(8),
+                              itemCount: _logs.length,
+                              itemBuilder: (context, index) {
+                                return Padding(
+                                  padding: const EdgeInsets.only(bottom: 4),
+                                  child: Text(
+                                    _logs[index],
+                                    style: const TextStyle(
+                                      color: Colors.lightGreenAccent,
+                                      fontFamily: 'monospace',
+                                      fontSize: 10,
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                    ),
                   ),
                 ],
               ),
             ),
           ),
-          // Posts Section
+
+          // Right Panel: Content
           Expanded(
             flex: 3,
-            child: Container(
-              margin: const EdgeInsets.all(8.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.all(8.0),
+            child: Column(
+              children: [
+                if (_isLoading) const LinearProgressIndicator(),
+                if (_error != null)
+                  Container(
+                    color: Colors.red.shade50,
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16),
                     child: Text(
-                      'Posts (${_posts.length})',
-                      style: Theme.of(context).textTheme.titleMedium,
+                      _error!,
+                      style: const TextStyle(color: Colors.red),
                     ),
                   ),
-                  const Divider(height: 1),
-                  Expanded(
-                    child: _posts.isEmpty
-                        ? const Center(child: Text('No posts loaded'))
-                        : ListView.builder(
-                            itemCount: _posts.length,
-                            itemBuilder: (context, index) {
-                              final post = _posts[index];
-                              return ListTile(
-                                leading: CircleAvatar(
-                                  child: Text('${post.id}'),
-                                ),
-                                title: Text(post.title ?? ''),
-                                subtitle: Text(
-                                  post.body ?? '',
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              );
-                            },
-                          ),
-                  ),
-                ],
-              ),
+                Expanded(
+                  child: _posts.isEmpty
+                      ? const Center(child: Text('Fetch posts to view data'))
+                      : ListView.builder(
+                          itemCount: _posts.length,
+                          itemBuilder: (context, index) {
+                            final post = _posts[index];
+                            return ListTile(
+                              leading: CircleAvatar(child: Text('\${post.id}')),
+                              title: Text(post.title ?? ''),
+                              subtitle: Text(
+                                post.body ?? '',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            );
+                          },
+                        ),
+                ),
+              ],
             ),
           ),
         ],
