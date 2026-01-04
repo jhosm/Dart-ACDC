@@ -1,8 +1,12 @@
 import 'package:dart_acdc/dart_acdc.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
-import 'package:openapi/openapi.dart';
-import 'token_provider.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+// ignore: avoid_web_libraries_in_flutter
+import 'dart:html' as html;
+import 'google_tasks_auth_helper.dart';
+
+const String kRedirectUrl = 'dartacdc://callback';
 
 void main() {
   runApp(const MyApp());
@@ -15,11 +19,12 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Dart ACDC Example',
+      debugShowCheckedModeBanner: false,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
         useMaterial3: true,
       ),
-      home: const MyHomePage(title: 'Dart ACDC Example'),
+      home: const MyHomePage(title: 'Google Tasks API Demo'),
     );
   }
 }
@@ -34,14 +39,19 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   // Dependencies
-  final MockTokenProvider _tokenProvider = MockTokenProvider();
-  late Openapi _client;
+  final SecureTokenProvider _tokenProvider = const SecureTokenProvider();
+  final TextEditingController _clientIdController = TextEditingController();
+
   late Dio _dio;
 
   // State
   bool _isLoading = false;
   String? _error;
-  List<Post> _posts = [];
+  bool _isLoggedIn = false;
+
+  // Data State
+  List<Map<String, dynamic>> _taskLists = [];
+
   final List<String> _logs = [];
   final ScrollController _logScrollController = ScrollController();
 
@@ -52,13 +62,24 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   void initState() {
     super.initState();
+    _checkLoginStatus();
     _initializeClient();
   }
 
   @override
   void dispose() {
     _logScrollController.dispose();
+    _clientIdController.dispose();
     super.dispose();
+  }
+
+  Future<void> _checkLoginStatus() async {
+    final token = await _tokenProvider.getAccessToken();
+    if (mounted) {
+      setState(() {
+        _isLoggedIn = token != null;
+      });
+    }
   }
 
   void _addLog(String message, LogLevel level, Map<String, dynamic>? metadata) {
@@ -68,10 +89,7 @@ class _MyHomePageState extends State<MyHomePage> {
     final metaStr = metadata != null ? ' ${_formatMetadata(metadata)}' : '';
 
     setState(() {
-      // Color code logs based on level or content
       _logs.add('[$timestamp] [$level] $message$metaStr');
-
-      // Auto-scroll to bottom
       if (_logScrollController.hasClients) {
         Future.delayed(const Duration(milliseconds: 100), () {
           if (_logScrollController.hasClients) {
@@ -85,7 +103,6 @@ class _MyHomePageState extends State<MyHomePage> {
       }
     });
 
-    // Also print to console for debugging
     debugPrint('[$level] $message $metaStr');
   }
 
@@ -106,44 +123,21 @@ class _MyHomePageState extends State<MyHomePage> {
 
   Future<void> _initializeClient() async {
     _dio = await AcdcClientBuilder()
-        .withBaseUrl('https://jsonplaceholder.typicode.com')
+        .withBaseUrl('https://tasks.googleapis.com/tasks/v1')
         .withLogger(_addLog)
         .withLogLevel(_logLevel)
-        // Authentication Configuration
         .withTokenProvider(_tokenProvider)
-        // Since JSONPlaceholder doesn't support actual OAuth, we simulate a refresh
-        // loop that just returns new mock tokens.
-        .withCustomTokenRefresh((refreshToken) async {
-          _addLog('Executing custom token refresh...', LogLevel.info, null);
-          await Future.delayed(const Duration(milliseconds: 500));
-          return TokenRefreshResult(
-            accessToken:
-                'refreshed_access_${DateTime.now().millisecondsSinceEpoch}',
-            refreshToken:
-                'refreshed_refresh_${DateTime.now().millisecondsSinceEpoch}',
-          );
-        })
-        // Caching Configuration
         .withCache(
           CacheConfig(
-            // Enable/disable based on UI toggle
             ttl: _isCacheEnabled ? const Duration(minutes: 5) : Duration.zero,
-            // Since we use mock tokens that aren't real JWTs, we must provide
-            // a way to identify the user for cache isolation.
-            userIdProvider: (token) async => 'mock_user_123',
+            userIdProvider: (token) async => 'google_user',
           ),
         )
         .build();
 
-    if (!mounted) return;
-
-    setState(() {
-      _client = Openapi(dio: _dio);
-    });
-
     _addLog('ACDC Client re-initialized', LogLevel.info, {
       'cache': _isCacheEnabled,
-      'auth': _tokenProvider.isLoggedIn ? 'LoggedIn' : 'LoggedOut',
+      'auth': _isLoggedIn ? 'LoggedIn' : 'LoggedOut',
     });
   }
 
@@ -154,18 +148,62 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   Future<void> _login() async {
-    await _tokenProvider.login();
-    _addLog('User logged in locally', LogLevel.info, null);
-    // Re-initialize to ensure auth interceptor picks up new state or token provider is ready
-    await _initializeClient();
-    // In ACDC, the AuthInterceptor checks TokenProvider on every request,
-    // so we don't strictly *need* to rebuild the client, but for this demo
-    // we want to log the state change clearly.
-    setState(() {});
+    final clientId = _clientIdController.text.trim();
+
+    if (clientId.isEmpty) {
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Client ID Required'),
+          content: const Text(
+            'Please enter your Google Client ID to proceed.\n\n'
+            'Ensure you have configured "Authorized JavaScript origins" in Google Cloud Console if running on Web.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+
+    try {
+      final authHelper = GoogleTasksAuthHelper(
+        clientId: clientId,
+        redirectUrl: kRedirectUrl,
+      );
+
+      final accessToken = await authHelper.authenticate();
+      await _tokenProvider.setTokens(accessToken: accessToken);
+
+      setState(() {
+        _isLoggedIn = true;
+      });
+
+      _addLog('User logged in & tokens stored securely', LogLevel.info, null);
+      await _initializeClient();
+      await _fetchData(forceRefresh: false);
+    } catch (e) {
+      setState(() {
+        _error = 'Login Failed: $e';
+      });
+      _addLog('Login failed', LogLevel.error, {'error': e.toString()});
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
 
   Future<void> _logout() async {
-    // Use the auth manager to logout
     if (_dio.auth.isConfigured) {
       await _dio.auth.logout();
       _addLog('User logged out via dio.auth.logout()', LogLevel.info, null);
@@ -173,10 +211,21 @@ class _MyHomePageState extends State<MyHomePage> {
       await _tokenProvider.clearTokens();
       _addLog('User logged out (manual clear)', LogLevel.info, null);
     }
-    setState(() {});
+
+    setState(() {
+      _isLoggedIn = false;
+      _taskLists = [];
+    });
   }
 
-  Future<void> _fetchPosts({bool forceRefresh = false}) async {
+  Future<void> _fetchData({bool forceRefresh = false}) async {
+    if (!_isLoggedIn) {
+      setState(() {
+        _error = 'Please login first';
+      });
+      return;
+    }
+
     setState(() {
       _isLoading = true;
       _error = null;
@@ -184,28 +233,34 @@ class _MyHomePageState extends State<MyHomePage> {
 
     try {
       if (forceRefresh) {
-        // Add cache control header to force network request
         _dio.options.extra.addAll({
           'force_refresh': true,
           'dio_cache_force_refresh': true,
         });
-
-        // Note: The generated client might not expose Options easily for every method.
-        // If we can't pass options, we can rely on standard cache behavior or
-        // clear the cache manually:
         await _dio.cache.clearCache();
         _addLog('Cache cleared before fetch', LogLevel.info, null);
       } else {
-        // Reset force refresh flags
         _dio.options.extra.remove('force_refresh');
         _dio.options.extra.remove('dio_cache_force_refresh');
       }
 
-      // 3. Use the generated API
-      final response = await _client.getDefaultApi().getPosts();
+      // Fetch Task Lists
+      // https://tasks.googleapis.com/tasks/v1/users/@me/lists
+      final response = await _dio.get('/users/@me/lists');
+
+      final items =
+          (response.data['items'] as List?)
+              ?.map((e) => e as Map<String, dynamic>)
+              .toList() ??
+          [];
 
       setState(() {
-        _posts = response.data?.toList() ?? [];
+        _taskLists = items;
+      });
+
+      _addLog('Task Lists fetched successfully', LogLevel.info, {
+        'count': _taskLists.length,
+        'cached': response.extra['from_cache'] ?? false,
       });
     } on AcdcException catch (e) {
       setState(() {
@@ -222,10 +277,58 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
+  Future<void> _fetchPublicData() async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+
+    try {
+      // Fetch data from public API with max-age=10
+      // We pass an empty Authorization header to skip the AuthInterceptor's
+      // automatic token injection.
+      final response = await _dio.get(
+        'https://httpbin.org/cache/10',
+        options: Options(headers: {'Authorization': ''}),
+      );
+
+      final dataStr = response.data.toString();
+      final preview = dataStr.length > 50
+          ? '${dataStr.substring(0, 50)}...'
+          : dataStr;
+
+      _addLog('Public Data fetched (max-age: 10s)', LogLevel.info, {
+        'status': response.statusCode,
+        'cached': response.extra['from_cache'] ?? false,
+        'data': preview,
+      });
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 404) {
+        _addLog('Public API not found (404)', LogLevel.error, {
+          'error': e.toString(),
+        });
+      } else {
+        _addLog('Public API Error', LogLevel.error, {
+          'error': e.toString(),
+          'status': e.response?.statusCode,
+        });
+      }
+      setState(() {
+        _error = 'Public Call Error: ${e.message}';
+      });
+    } catch (e) {
+      setState(() {
+        _error = 'Error: $e';
+      });
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final isLoggedIn = _tokenProvider.isLoggedIn;
-
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.title),
@@ -260,23 +363,74 @@ class _MyHomePageState extends State<MyHomePage> {
                             style: Theme.of(context).textTheme.titleSmall,
                           ),
                           const SizedBox(height: 8),
+                          if (!_isLoggedIn)
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 12.0),
+                              child: TextField(
+                                controller: _clientIdController,
+                                decoration: const InputDecoration(
+                                  labelText: 'Google Client ID',
+                                  hintText: 'Enter your Client ID',
+                                  border: OutlineInputBorder(),
+                                  isDense: true,
+                                ),
+                              ),
+                            ),
+                          if (!_isLoggedIn)
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 12.0),
+                              child: Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: Colors.orange.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(4),
+                                  border: Border.all(
+                                    color: Colors.orange.withOpacity(0.3),
+                                  ),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Setup Required:',
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .bodySmall
+                                          ?.copyWith(
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.deepOrange,
+                                          ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      '1. Add Client ID above.\n'
+                                      '2. Add ${kIsWeb ? html.window.location.origin : "App Origin"} to "Authorized JavaScript origins" in Google Console.',
+                                      style: Theme.of(
+                                        context,
+                                      ).textTheme.bodySmall,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
                           Row(
                             children: [
                               Icon(
-                                isLoggedIn ? Icons.check_circle : Icons.cancel,
-                                color: isLoggedIn ? Colors.green : Colors.grey,
+                                _isLoggedIn ? Icons.check_circle : Icons.cancel,
+                                color: _isLoggedIn ? Colors.green : Colors.grey,
                               ),
                               const SizedBox(width: 8),
-                              Text(isLoggedIn ? 'Logged In' : 'Logged Out'),
+                              Text(_isLoggedIn ? 'Logged In' : 'Logged Out'),
                               const Spacer(),
-                              if (!isLoggedIn)
-                                ElevatedButton(
-                                  onPressed: _login,
-                                  child: const Text('Login'),
+                              if (!_isLoggedIn)
+                                ElevatedButton.icon(
+                                  onPressed: _isLoading ? null : _login,
+                                  icon: const Icon(Icons.login),
+                                  label: const Text('Login with Google'),
                                 )
                               else
                                 OutlinedButton(
-                                  onPressed: _logout,
+                                  onPressed: _isLoading ? null : _logout,
                                   child: const Text('Logout'),
                                 ),
                             ],
@@ -315,19 +469,47 @@ class _MyHomePageState extends State<MyHomePage> {
                   ),
                   const SizedBox(height: 16),
 
+                  // Public API Section
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(12.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Public API Test',
+                            style: Theme.of(context).textTheme.titleSmall,
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Calls httpbin.org/cache/10',
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
+                          const SizedBox(height: 8),
+                          ElevatedButton.icon(
+                            onPressed: _isLoading ? null : _fetchPublicData,
+                            icon: const Icon(Icons.public),
+                            label: const Text('Fetch Public (Max-Age: 10s)'),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
                   // Actions
                   ElevatedButton.icon(
-                    onPressed: _isLoading
+                    onPressed: _isLoading || !_isLoggedIn
                         ? null
-                        : () => _fetchPosts(forceRefresh: false),
+                        : () => _fetchData(forceRefresh: false),
                     icon: const Icon(Icons.download),
-                    label: const Text('Fetch Posts (Cache Preferred)'),
+                    label: const Text('Fetch Data (Cache Preferred)'),
                   ),
                   const SizedBox(height: 8),
                   OutlinedButton.icon(
-                    onPressed: _isLoading
+                    onPressed: _isLoading || !_isLoggedIn
                         ? null
-                        : () => _fetchPosts(forceRefresh: true),
+                        : () => _fetchData(forceRefresh: true),
                     icon: const Icon(Icons.refresh),
                     label: const Text('Force Network Fetch'),
                   ),
@@ -405,22 +587,33 @@ class _MyHomePageState extends State<MyHomePage> {
                     ),
                   ),
                 Expanded(
-                  child: _posts.isEmpty
-                      ? const Center(child: Text('Fetch posts to view data'))
-                      : ListView.builder(
-                          itemCount: _posts.length,
-                          itemBuilder: (context, index) {
-                            final post = _posts[index];
-                            return ListTile(
-                              leading: CircleAvatar(child: Text('\${post.id}')),
-                              title: Text(post.title ?? ''),
-                              subtitle: Text(
-                                post.body ?? '',
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            );
-                          },
+                  child: !_isLoggedIn
+                      ? const Center(
+                          child: Text('Please log in with Google to view data'),
+                        )
+                      : ListView(
+                          padding: const EdgeInsets.all(16),
+                          children: [
+                            Text(
+                              'My Task Lists',
+                              style: Theme.of(context).textTheme.headlineSmall,
+                            ),
+                            const SizedBox(height: 16),
+                            if (_taskLists.isEmpty && !_isLoading)
+                              const Center(child: Text('No Task Lists found.')),
+                            ..._taskLists.map((list) {
+                              return Card(
+                                child: ListTile(
+                                  leading: const Icon(Icons.list_alt),
+                                  title: Text(list['title'] ?? 'Untitled List'),
+                                  subtitle: Text('ID: ${list['id']}'),
+                                  trailing: Text(
+                                    'Updated: ${list['updated']?.substring(0, 10) ?? 'N/A'}',
+                                  ),
+                                ),
+                              );
+                            }),
+                          ],
                         ),
                 ),
               ],

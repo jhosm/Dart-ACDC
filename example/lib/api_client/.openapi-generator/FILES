@@ -1,9 +1,9 @@
 .gitignore
-.openapi-generator-ignore
 README.md
 analysis_options.yaml
 doc/DefaultApi.md
-doc/Post.md
+doc/PrivateUser.md
+doc/Repository.md
 lib/openapi.dart
 lib/src/api.dart
 lib/src/api/default_api.dart
@@ -15,8 +15,9 @@ lib/src/auth/bearer_auth.dart
 lib/src/auth/oauth.dart
 lib/src/date_serializer.dart
 lib/src/model/date.dart
-lib/src/model/post.dart
+lib/src/model/private_user.dart
+lib/src/model/repository.dart
 lib/src/serializers.dart
 pubspec.yaml
-test/default_api_test.dart
-test/post_test.dart
+test/private_user_test.dart
+test/repository_test.dart

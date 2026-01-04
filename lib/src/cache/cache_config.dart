@@ -33,7 +33,14 @@ class CacheConfig {
     this.keyBuilder,
     this.version,
     this.onError,
+    this.storePath,
   });
+
+  /// Custom path for cache storage.
+  ///
+  /// If provided, overrides the default location (Application Documents Directory).
+  /// Useful for testing or when a specific storage location is required.
+  final String? storePath;
 
   /// Custom cache key builder.
   ///

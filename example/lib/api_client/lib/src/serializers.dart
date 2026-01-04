@@ -14,17 +14,19 @@ import 'package:built_value/iso_8601_date_time_serializer.dart';
 import 'package:openapi/src/date_serializer.dart';
 import 'package:openapi/src/model/date.dart';
 
-import 'package:openapi/src/model/post.dart';
+import 'package:openapi/src/model/private_user.dart';
+import 'package:openapi/src/model/repository.dart';
 
 part 'serializers.g.dart';
 
 @SerializersFor([
-  Post,
+  PrivateUser,
+  Repository,
 ])
 Serializers serializers = (_$serializers.toBuilder()
       ..addBuilderFactory(
-        const FullType(BuiltList, [FullType(Post)]),
-        () => ListBuilder<Post>(),
+        const FullType(BuiltList, [FullType(Repository)]),
+        () => ListBuilder<Repository>(),
       )
       ..add(const OneOfSerializer())
       ..add(const AnyOfSerializer())

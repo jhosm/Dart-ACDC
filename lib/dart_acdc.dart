@@ -197,6 +197,7 @@ export 'src/auth/acdc_auth_manager.dart' show AcdcAuthManager, AcdcAuth;
 /// Implement this to integrate with your secure storage solution
 /// (iOS Keychain, Android Keystore, flutter_secure_storage, etc.).
 export 'src/auth/token_provider.dart' show TokenProvider;
+export 'src/auth/secure_token_provider.dart' show SecureTokenProvider;
 
 /// Result of a token refresh operation.
 ///

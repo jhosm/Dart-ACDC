@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>Authentication Complete</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      text-align: center;
+      padding: 40px;
+    }
+
+    .btn {
+      padding: 10px 20px;
+      background: #007bff;
+      color: white;
+      text-decoration: none;
+      border-radius: 5px;
+      cursor: pointer;
+      border: none;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>Authentication Complete</h1>
+  <p>You have successfully signed in. This window should close automatically.</p>
+  <button onclick="window.close()" class="btn">Close Window</button>
+
+  <script>
+    window.addEventListener('load', function () {
+      const url = window.location.href;
+
+      // 1. Try postMessage (for Popups)
+      if (window.opener) {
+        try {
+          window.opener.postMessage(url, window.location.origin);
+          window.opener.postMessage(url, '*'); // Fallback
+        } catch (e) { console.warn(e); }
+      }
+
+      // 2. Try localStorage (for New Tabs / redirects)
+      // flutter_web_auth_2 listens for storage events on this key
+      const key = 'flutter-web-auth-2';
+      // Trigger event by removing or setting. The lib often polls or listens to 'storage'.     
+      localStorage.setItem(key, url);
+
+      // 3. Close
+      setTimeout(() => {
+        localStorage.removeItem(key);
+        window.close();
+      }, 5000);
+    });
+  </script>
+</body>
+
+</html>

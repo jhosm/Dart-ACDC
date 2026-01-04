@@ -4,25 +4,27 @@
 
 import 'dart:async';
 
+import 'package:built_value/json_object.dart';
 import 'package:built_value/serializer.dart';
 import 'package:dio/dio.dart';
 
 import 'package:built_collection/built_collection.dart';
 import 'package:openapi/src/api_util.dart';
-import 'package:openapi/src/model/post.dart';
+import 'package:openapi/src/model/private_user.dart';
+import 'package:openapi/src/model/repository.dart';
 
 class DefaultApi {
+
   final Dio _dio;
 
   final Serializers _serializers;
 
   const DefaultApi(this._dio, this._serializers);
 
-  /// Get a single post
-  ///
+  /// Get the authenticated user
+  /// 
   ///
   /// Parameters:
-  /// * [id]
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -30,10 +32,9 @@ class DefaultApi {
   /// * [onSendProgress] - A [ProgressCallback] that can be used to get the send progress
   /// * [onReceiveProgress] - A [ProgressCallback] that can be used to get the receive progress
   ///
-  /// Returns a [Future] containing a [Response] with a [Post] as data
+  /// Returns a [Future] containing a [Response] with a [PrivateUser] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<Post>> getPostById({
-    required int id,
+  Future<Response<PrivateUser>> getAuthenticatedUser({ 
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
     Map<String, dynamic>? extra,
@@ -41,16 +42,22 @@ class DefaultApi {
     ProgressCallback? onSendProgress,
     ProgressCallback? onReceiveProgress,
   }) async {
-    final _path = r'/posts/{id}'.replaceAll(
-      '{'
-      r'id'
-      '}',
-      encodeQueryParameter(_serializers, id, const FullType(int)).toString(),
-    );
+    final _path = r'/user';
     final _options = Options(
       method: r'GET',
-      headers: <String, dynamic>{...?headers},
-      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
+      headers: <String, dynamic>{
+        ...?headers,
+      },
+      extra: <String, dynamic>{
+        'secure': <Map<String, String>>[
+          {
+            'type': 'http',
+            'scheme': 'bearer',
+            'name': 'bearerAuth',
+          },
+        ],
+        ...?extra,
+      },
       validateStatus: validateStatus,
     );
 
@@ -62,17 +69,15 @@ class DefaultApi {
       onReceiveProgress: onReceiveProgress,
     );
 
-    Post? _responseData;
+    PrivateUser? _responseData;
 
     try {
       final rawResponse = _response.data;
-      _responseData = rawResponse == null
-          ? null
-          : _serializers.deserialize(
-                  rawResponse,
-                  specifiedType: const FullType(Post),
-                )
-                as Post;
+      _responseData = rawResponse == null ? null : _serializers.deserialize(
+        rawResponse,
+        specifiedType: const FullType(PrivateUser),
+      ) as PrivateUser;
+
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -83,7 +88,7 @@ class DefaultApi {
       );
     }
 
-    return Response<Post>(
+    return Response<PrivateUser>(
       data: _responseData,
       headers: _response.headers,
       isRedirect: _response.isRedirect,
@@ -95,10 +100,12 @@ class DefaultApi {
     );
   }
 
-  /// Get all posts
-  ///
+  /// List repositories for the authenticated user
+  /// 
   ///
   /// Parameters:
+  /// * [sort] - Property to sort repositories by
+  /// * [direction] - Sort order
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -106,9 +113,11 @@ class DefaultApi {
   /// * [onSendProgress] - A [ProgressCallback] that can be used to get the send progress
   /// * [onReceiveProgress] - A [ProgressCallback] that can be used to get the receive progress
   ///
-  /// Returns a [Future] containing a [Response] with a [BuiltList<Post>] as data
+  /// Returns a [Future] containing a [Response] with a [BuiltList<Repository>] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<BuiltList<Post>>> getPosts({
+  Future<Response<BuiltList<Repository>>> listRepos({ 
+    String? sort = 'full_name',
+    String? direction,
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
     Map<String, dynamic>? extra,
@@ -116,33 +125,48 @@ class DefaultApi {
     ProgressCallback? onSendProgress,
     ProgressCallback? onReceiveProgress,
   }) async {
-    final _path = r'/posts';
+    final _path = r'/user/repos';
     final _options = Options(
       method: r'GET',
-      headers: <String, dynamic>{...?headers},
-      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
+      headers: <String, dynamic>{
+        ...?headers,
+      },
+      extra: <String, dynamic>{
+        'secure': <Map<String, String>>[
+          {
+            'type': 'http',
+            'scheme': 'bearer',
+            'name': 'bearerAuth',
+          },
+        ],
+        ...?extra,
+      },
       validateStatus: validateStatus,
     );
+
+    final _queryParameters = <String, dynamic>{
+      if (sort != null) r'sort': encodeQueryParameter(_serializers, sort, const FullType(String)),
+      if (direction != null) r'direction': encodeQueryParameter(_serializers, direction, const FullType(String)),
+    };
 
     final _response = await _dio.request<Object>(
       _path,
       options: _options,
+      queryParameters: _queryParameters,
       cancelToken: cancelToken,
       onSendProgress: onSendProgress,
       onReceiveProgress: onReceiveProgress,
     );
 
-    BuiltList<Post>? _responseData;
+    BuiltList<Repository>? _responseData;
 
     try {
       final rawResponse = _response.data;
-      _responseData = rawResponse == null
-          ? null
-          : _serializers.deserialize(
-                  rawResponse,
-                  specifiedType: const FullType(BuiltList, [FullType(Post)]),
-                )
-                as BuiltList<Post>;
+      _responseData = rawResponse == null ? null : _serializers.deserialize(
+        rawResponse,
+        specifiedType: const FullType(BuiltList, [FullType(Repository)]),
+      ) as BuiltList<Repository>;
+
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -153,7 +177,7 @@ class DefaultApi {
       );
     }
 
-    return Response<BuiltList<Post>>(
+    return Response<BuiltList<Repository>>(
       data: _responseData,
       headers: _response.headers,
       isRedirect: _response.isRedirect,
@@ -164,4 +188,5 @@ class DefaultApi {
       extra: _response.extra,
     );
   }
+
 }

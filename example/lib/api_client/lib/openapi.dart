@@ -12,5 +12,6 @@ export 'package:openapi/src/model/date.dart';
 
 export 'package:openapi/src/api/default_api.dart';
 
-export 'package:openapi/src/model/post.dart';
+export 'package:openapi/src/model/private_user.dart';
+export 'package:openapi/src/model/repository.dart';
 

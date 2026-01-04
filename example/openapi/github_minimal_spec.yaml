@@ -1,0 +1,92 @@
+openapi: 3.0.3
+info:
+  title: GitHub API (Minimal)
+  version: 1.0.0
+  description: Minimal GitHub API for Dart-ACDC Example
+servers:
+  - url: https://api.github.com
+paths:
+  /user:
+    get:
+      summary: Get the authenticated user
+      operationId: getAuthenticatedUser
+      responses:
+        "200":
+          description: Default response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PrivateUser"
+  /user/repos:
+    get:
+      summary: List repositories for the authenticated user
+      operationId: listRepos
+      parameters:
+        - name: sort
+          in: query
+          description: Property to sort repositories by
+          schema:
+            type: string
+            enum: [created, updated, pushed, full_name]
+            default: full_name
+        - name: direction
+          in: query
+          description: Sort order
+          schema:
+            type: string
+            enum: [asc, desc]
+      responses:
+        "200":
+          description: Default response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Repository"
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+  schemas:
+    PrivateUser:
+      type: object
+      properties:
+        login:
+          type: string
+        id:
+          type: integer
+        avatar_url:
+          type: string
+        name:
+          type: string
+        email:
+          type: string
+    Repository:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        full_name:
+          type: string
+        private:
+          type: boolean
+        html_url:
+          type: string
+        description:
+          type: string
+        stargazers_count:
+          type: integer
+        watchers_count:
+          type: integer
+        language:
+          type: string
+        forks_count:
+          type: integer
+        open_issues_count:
+          type: integer
+security:
+  - bearerAuth: []

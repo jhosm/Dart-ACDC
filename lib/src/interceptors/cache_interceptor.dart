@@ -38,46 +38,41 @@ class AcdcCacheInterceptor extends Interceptor {
   /// Throws [StateError] if encryption is required but unavailable.
   AcdcCacheInterceptor({
     required CacheConfig config,
-  })  : _config = config,
-        _cacheOptions = CacheOptions(
-          // Build appropriate cache store based on config
-          store: _buildCacheStore(config),
+  }) : _config = config {
+    final store = _buildCacheStore(config);
 
-          // Cache policy based on config - respects HTTP directives
-          policy: config.staleWhileRevalidate
-              ? CachePolicy.refreshForceCache
-              : CachePolicy.request,
+    _cacheOptions = CacheOptions(
+      store: store,
+      policy: config.staleWhileRevalidate
+          ? CachePolicy.refreshForceCache
+          : CachePolicy.request,
+      maxStale: config.staleIfError ? const Duration(days: 7) : null,
+      hitCacheOnErrorExcept: config.staleIfError ? [] : [401, 403],
+      keyBuilder: (request) => buildCacheKeyWithUserIsolation(
+        request,
+        customKeyBuilder: config.keyBuilder,
+      ),
+    );
 
-          // TTL configuration
-          maxStale: config.staleIfError ? const Duration(days: 7) : null,
-
-          // Hit cache on network errors if configured
-          hitCacheOnErrorExcept: config.staleIfError ? [] : [401, 403],
-
-          // Custom key builder that includes user ID for isolation
-          keyBuilder: (request) => buildCacheKeyWithUserIsolation(
-            request,
-            customKeyBuilder: config.keyBuilder,
-          ),
+    _dioCacheInterceptor = DioCacheInterceptor(
+      options: CacheOptions(
+        store: store,
+        policy: config.staleWhileRevalidate
+            ? CachePolicy.refreshForceCache
+            : CachePolicy.request,
+        maxStale: config.staleIfError ? const Duration(days: 7) : null,
+        hitCacheOnErrorExcept: config.staleIfError ? [] : [401, 403],
+        keyBuilder: (request) => buildCacheKeyWithUserIsolation(
+          request,
+          customKeyBuilder: config.keyBuilder,
         ),
-        _dioCacheInterceptor = DioCacheInterceptor(
-          options: CacheOptions(
-            store: _buildCacheStore(config),
-            policy: config.staleWhileRevalidate
-                ? CachePolicy.refreshForceCache
-                : CachePolicy.request,
-            maxStale: config.staleIfError ? const Duration(days: 7) : null,
-            hitCacheOnErrorExcept: config.staleIfError ? [] : [401, 403],
-            keyBuilder: (request) => buildCacheKeyWithUserIsolation(
-              request,
-              customKeyBuilder: config.keyBuilder,
-            ),
-          ),
-        );
+      ),
+    );
+  }
 
   final CacheConfig _config;
-  final CacheOptions _cacheOptions;
-  final DioCacheInterceptor _dioCacheInterceptor;
+  late final CacheOptions _cacheOptions;
+  late final DioCacheInterceptor _dioCacheInterceptor;
 
   /// Builds the appropriate cache store based on configuration.
   ///
@@ -102,6 +97,7 @@ class AcdcCacheInterceptor extends Interceptor {
       maxSize: config.maxSize,
       version: config.version,
       onError: config.onError,
+      storePath: config.storePath,
     );
 
     // Build two-tier cache if inMemory is enabled
@@ -280,10 +276,34 @@ class AcdcCacheInterceptor extends Interceptor {
   }
 
   @override
-  void onError(
+  Future<void> onError(
     DioException err,
     ErrorInterceptorHandler handler,
-  ) {
+  ) async {
+    // Handle 304 Not Modified manually if dio_cache_interceptor misses it
+    if (err.response?.statusCode == 304) {
+      try {
+        final key = buildCacheKeyWithUserIsolation(
+          err.requestOptions,
+          customKeyBuilder: _config.keyBuilder,
+        );
+
+        final cachedResponse = await _cacheOptions.store?.get(key);
+
+        if (cachedResponse != null) {
+          final response = cachedResponse.toResponse(err.requestOptions);
+          // Force 200 OK since we are serving content from cache
+          response.statusCode = 200;
+
+          _addCacheMetadata(response);
+          handler.resolve(response);
+          return;
+        }
+      } catch (_) {
+        // Fallback to standard handling on error
+      }
+    }
+
     // Create a custom error handler to detect when cache is served during network errors
     final customHandler = _CacheAwareErrorHandler(
       originalHandler: handler,

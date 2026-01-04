@@ -12,7 +12,7 @@ import 'package:openapi/src/auth/oauth.dart';
 import 'package:openapi/src/api/default_api.dart';
 
 class Openapi {
-  static const String basePath = r'https://jsonplaceholder.typicode.com';
+  static const String basePath = r'https://api.github.com';
 
   final Dio dio;
   final Serializers serializers;
