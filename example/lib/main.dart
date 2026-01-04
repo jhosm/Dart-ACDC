@@ -56,7 +56,6 @@ class _MyHomePageState extends State<MyHomePage> {
   final ScrollController _logScrollController = ScrollController();
 
   // Settings
-  bool _isCacheEnabled = true;
   final LogLevel _logLevel = LogLevel.info;
 
   @override
@@ -129,14 +128,14 @@ class _MyHomePageState extends State<MyHomePage> {
         .withTokenProvider(_tokenProvider)
         .withCache(
           CacheConfig(
-            ttl: _isCacheEnabled ? const Duration(minutes: 5) : Duration.zero,
+            ttl: const Duration(minutes: 5),
             userIdProvider: (token) async => 'google_user',
           ),
         )
         .build();
 
     _addLog('ACDC Client re-initialized', LogLevel.info, {
-      'cache': _isCacheEnabled,
+      'cache': true,
       'auth': _isLoggedIn ? 'LoggedIn' : 'LoggedOut',
     });
   }
@@ -479,33 +478,27 @@ class _MyHomePageState extends State<MyHomePage> {
                                 ),
                             ],
                           ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Cache Section
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(12.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Caching',
-                            style: Theme.of(context).textTheme.titleSmall,
+                          const SizedBox(height: 16),
+                          SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton.icon(
+                              onPressed: _isLoading || !_isLoggedIn
+                                  ? null
+                                  : () => _fetchData(forceRefresh: false),
+                              icon: const Icon(Icons.download),
+                              label: const Text('Fetch Data (Cache Preferred)'),
+                            ),
                           ),
-                          SwitchListTile(
-                            title: const Text('Enable Cache'),
-                            subtitle: const Text('TTL: 5 mins'),
-                            value: _isCacheEnabled,
-                            onChanged: (val) {
-                              setState(() => _isCacheEnabled = val);
-                              _initializeClient();
-                            },
-                            dense: true,
-                            contentPadding: EdgeInsets.zero,
+                          const SizedBox(height: 8),
+                          SizedBox(
+                            width: double.infinity,
+                            child: OutlinedButton.icon(
+                              onPressed: _isLoading || !_isLoggedIn
+                                  ? null
+                                  : () => _fetchData(forceRefresh: true),
+                              icon: const Icon(Icons.refresh),
+                              label: const Text('Force Network Fetch'),
+                            ),
                           ),
                         ],
                       ),
@@ -551,23 +544,6 @@ class _MyHomePageState extends State<MyHomePage> {
                     ),
                   ),
                   const SizedBox(height: 16),
-
-                  // Actions
-                  ElevatedButton.icon(
-                    onPressed: _isLoading || !_isLoggedIn
-                        ? null
-                        : () => _fetchData(forceRefresh: false),
-                    icon: const Icon(Icons.download),
-                    label: const Text('Fetch Data (Cache Preferred)'),
-                  ),
-                  const SizedBox(height: 8),
-                  OutlinedButton.icon(
-                    onPressed: _isLoading || !_isLoggedIn
-                        ? null
-                        : () => _fetchData(forceRefresh: true),
-                    icon: const Icon(Icons.refresh),
-                    label: const Text('Force Network Fetch'),
-                  ),
 
                   const Divider(height: 32),
 
