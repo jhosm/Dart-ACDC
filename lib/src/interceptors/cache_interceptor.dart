@@ -249,6 +249,29 @@ class AcdcCacheInterceptor extends Interceptor {
       _invalidateCacheForUrl(response.requestOptions.uri.toString());
     }
 
+    // Handle 304 Not Modified manually if it wasn't treated as an error
+    // (e.g. if validateStatus allows 304)
+    if (response.statusCode == 304) {
+      _resolve304Response(
+        response.requestOptions,
+      ).then((cachedResponse) {
+        if (cachedResponse != null) {
+          handler.resolve(cachedResponse);
+          return;
+        }
+        // If not found in cache, fall through to standard handling
+        _proceedWithResponse(response, handler);
+      });
+      return;
+    }
+
+    _proceedWithResponse(response, handler);
+  }
+
+  void _proceedWithResponse(
+    Response<dynamic> response,
+    ResponseInterceptorHandler handler,
+  ) {
     // Add cache metadata to response
     _addCacheMetadata(response);
 
@@ -282,25 +305,10 @@ class AcdcCacheInterceptor extends Interceptor {
   ) async {
     // Handle 304 Not Modified manually if dio_cache_interceptor misses it
     if (err.response?.statusCode == 304) {
-      try {
-        final key = buildCacheKeyWithUserIsolation(
-          err.requestOptions,
-          customKeyBuilder: _config.keyBuilder,
-        );
-
-        final cachedResponse = await _cacheOptions.store?.get(key);
-
-        if (cachedResponse != null) {
-          final response = cachedResponse.toResponse(err.requestOptions);
-          // Force 200 OK since we are serving content from cache
-          response.statusCode = 200;
-
-          _addCacheMetadata(response);
-          handler.resolve(response);
-          return;
-        }
-      } catch (_) {
-        // Fallback to standard handling on error
+      final cachedResponse = await _resolve304Response(err.requestOptions);
+      if (cachedResponse != null) {
+        handler.resolve(cachedResponse);
+        return;
       }
     }
 
@@ -312,6 +320,31 @@ class AcdcCacheInterceptor extends Interceptor {
 
     // Delegate to dio_cache_interceptor (may serve stale cache on network error)
     _dioCacheInterceptor.onError(err, customHandler);
+  }
+
+  /// Attempts to resolve a 304 Not Modified response from the cache.
+  Future<Response<dynamic>?> _resolve304Response(
+    RequestOptions requestOptions,
+  ) async {
+    try {
+      final key = buildCacheKeyWithUserIsolation(
+        requestOptions,
+        customKeyBuilder: _config.keyBuilder,
+      );
+
+      final cachedResponse = await _cacheOptions.store?.get(key);
+
+      if (cachedResponse != null) {
+        final response = cachedResponse.toResponse(requestOptions)
+          ..statusCode = 200;
+
+        _addCacheMetadata(response);
+        return response;
+      }
+    } on Exception catch (_) {
+      // Fallback to standard handling on error
+    }
+    return null;
   }
 
   /// Clears all cached entries.
