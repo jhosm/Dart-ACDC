@@ -1,43 +1,8 @@
-# Authentication Specification
+# authentication Specification
 
-## Quick Start
-
-For most mobile apps, authentication setup requires only three steps:
-
-**Step 1**: Implement TokenProvider for secure storage
-**Step 2**: Perform OAuth login using external library (e.g., flutter_appauth)
-**Step 3**: Configure ACDC with token provider and refresh endpoint
-
-```dart
-// Step 1: Create token provider (use secure storage)
-final tokenProvider = MySecureTokenProvider(); // Your implementation
-
-// Step 2: OAuth login (handled by external library)
-final authResult = await FlutterAppAuth().authorizeAndExchangeCode(...);
-await tokenProvider.setTokens(
-  accessToken: authResult.accessToken!,
-  refreshToken: authResult.refreshToken,
-  accessExpiry: authResult.accessTokenExpirationDateTime,
-);
-
-// Step 3: Configure ACDC - everything else is automatic
-final dio = AcdcClientBuilder()
-  .withTokenProvider(tokenProvider)
-  .withTokenRefreshEndpoint(
-    url: 'https://auth.example.com/oauth/token',
-    clientId: 'my-mobile-app',
-  )
-  .build();
-
-// Use with OpenAPI-generated client
-final apiClient = MyApiClient(dio: dio);
-final data = await apiClient.getData(); // Tokens injected + refreshed automatically
-```
-
-All token management is now automatic: proactive refresh before expiry, reactive refresh on 401, concurrent request queuing, and secure logout.
-
-## ADDED Requirements
-
+## Purpose
+TBD - created by archiving change add-core-library-architecture. Update Purpose after archive.
+## Requirements
 ### Requirement: Token Provider Interface
 
 The library SHALL define a `TokenProvider` interface for managing authentication tokens with secure storage and expiry tracking.
@@ -495,10 +460,3 @@ The library SHALL support requests without authentication when no TokenProvider 
 - **THEN** requests without tokens proceed without Authorization headers (public endpoints)
 - **AND** requests with valid tokens include Authorization headers (authenticated endpoints)
 
-## REMOVED Requirements
-
-None - this is a new capability.
-
-## MODIFIED Requirements
-
-None - this is a new capability.

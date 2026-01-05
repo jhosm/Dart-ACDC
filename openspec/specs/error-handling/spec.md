@@ -1,7 +1,8 @@
-# Error Handling Specification
+# error-handling Specification
 
-## ADDED Requirements
-
+## Purpose
+TBD - created by archiving change add-core-library-architecture. Update Purpose after archive.
+## Requirements
 ### Requirement: Exception Hierarchy
 
 The library SHALL define a custom exception hierarchy that categorizes HTTP errors into developer-friendly types with rich debugging context.
@@ -233,3 +234,4 @@ The library SHALL provide utilities for testing and debugging exception handling
     'responseData': {...}
   }
   ```
+

@@ -1,7 +1,8 @@
-# Caching Specification
+# caching Specification
 
-## ADDED Requirements
-
+## Purpose
+TBD - created by archiving change add-core-library-architecture. Update Purpose after archive.
+## Requirements
 ### Requirement: HTTP Cache Headers Support
 
 The library SHALL respect standard HTTP cache headers (Cache-Control, ETag, Last-Modified) for response caching.
@@ -515,3 +516,4 @@ The library SHALL integrate `dio_cache_interceptor` for cache implementation.
 - **AND** cache hits bypass token refresh logic (token refresh only happens on network requests)
 - **AND** this is expected behavior - cached data validity is independent of current token validity
 - **AND** expired tokens are refreshed on the next cache miss or non-cacheable request
+

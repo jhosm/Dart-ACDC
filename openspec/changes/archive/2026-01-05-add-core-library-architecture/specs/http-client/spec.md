@@ -255,7 +255,7 @@ The library SHALL provide access to authentication management functionality via 
 - **THEN** the auth manager is still available but methods throw informative errors
 - **AND** error messages indicate "Authentication not configured. Use withTokenProvider() to enable."
 
-### Out of Scope
+## Out of Scope
 
 The following features are intentionally **not** part of this specification and will be addressed separately:
 
