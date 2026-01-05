@@ -390,7 +390,7 @@ class _CacheAwareRequestHandler extends RequestInterceptorHandler {
 
   @override
   void resolve(
-    Response response, [
+    Response<dynamic> response, [
     bool callFollowingResponseInterceptor = false,
   ]) {
     // This is called when dio_cache_interceptor finds a valid cache entry.
