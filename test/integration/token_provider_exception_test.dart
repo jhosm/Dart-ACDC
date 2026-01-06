@@ -51,6 +51,7 @@ void main() {
             url: oauthServer.tokenUrl,
             clientId: 'test-client',
           )
+          .disableCache()
           .build();
 
       // Make request - should succeed without auth header
@@ -77,6 +78,7 @@ void main() {
             url: oauthServer.tokenUrl,
             clientId: 'test-client',
           )
+          .disableCache()
           .build();
 
       // Make request - should proceed without proactive refresh
@@ -104,6 +106,7 @@ void main() {
             url: oauthServer.tokenUrl,
             clientId: 'test-client',
           )
+          .disableCache()
           .build();
 
       // Return 401 to trigger reactive refresh
@@ -140,6 +143,7 @@ void main() {
             url: oauthServer.tokenUrl,
             clientId: 'test-client',
           )
+          .disableCache()
           .build();
 
       apiServer.respondWith(200, {'result': 'ok'});
@@ -200,6 +204,7 @@ void main() {
             url: oauthServer.tokenUrl,
             clientId: 'test-client',
           )
+          .disableCache()
           .build();
 
       // Request should succeed without auth (complete degradation)
@@ -238,6 +243,7 @@ void main() {
             url: oauthServer.tokenUrl,
             clientId: 'test-client',
           )
+          .disableCache()
           .build();
 
       apiServer.respondWith(200, {'result': 'ok'});
@@ -263,6 +269,7 @@ void main() {
             url: oauthServer.tokenUrl,
             clientId: 'test-client',
           )
+          .disableCache()
           .build();
 
       // Request should succeed with auth header

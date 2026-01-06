@@ -4,6 +4,7 @@ import 'package:dart_acdc/src/auth/token_provider.dart';
 import 'package:dart_acdc/src/auth/token_refresh_result.dart';
 import 'package:dart_acdc/src/cache/acdc_cache_manager.dart';
 import 'package:dart_acdc/src/cache/cache_config.dart';
+import 'package:dart_acdc/src/cache/cache_store_factory.dart';
 import 'package:dart_acdc/src/interceptors/auth_interceptor.dart';
 import 'package:dart_acdc/src/interceptors/cache_interceptor.dart';
 import 'package:dart_acdc/src/interceptors/error_interceptor.dart';
@@ -417,7 +418,11 @@ class AcdcClientBuilder {
     AcdcCacheInterceptor? cacheInterceptor;
     if (!_cacheDisabled) {
       final cacheConfig = _cacheConfig ?? const CacheConfig();
-      cacheInterceptor = AcdcCacheInterceptor(config: cacheConfig);
+      final store = CacheStoreFactory.build(cacheConfig);
+      cacheInterceptor = AcdcCacheInterceptor(
+        config: cacheConfig,
+        store: store,
+      );
     }
 
     // Set up authentication (defaults to SecureTokenProvider)

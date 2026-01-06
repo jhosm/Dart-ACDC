@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:dart_acdc/src/cache/cache_config.dart';
+import 'package:dart_acdc/src/cache/cache_store_factory.dart';
 import 'package:dart_acdc/src/interceptors/cache_interceptor.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/services.dart';
@@ -71,11 +72,13 @@ void main() {
     });
 
     test('handles 304 when validateStatus allows it', () async {
+      final config = CacheConfig(
+        inMemory: true,
+        storePath: tempDir.path,
+      );
       final interceptor = AcdcCacheInterceptor(
-        config: CacheConfig(
-          inMemory: true,
-          storePath: tempDir.path,
-        ),
+        config: config,
+        store: CacheStoreFactory.build(config),
       );
       dio.interceptors.add(interceptor);
 

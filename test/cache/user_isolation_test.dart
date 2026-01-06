@@ -1,6 +1,7 @@
 import 'package:dart_acdc/src/cache/cache_config.dart';
 import 'package:dart_acdc/src/interceptors/cache_interceptor.dart';
 import 'package:dio/dio.dart';
+import 'package:dio_cache_interceptor/dio_cache_interceptor.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -13,6 +14,7 @@ void main() {
       dio.options.baseUrl = 'https://api.example.com';
       cacheInterceptor = AcdcCacheInterceptor(
         config: const CacheConfig(),
+        store: MemCacheStore(),
       );
       dio.interceptors.add(cacheInterceptor);
     });
@@ -97,6 +99,7 @@ void main() {
           config: CacheConfig(
             userIdProvider: (token) async => 'custom-user-id',
           ),
+          store: MemCacheStore(),
         );
         dio.interceptors.clear();
         dio.interceptors.add(customCache);
@@ -121,6 +124,7 @@ void main() {
           config: CacheConfig(
             userIdProvider: (token) async => throw Exception('Provider failed'),
           ),
+          store: MemCacheStore(),
         );
 
         // Valid JWT token

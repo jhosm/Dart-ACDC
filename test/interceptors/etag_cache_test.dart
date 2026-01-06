@@ -3,6 +3,7 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:dart_acdc/src/cache/cache_config.dart';
+import 'package:dart_acdc/src/cache/cache_store_factory.dart';
 import 'package:dart_acdc/src/interceptors/cache_interceptor.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/services.dart';
@@ -85,11 +86,13 @@ void main() {
     });
 
     test('stores ETag from response', () async {
+      final config = CacheConfig(
+        inMemory: true,
+        storePath: tempDir.path, // Use temp dir
+      );
       final interceptor = AcdcCacheInterceptor(
-        config: CacheConfig(
-          inMemory: true,
-          storePath: tempDir.path, // Use temp dir
-        ),
+        config: config,
+        store: CacheStoreFactory.build(config),
       );
       dio.interceptors.add(interceptor);
 
@@ -115,11 +118,13 @@ void main() {
     });
 
     test('sends If-None-Match header in subsequent requests', () async {
+      final config = CacheConfig(
+        inMemory: true,
+        storePath: tempDir.path,
+      );
       final interceptor = AcdcCacheInterceptor(
-        config: CacheConfig(
-          inMemory: true,
-          storePath: tempDir.path,
-        ),
+        config: config,
+        store: CacheStoreFactory.build(config),
       );
       dio.interceptors.add(interceptor);
 
@@ -163,11 +168,13 @@ void main() {
     });
 
     test('uses cached response on 304 Not Modified', () async {
+      final config = CacheConfig(
+        inMemory: true,
+        storePath: tempDir.path,
+      );
       final interceptor = AcdcCacheInterceptor(
-        config: CacheConfig(
-          inMemory: true,
-          storePath: tempDir.path,
-        ),
+        config: config,
+        store: CacheStoreFactory.build(config),
       );
       dio.interceptors.add(interceptor);
 

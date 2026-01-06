@@ -1,11 +1,8 @@
 import 'package:dart_acdc/src/cache/cache_config.dart';
-import 'package:dart_acdc/src/cache/encrypted_cache_store.dart';
 import 'package:dart_acdc/src/cache/jwt_utils.dart';
-import 'package:dart_acdc/src/cache/two_tier_cache_store.dart';
 import 'package:dart_acdc/src/exceptions/acdc_network_exception.dart';
 import 'package:dio/dio.dart';
 import 'package:dio_cache_interceptor/dio_cache_interceptor.dart';
-import 'package:flutter/foundation.dart';
 
 /// Wrapper for dio_cache_interceptor that integrates with [CacheConfig].
 ///
@@ -24,22 +21,22 @@ import 'package:flutter/foundation.dart';
 /// - Authenticated requests with identifiable user: Cached with user isolation
 /// - Authenticated requests without identifiable user: NOT cached (security)
 class AcdcCacheInterceptor extends Interceptor {
-  /// Creates a cache interceptor from configuration.
+  /// Creates a cache interceptor from configuration and cache store.
   ///
-  /// Builds appropriate cache stores based on [config] settings:
+  /// The [store] parameter should be created using [CacheStoreFactory.build]
+  /// which handles platform-specific store creation:
   /// - Uses in-memory cache with configured size limits
   /// - Optionally encrypts cache with platform secure storage
   /// - Supports two-tier caching (memory + persistent)
-  /// - Configures cache policies based on config flags
+  ///
+  /// Cache policies are configured based on [config] flags:
   /// - Only caches GET and HEAD requests
   /// - Invalidates cache on POST/PUT/DELETE/PATCH requests
   /// - Requires user ID extraction for caching (user isolation)
-  ///
-  /// Throws [StateError] if encryption is required but unavailable.
   AcdcCacheInterceptor({
     required CacheConfig config,
+    required CacheStore store,
   }) : _config = config {
-    final store = _buildCacheStore(config);
 
     _cacheOptions = CacheOptions(
       store: store,
@@ -73,49 +70,6 @@ class AcdcCacheInterceptor extends Interceptor {
   final CacheConfig _config;
   late final CacheOptions _cacheOptions;
   late final DioCacheInterceptor _dioCacheInterceptor;
-
-  /// Builds the appropriate cache store based on configuration.
-  ///
-  /// Returns:
-  /// - MemCacheStore: If running on Web (encryption not supported)
-  /// - TwoTierCacheStore: If both inMemory and encryption are enabled
-  /// - EncryptedCacheStore: If only encryption is enabled
-  /// - MemCacheStore: If only inMemory is enabled (default)
-  ///
-  /// Throws [StateError] if encryption is required but unavailable.
-  static CacheStore _buildCacheStore(CacheConfig config) {
-    // Web support: EncryptedCacheStore uses dart:io/File which is not supported on Web.
-    // Fallback to in-memory cache for Web.
-    if (kIsWeb) {
-      return MemCacheStore(
-        maxSize: config.inMemoryMaxSize,
-      );
-    }
-
-    // Build persistent store (always encrypted)
-    final persistentStore = EncryptedCacheStore(
-      maxSize: config.maxSize,
-      version: config.version,
-      onError: config.onError,
-      storePath: config.storePath,
-    );
-
-    // Build two-tier cache if inMemory is enabled
-    if (config.inMemory) {
-      final memoryStore = MemCacheStore(
-        maxSize: config.inMemoryMaxSize,
-      );
-
-      // Two-tier: memory + encrypted persistent
-      return TwoTierCacheStore(
-        memoryStore: memoryStore,
-        persistentStore: persistentStore,
-      );
-    }
-
-    // Persistent-only cache (always encrypted)
-    return persistentStore;
-  }
 
   /// Builds a cache key with user isolation.
   ///

@@ -66,6 +66,7 @@ void main() {
             clientId: 'test-client',
           )
           .withTokenRevocationEndpoint(oauthServer.revokeUrl)
+          .disableCache()
           .build();
 
       apiServer.respondWith(200, {'result': 'ok'});
@@ -176,6 +177,7 @@ void main() {
             clientId: 'test-client',
           )
           .withTokenRevocationEndpoint(oauthServer.revokeUrl)
+          .disableCache()
           .build();
 
       // Logout

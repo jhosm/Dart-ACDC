@@ -73,6 +73,7 @@ void main() {
             url: oauthServer.tokenUrl,
             clientId: clientId,
           )
+          .disableCache()
           .build();
 
       // Configure API server to return success
@@ -121,6 +122,7 @@ void main() {
             url: 'http://localhost:59999', // Non-existent port
             clientId: clientId,
           )
+          .disableCache()
           .build();
 
       // Configure API server to require valid auth - return 401 if no auth header
@@ -181,6 +183,7 @@ void main() {
             url: oauthServer.tokenUrl,
             clientId: clientId,
           )
+          .disableCache()
           .build();
 
       // Configure API server to require valid auth - return 401 if no auth header
@@ -276,6 +279,7 @@ void main() {
             url: oauthServer.tokenUrl,
             clientId: clientId,
           )
+          .disableCache()
           .build();
 
       // Configure API server
@@ -331,6 +335,7 @@ void main() {
             url: oauthServer.tokenUrl,
             clientId: clientId,
           )
+          .disableCache()
           .build();
 
       // Configure API server to require valid auth - return 401 if no auth header

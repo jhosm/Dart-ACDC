@@ -32,6 +32,7 @@ void main() {
           .withTokenProvider(FakeTokenProvider())
           .withLogger(customLogger)
           .withLogLevel(LogLevel.info)
+          .disableCache()
           .build();
 
       dioAdapter = DioAdapter(dio: dio);

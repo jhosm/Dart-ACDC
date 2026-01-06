@@ -62,6 +62,7 @@ void main() {
           )
           .withTokenRevocationEndpoint(oauthServer.revokeUrl)
           .withLogLevel(LogLevel.debug)
+          .disableCache()
           .build();
 
       // Make authenticated request
@@ -101,6 +102,7 @@ void main() {
             url: oauthServer.tokenUrl,
             clientId: 'test-client',
           )
+          .disableCache()
           .build();
 
       // Make request - should trigger proactive refresh
@@ -137,6 +139,7 @@ void main() {
             url: oauthServer.tokenUrl,
             clientId: 'test-client',
           )
+          .disableCache()
           .build();
 
       // First request returns 401, then 200 after refresh
@@ -161,6 +164,7 @@ void main() {
       final dio1 = await const AcdcClientBuilder()
           .withBaseUrl(apiServer.baseUrl)
           .withTokenProvider(tokenProvider)
+          .disableCache()
           .build();
 
       await expectLater(
@@ -181,6 +185,7 @@ void main() {
       final dio2 = await const AcdcClientBuilder()
           .withBaseUrl(apiServer.baseUrl)
           .withTokenProvider(tokenProvider)
+          .disableCache()
           .build();
 
       await expectLater(
@@ -201,6 +206,7 @@ void main() {
       final dio3 = await const AcdcClientBuilder()
           .withBaseUrl(apiServer.baseUrl)
           .withTokenProvider(tokenProvider)
+          .disableCache()
           .build();
 
       await expectLater(
@@ -238,6 +244,7 @@ void main() {
             clientId: 'test-client',
           )
           .withInterceptor(customInterceptor)
+          .disableCache()
           .build();
 
       apiServer.respondWith(200, {'status': 'ok'});
@@ -275,6 +282,7 @@ void main() {
             url: oauthServer.tokenUrl,
             clientId: 'test-client',
           )
+          .disableCache()
           .build();
 
       apiServer.respondWith(200, {'result': 'ok'});
@@ -333,6 +341,7 @@ void main() {
           .withBaseUrl('http://invalid-host-that-does-not-exist.test')
           .withTokenProvider(tokenProvider)
           .withTimeout(const Duration(milliseconds: 100))
+          .disableCache()
           .build();
 
       expect(

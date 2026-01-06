@@ -1,6 +1,7 @@
 import 'package:dart_acdc/src/cache/cache_config.dart';
 import 'package:dart_acdc/src/interceptors/cache_interceptor.dart';
 import 'package:dio/dio.dart';
+import 'package:dio_cache_interceptor/dio_cache_interceptor.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -16,6 +17,7 @@ void main() {
       test('creates interceptor with default configuration', () {
         final interceptor = AcdcCacheInterceptor(
           config: const CacheConfig(),
+          store: MemCacheStore(),
         );
         dio.interceptors.add(interceptor);
 
@@ -28,6 +30,7 @@ void main() {
       test('POST requests trigger cache invalidation', () {
         final interceptor = AcdcCacheInterceptor(
           config: const CacheConfig(),
+          store: MemCacheStore(),
         );
 
         // Create a response for a POST request
@@ -52,6 +55,7 @@ void main() {
       test('PUT requests trigger cache invalidation', () {
         final interceptor = AcdcCacheInterceptor(
           config: const CacheConfig(),
+          store: MemCacheStore(),
         );
 
         final response = Response<Map<String, dynamic>>(
@@ -74,6 +78,7 @@ void main() {
       test('DELETE requests trigger cache invalidation', () {
         final interceptor = AcdcCacheInterceptor(
           config: const CacheConfig(),
+          store: MemCacheStore(),
         );
 
         final response = Response<Map<String, dynamic>>(
@@ -96,6 +101,7 @@ void main() {
       test('PATCH requests trigger cache invalidation', () {
         final interceptor = AcdcCacheInterceptor(
           config: const CacheConfig(),
+          store: MemCacheStore(),
         );
 
         final response = Response<Map<String, dynamic>>(
@@ -118,6 +124,7 @@ void main() {
       test('GET requests do not trigger cache invalidation', () {
         final interceptor = AcdcCacheInterceptor(
           config: const CacheConfig(),
+          store: MemCacheStore(),
         );
 
         final response = Response<Map<String, dynamic>>(
@@ -142,6 +149,7 @@ void main() {
       test('clearCache method is available', () async {
         final interceptor = AcdcCacheInterceptor(
           config: const CacheConfig(),
+          store: MemCacheStore(),
         );
 
         // Verify clearCache doesn't throw
@@ -154,6 +162,7 @@ void main() {
       test('clearCacheForUrl method is available', () async {
         final interceptor = AcdcCacheInterceptor(
           config: const CacheConfig(),
+          store: MemCacheStore(),
         );
 
         // Verify clearCacheForUrl doesn't throw
@@ -168,6 +177,7 @@ void main() {
       test('respects staleWhileRevalidate setting', () {
         final interceptor = AcdcCacheInterceptor(
           config: const CacheConfig(staleWhileRevalidate: true),
+          store: MemCacheStore(),
         );
 
         expect(interceptor, isA<AcdcCacheInterceptor>());
@@ -176,6 +186,7 @@ void main() {
       test('respects staleIfError setting', () {
         final interceptor = AcdcCacheInterceptor(
           config: const CacheConfig(staleIfError: false),
+          store: MemCacheStore(),
         );
 
         expect(interceptor, isA<AcdcCacheInterceptor>());
@@ -186,6 +197,7 @@ void main() {
           config: const CacheConfig(
             inMemoryMaxSize: 10 * 1024 * 1024,
           ),
+          store: MemCacheStore(),
         );
 
         expect(interceptor, isA<AcdcCacheInterceptor>());
@@ -197,6 +209,7 @@ void main() {
             inMemory: false,
             maxSize: 20 * 1024 * 1024,
           ),
+          store: MemCacheStore(),
         );
 
         expect(interceptor, isA<AcdcCacheInterceptor>());
@@ -209,6 +222,7 @@ void main() {
         // Cache-Control, ETag, Last-Modified headers
         final interceptor = AcdcCacheInterceptor(
           config: const CacheConfig(),
+          store: MemCacheStore(),
         );
 
         expect(interceptor, isA<AcdcCacheInterceptor>());
@@ -219,6 +233,7 @@ void main() {
         // This test verifies the interceptor is properly configured
         final interceptor = AcdcCacheInterceptor(
           config: const CacheConfig(),
+          store: MemCacheStore(),
         );
 
         expect(interceptor, isA<AcdcCacheInterceptor>());
@@ -231,6 +246,7 @@ void main() {
           () {
         final interceptor = AcdcCacheInterceptor(
           config: const CacheConfig(staleWhileRevalidate: true),
+          store: MemCacheStore(),
         );
 
         // Verify interceptor is created successfully
@@ -242,6 +258,7 @@ void main() {
       test('uses request policy when staleWhileRevalidate is disabled', () {
         final interceptor = AcdcCacheInterceptor(
           config: const CacheConfig(),
+          store: MemCacheStore(),
         );
 
         // Verify interceptor uses standard request policy
@@ -251,6 +268,7 @@ void main() {
       test('adds X-ACDC-From-Cache header to cached responses', () {
         final interceptor = AcdcCacheInterceptor(
           config: const CacheConfig(),
+          store: MemCacheStore(),
         );
 
         // Create a response with cache metadata (simulating cached response)
@@ -283,6 +301,7 @@ void main() {
           () {
         final interceptor = AcdcCacheInterceptor(
           config: const CacheConfig(),
+          store: MemCacheStore(),
         );
 
         // Verify interceptor is configured with maxStale (staleIfError defaults to true)
@@ -294,6 +313,7 @@ void main() {
           () {
         final interceptor = AcdcCacheInterceptor(
           config: const CacheConfig(staleIfError: false),
+          store: MemCacheStore(),
         );
 
         // Verify interceptor is configured without maxStale
@@ -304,6 +324,7 @@ void main() {
           () {
         final interceptor = AcdcCacheInterceptor(
           config: const CacheConfig(),
+          store: MemCacheStore(),
         );
 
         // Verify interceptor is properly configured
@@ -318,6 +339,7 @@ void main() {
       test('adds X-ACDC-From-Cache header for cached responses', () {
         final interceptor = AcdcCacheInterceptor(
           config: const CacheConfig(),
+          store: MemCacheStore(),
         );
 
         // Create a response simulating a cached response
@@ -341,6 +363,7 @@ void main() {
       test('does not add cache header for non-cached responses', () {
         final interceptor = AcdcCacheInterceptor(
           config: const CacheConfig(),
+          store: MemCacheStore(),
         );
 
         // Create a response without cache metadata
@@ -366,6 +389,7 @@ void main() {
           config: CacheConfig(
             keyBuilder: (request) => 'custom_key:${request.uri}',
           ),
+          store: MemCacheStore(),
         );
 
         // Verify key generation (using public static helper for testing)
