@@ -15,12 +15,11 @@ class CacheStoreFactory {
   /// Builds the appropriate cache store based on configuration.
   ///
   /// Returns:
-  /// - MemCacheStore: If running on Web (encryption not supported)
-  /// - TwoTierCacheStore: If both inMemory and encryption are enabled
-  /// - EncryptedCacheStore: If only encryption is enabled (native platforms)
-  /// - MemCacheStore: If only inMemory is enabled (default)
+  /// - MemCacheStore: Always on Web (encrypted storage not supported)
+  /// - TwoTierCacheStore: On native platforms when inMemory=true (combines in-memory and encrypted persistent cache)
+  /// - EncryptedCacheStore: On native platforms when inMemory=false (encrypted persistent cache only)
   ///
-  /// Throws [StateError] if encryption is required but unavailable.
+  /// May propagate [StateError] from [EncryptedCacheStore]'s constructor if encryption initialization fails on native platforms.
   static CacheStore build(CacheConfig config) {
     // Web support: EncryptedCacheStore uses dart:io/File which is not supported on Web.
     // Fallback to in-memory cache for Web.
