@@ -3,7 +3,8 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 // ignore: avoid_web_libraries_in_flutter
-import 'dart:html' as html;
+// ignore: avoid_web_libraries_in_flutter
+import 'package:web/web.dart' as web;
 import 'google_tasks_auth_helper.dart';
 
 const String kRedirectUrl = 'dartacdc://callback';
@@ -447,7 +448,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                     const SizedBox(height: 4),
                                     Text(
                                       '1. Add Client ID above.\n'
-                                      '2. Add ${kIsWeb ? html.window.location.origin : "App Origin"} to "Authorized JavaScript origins" in Google Console.',
+                                      '2. Add ${kIsWeb ? web.window.location.origin : "App Origin"} to "Authorized JavaScript origins" in Google Console.',
                                       style: Theme.of(
                                         context,
                                       ).textTheme.bodySmall,

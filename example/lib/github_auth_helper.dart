@@ -5,7 +5,8 @@ import 'dart:math';
 import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 // ignore: avoid_web_libraries_in_flutter
-import 'dart:html' as html;
+// ignore: avoid_web_libraries_in_flutter
+import 'package:web/web.dart' as web;
 
 // Helper class to handle GitHub OAuth flow with PKCE
 class GitHubAuthHelper {
@@ -30,7 +31,7 @@ class GitHubAuthHelper {
     if (kIsWeb) {
       // On Web, use the current origin + /callback.html
       // This requires window location access
-      final origin = html.window.location.origin;
+      final origin = web.window.location.origin;
       currentRedirectUrl = '$origin/callback.html';
     }
 

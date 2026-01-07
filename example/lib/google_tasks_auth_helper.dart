@@ -1,7 +1,8 @@
 import 'package:flutter_web_auth_2/flutter_web_auth_2.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 // ignore: avoid_web_libraries_in_flutter
-import 'dart:html' as html;
+// ignore: avoid_web_libraries_in_flutter
+import 'package:web/web.dart' as web;
 
 // Helper class to handle Google OAuth 2.0 Implicit Flow
 // (Preferred for Client-Side Web Apps without a backend proxy)
@@ -21,7 +22,7 @@ class GoogleTasksAuthHelper {
     // Determines the appropriate redirect URL
     String currentRedirectUrl = redirectUrl;
     if (kIsWeb) {
-      final origin = html.window.location.origin;
+      final origin = web.window.location.origin;
       currentRedirectUrl = '$origin/callback.html';
     }
 
