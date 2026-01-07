@@ -63,6 +63,7 @@ class EncryptedCacheStore implements CacheStore {
   FileCacheStore? _fileStore;
 
   /// The encrypter instance.
+  // ignore: use_late_for_private_fields_and_variables
   Encrypter? _encrypter;
 
   /// Future to track initialization.
@@ -200,7 +201,7 @@ class EncryptedCacheStore implements CacheStore {
       final decrypted = _encrypter!.decryptBytes(encrypted, iv: iv);
 
       return response.copyWith(content: decrypted);
-    } on Exception catch (e) {
+    } on Exception {
       // Decryption failed - treat as cache miss and delete corrupted entry
       await delete(key);
       return null;
@@ -233,7 +234,7 @@ class EncryptedCacheStore implements CacheStore {
 
         final decrypted = _encrypter!.decryptBytes(encrypted, iv: iv);
         decryptedResponses.add(response.copyWith(content: decrypted));
-      } on Exception catch (e) {
+      } on Exception {
         // Skip corrupted entries
         await delete(response.key);
       }

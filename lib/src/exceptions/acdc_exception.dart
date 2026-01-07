@@ -1,13 +1,11 @@
 import 'package:dio/dio.dart';
 
-import 'package:meta/meta.dart';
-
 /// Base exception class for all Dart-ACDC exceptions.
 ///
 /// Extends [DioException] for backward compatibility while providing
 /// developer-friendly error categorization and messages.
 // ignore: overridden_fields
-@immutable
+
 class AcdcException extends DioException {
   /// Creates an ACDC exception.
   ///
@@ -110,6 +108,7 @@ class AcdcException extends DioException {
   }
 
   @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
 
@@ -124,6 +123,7 @@ class AcdcException extends DioException {
   }
 
   @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
   int get hashCode => Object.hash(
         runtimeType,
         message,
