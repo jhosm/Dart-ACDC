@@ -3,6 +3,7 @@ import 'package:dart_acdc/src/cache/cache_store_factory.dart'
     show CacheStoreFactory;
 import 'package:dart_acdc/src/cache/jwt_utils.dart';
 import 'package:dart_acdc/src/exceptions/acdc_network_exception.dart';
+import 'package:dart_acdc/src/security/user_id_extractor.dart';
 import 'package:dio/dio.dart';
 import 'package:dio_cache_interceptor/dio_cache_interceptor.dart';
 
@@ -184,66 +185,27 @@ class AcdcCacheInterceptor extends Interceptor {
   /// - Auth + user ID → user-isolated cache (key includes user ID)
   /// - Auth but no user ID → no caching (empty key)
   Future<void> _extractAndStoreUserId(RequestOptions options) async {
-    // Get Authorization header
+    final extractor = UserIdExtractor(userIdProvider: _config.userIdProvider);
     final authHeader = options.headers['Authorization']?.toString();
-    if (authHeader == null || authHeader.isEmpty) {
+
+    final result = await extractor.extract(authHeader);
+
+    options.extra['_acdc_has_auth'] = result.hasAuth;
+
+    if (!result.hasAuth) {
       // No auth header - will use shared cache
-      options.extra['_acdc_has_auth'] = false;
       return;
     }
 
-    // Mark as authenticated
-    options.extra['_acdc_has_auth'] = true;
-
-    // Extract token from "Bearer {token}" format
-    final token = _extractToken(authHeader);
-    if (token == null || token.isEmpty) {
-      // Has auth header but no token - disable caching
-      options.headers['X-ACDC-User-Id'] = '';
-      return;
-    }
-
-    // Try custom user ID provider first
-    if (_config.userIdProvider != null) {
-      try {
-        final userId = await _config.userIdProvider!(token);
-        if (userId != null && userId.isNotEmpty) {
-          options.headers['X-ACDC-User-Id'] = userId;
-          options.extra['_acdc_user_id'] = userId;
-          return;
-        }
-      } on Exception catch (_) {
-        // Custom provider failed - fall through to JWT extraction
-      }
-    }
-
-    // Extract user ID from JWT
-    final userId = JwtUtils.extractUserId(token);
+    final userId = result.userId;
     if (userId != null && userId.isNotEmpty) {
+      // Authenticated with user ID
       options.headers['X-ACDC-User-Id'] = userId;
       options.extra['_acdc_user_id'] = userId;
     } else {
       // Auth present but no user ID - disable caching for security
       options.headers['X-ACDC-User-Id'] = '';
     }
-  }
-
-  /// Extracts the token from Authorization header.
-  ///
-  /// Handles common formats:
-  /// - "Bearer {token}"
-  /// - "{token}"
-  String? _extractToken(String authHeader) {
-    final trimmed = authHeader.trim();
-
-    // Handle "Bearer token" format
-    if (trimmed.toLowerCase().startsWith('bearer ')) {
-      final token = trimmed.substring(7).trim();
-      return token.isNotEmpty ? token : null;
-    }
-
-    // Handle direct token format
-    return trimmed.isNotEmpty ? trimmed : null;
   }
 
   @override
