@@ -21,14 +21,14 @@ void main() {
 
   group('OpenAPI Generator Compatibility', () {
     late FakeOAuthServer oauthServer;
-    late FakePostsApiServer apiServer;
+    late FakeGitHubApiServer apiServer;
     late TestTokenProvider tokenProvider;
 
     setUp(() async {
       oauthServer = FakeOAuthServer();
       await oauthServer.start();
 
-      apiServer = FakePostsApiServer();
+      apiServer = FakeGitHubApiServer();
       await apiServer.start();
 
       tokenProvider = TestTokenProvider();
@@ -108,27 +108,22 @@ void main() {
         basePathOverride: apiServer.baseUrl,
       );
 
-      // Configure fake server to return posts data
-      apiServer.respondWithPosts([
-        {'id': 1, 'userId': 10, 'title': 'Test Post', 'body': 'Test content'},
-        {
-          'id': 2,
-          'userId': 10,
-          'title': 'Another Post',
-          'body': 'More content',
-        },
+      // Configure fake server to return repos data
+      apiServer.respondWithRepos([
+        {'id': 1, 'name': 'repo-1', 'full_name': 'user/repo-1'},
+        {'id': 2, 'name': 'repo-2', 'full_name': 'user/repo-2'},
       ]);
 
       // Make API call through generated client
       final api = apiClient.getDefaultApi();
-      final response = await api.getPosts();
+      final response = await api.listRepos();
 
       // Verify successful response
       expect(response.statusCode, 200);
       expect(response.data, isNotNull);
       expect(response.data!.length, 2);
       expect(response.data![0].id, 1);
-      expect(response.data![0].title, 'Test Post');
+      expect(response.data![0].name, 'repo-1');
       expect(response.data![1].id, 2);
 
       // Verify ACDC auth interceptor added Bearer token
@@ -172,13 +167,13 @@ void main() {
         basePathOverride: apiServer.baseUrl,
       );
 
-      apiServer.respondWithPosts([
-        {'id': 5, 'userId': 20, 'title': 'Fresh Post', 'body': 'New content'},
+      apiServer.respondWithRepos([
+        {'id': 3, 'name': 'new-repo', 'full_name': 'user/new-repo'},
       ]);
 
       // Make API call - should trigger proactive refresh
       final api = apiClient.getDefaultApi();
-      final response = await api.getPosts();
+      final response = await api.listRepos();
 
       // Verify refresh was triggered
       expect(oauthServer.refreshCallCount, 1);
@@ -192,7 +187,7 @@ void main() {
 
       // Verify API call succeeded
       expect(response.statusCode, 200);
-      expect(response.data![0].title, 'Fresh Post');
+      expect(response.data![0].name, 'new-repo');
     });
 
     test('openapi-generated client handles 401 with reactive token refresh',
@@ -224,19 +219,19 @@ void main() {
       );
 
       // First request returns 401, second succeeds
-      apiServer.respondWith401ThenPosts([
-        {'id': 7, 'userId': 30, 'title': 'Protected', 'body': 'Secret content'},
+      apiServer.respondWith401ThenRepos([
+        {'id': 4, 'name': 'protected-repo', 'full_name': 'user/protected-repo'},
       ]);
 
       final api = apiClient.getDefaultApi();
-      final response = await api.getPosts();
+      final response = await api.listRepos();
 
       // Verify refresh happened
       expect(oauthServer.refreshCallCount, 1);
 
       // Verify retry succeeded
       expect(response.statusCode, 200);
-      expect(response.data![0].title, 'Protected');
+      expect(response.data![0].name, 'protected-repo');
       expect(await tokenProvider.getAccessToken(), 'new-access-token');
     });
 
@@ -262,7 +257,7 @@ void main() {
       // Test 404 error
       apiServer.respondWith(404, {'error': 'Not found'});
       await expectLater(
-        api.getPosts(),
+        api.listRepos(),
         throwsA(
           isA<AcdcClientException>()
               .having((e) => e.statusCode, 'statusCode', 404),
@@ -274,7 +269,7 @@ void main() {
         ..reset()
         ..respondWith(500, {'error': 'Server error'});
       await expectLater(
-        api.getPosts(),
+        api.listRepos(),
         throwsA(
           isA<AcdcServerException>()
               .having((e) => e.statusCode, 'statusCode', 500),
@@ -317,12 +312,12 @@ void main() {
         basePathOverride: apiServer.baseUrl,
       );
 
-      apiServer.respondWithPosts([
-        {'id': 99, 'userId': 1, 'title': 'Custom', 'body': 'Test'},
+      apiServer.respondWithRepos([
+        {'id': 5, 'name': 'custom-repo', 'full_name': 'user/custom-repo'},
       ]);
 
       final api = apiClient.getDefaultApi();
-      await api.getPosts();
+      await api.listRepos();
 
       // Verify custom interceptor was called
       expect(customHeaderAdded, true);
@@ -335,13 +330,14 @@ void main() {
       );
     });
 
-    test('openapi-generated client works with getPostById endpoint', () async {
-      // Scenario: Test a different endpoint (single resource).
+    test('openapi-generated client works with getAuthenticatedUser endpoint',
+        () async {
+      // Scenario: Test a different endpoint (Return a single object).
       // Expected: ACDC Dio works correctly with various endpoint types.
 
       tokenProvider.initializeTokens(
-        accessToken: 'post-token',
-        refreshToken: 'post-refresh',
+        accessToken: 'user-token',
+        refreshToken: 'user-refresh',
       );
 
       final dio = await const AcdcClientBuilder()
@@ -359,21 +355,21 @@ void main() {
         basePathOverride: apiServer.baseUrl,
       );
 
-      apiServer.respondWithPost({
-        'id': 42,
-        'userId': 100,
-        'title': 'Single Post',
-        'body': 'Detailed content',
+      apiServer.respondWithUser({
+        'id': 100,
+        'login': 'test-user',
+        'email': 'test@example.com',
+        'name': 'Test User',
       });
 
       final api = apiClient.getDefaultApi();
-      final response = await api.getPostById(id: 42);
+      final response = await api.getAuthenticatedUser();
 
       expect(response.statusCode, 200);
       expect(response.data, isNotNull);
-      expect(response.data!.id, 42);
-      expect(response.data!.title, 'Single Post');
-      expect(response.data!.userId, 100);
+      expect(response.data!.id, 100);
+      expect(response.data!.login, 'test-user');
+      expect(response.data!.email, 'test@example.com');
     });
   });
 }
@@ -431,8 +427,8 @@ class TestTokenProvider implements TokenProvider {
   }
 }
 
-/// Fake API server for testing Posts endpoints.
-class FakePostsApiServer {
+/// Fake API server for testing GitHub API endpoints.
+class FakeGitHubApiServer {
   HttpServer? _server;
   int? _port;
   shelf.Request? lastRequest;
@@ -474,23 +470,23 @@ class FakePostsApiServer {
     _requestCount = 0;
   }
 
-  void respondWithPosts(List<Map<String, dynamic>> posts) {
+  void respondWithRepos(List<Map<String, dynamic>> repos) {
     _responseStatusCode = 200;
-    _responseData = posts;
+    _responseData = repos;
     _return401First = false;
     _requestCount = 0;
   }
 
-  void respondWithPost(Map<String, dynamic> post) {
+  void respondWithUser(Map<String, dynamic> user) {
     _responseStatusCode = 200;
-    _responseData = post;
+    _responseData = user;
     _return401First = false;
     _requestCount = 0;
   }
 
-  void respondWith401ThenPosts(List<Map<String, dynamic>> posts) {
+  void respondWith401ThenRepos(List<Map<String, dynamic>> repos) {
     _return401First = true;
-    _responseData = posts;
+    _responseData = repos;
     _responseStatusCode = 200;
     _requestCount = 0;
   }
@@ -508,6 +504,13 @@ class FakePostsApiServer {
           headers: {'content-type': 'application/json'},
         );
       }
+    }
+
+    // Check path for basic validation (optional, but good for sanity)
+    if (request.url.path == 'user/repos' ||
+        request.url.path == 'user' ||
+        request.url.path == 'user/') {
+      // All good
     }
 
     return shelf.Response(

@@ -66,9 +66,7 @@ class GoogleTasksAuthHelper {
     }
 
     // Fallback: Check query (sometimes redirected as query if specific server config, but standard is fragment)
-    if (accessToken == null) {
-      accessToken = uri.queryParameters['access_token'];
-    }
+    accessToken ??= uri.queryParameters['access_token'];
 
     if (accessToken == null) {
       throw Exception('No access_token found in callback URL: $result');

@@ -1,6 +1,4 @@
-import 'dart:convert';
 import 'dart:io';
-import 'dart:typed_data';
 
 import 'package:dart_acdc/src/cache/cache_config.dart';
 import 'package:dart_acdc/src/cache/cache_store_factory.dart';
@@ -15,7 +13,7 @@ class FakeHttpClientAdapter implements HttpClientAdapter {
 
   // Helper to set next response easily
   void setResponse(String data, int statusCode,
-      {Map<String, List<String>>? headers}) {
+      {Map<String, List<String>>? headers,}) {
     nextResponse = ResponseBody.fromString(
       data,
       statusCode,
@@ -54,7 +52,7 @@ void main() {
   setUpAll(() {
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(secureStorageChannel,
-            (MethodCall methodCall) async {
+            (methodCall) async {
       // Simple mock: always return null for read (Simulating empty storage),
       // success for write/delete
       if (methodCall.method == 'read') {
@@ -87,7 +85,6 @@ void main() {
 
     test('stores ETag from response', () async {
       final config = CacheConfig(
-        inMemory: true,
         storePath: tempDir.path, // Use temp dir
       );
       final interceptor = AcdcCacheInterceptor(
@@ -96,7 +93,7 @@ void main() {
       );
       dio.interceptors.add(interceptor);
 
-      final etag = '"test-etag-12345"';
+      const etag = '"test-etag-12345"';
 
       // 1. Configure response with ETag
       fakeAdapter.setResponse(
@@ -119,7 +116,6 @@ void main() {
 
     test('sends If-None-Match header in subsequent requests', () async {
       final config = CacheConfig(
-        inMemory: true,
         storePath: tempDir.path,
       );
       final interceptor = AcdcCacheInterceptor(
@@ -128,7 +124,7 @@ void main() {
       );
       dio.interceptors.add(interceptor);
 
-      final etag = '"test-etag-12345"';
+      const etag = '"test-etag-12345"';
 
       // 1. Configure first response
       fakeAdapter.setResponse(
@@ -169,7 +165,6 @@ void main() {
 
     test('uses cached response on 304 Not Modified', () async {
       final config = CacheConfig(
-        inMemory: true,
         storePath: tempDir.path,
       );
       final interceptor = AcdcCacheInterceptor(
@@ -178,7 +173,7 @@ void main() {
       );
       dio.interceptors.add(interceptor);
 
-      final etag = '"test-etag-12345"';
+      const etag = '"test-etag-12345"';
 
       // 1. Configure first response with ETag
       fakeAdapter.setResponse(
@@ -213,11 +208,11 @@ void main() {
       expect(
           response.statusCode,
           equals(
-              200)); // Dio/Interceptor should resolve 304 to 200 with cached content
+              200,),); // Dio/Interceptor should resolve 304 to 200 with cached content
       expect(response.data['data'], equals('fresh'));
       expect(response.headers.value('x-acdc-from-cache'), equals('true'));
       expect(response.headers.value('if-none-match'),
-          isNull); // Client should NOT see if-none-match in response? No, request header.
+          isNull,); // Client should NOT see if-none-match in response? No, request header.
     });
   });
 }

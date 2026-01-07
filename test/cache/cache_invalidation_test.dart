@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:dart_acdc/src/cache/encrypted_cache_store.dart';
 import 'package:dio_cache_interceptor/dio_cache_interceptor.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -5,7 +7,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 import 'package:path/path.dart' as p;
-import 'dart:io';
 
 import 'cache_invalidation_test.mocks.dart';
 
@@ -184,4 +185,5 @@ CacheResponse _createCacheResponse({
       headers: [],
       lastModified: null,
       maxStale: null,
+      statusCode: 200,
     );

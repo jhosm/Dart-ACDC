@@ -14,8 +14,6 @@ class CacheConfig {
   /// - [ttl]: Cache entry time-to-live (default: 1 hour)
   /// - [maxSize]: Maximum cache size in bytes (default: 10 MB)
   /// - [cacheAuthenticatedRequests]: Whether to cache authenticated requests (default: true)
-  /// - [encrypted]: Enable cache encryption (default: false)
-  /// - [requireEncryption]: Disable caching if encryption unavailable (default: false)
   /// - [inMemory]: Enable in-memory cache layer (default: true)
   /// - [inMemoryMaxSize]: Maximum in-memory cache size in bytes (default: 5 MB)
   /// - [staleWhileRevalidate]: Serve stale cache while refreshing (default: false)

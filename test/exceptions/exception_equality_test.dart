@@ -13,7 +13,7 @@ void main() {
         message: 'Error message',
         statusCode: 400,
         requestUrl: 'https://api.example.com/test',
-        responseData: {'error': 'bad request'},
+        responseData: const {'error': 'bad request'},
       );
 
       final e2 = AcdcException(
@@ -21,7 +21,7 @@ void main() {
         message: 'Error message',
         statusCode: 400,
         requestUrl: 'https://api.example.com/test',
-        responseData: {'error': 'bad request'},
+        responseData: const {'error': 'bad request'},
       );
 
       expect(e1, equals(e2));
@@ -66,13 +66,13 @@ void main() {
       final e1 = AcdcException(
         requestOptions: requestOptions,
         message: 'Error',
-        responseData: {'key': 'value'},
+        responseData: const {'key': 'value'},
       );
 
       final e2 = AcdcException(
         requestOptions: requestOptions,
         message: 'Error',
-        responseData: {'key': 'value'},
+        responseData: const {'key': 'value'},
       );
 
       expect(e1, equals(e2));

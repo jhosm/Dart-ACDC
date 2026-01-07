@@ -1,10 +1,13 @@
 import 'package:dio/dio.dart';
 
+import 'package:meta/meta.dart';
+
 /// Base exception class for all Dart-ACDC exceptions.
 ///
 /// Extends [DioException] for backward compatibility while providing
 /// developer-friendly error categorization and messages.
 // ignore: overridden_fields
+@immutable
 class AcdcException extends DioException {
   /// Creates an ACDC exception.
   ///

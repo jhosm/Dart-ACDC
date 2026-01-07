@@ -12,6 +12,8 @@ import 'package:flutter/foundation.dart';
 ///
 /// This separation allows cache interceptor logic to remain platform-agnostic.
 class CacheStoreFactory {
+  CacheStoreFactory._();
+
   /// Builds the appropriate cache store based on configuration.
   ///
   /// Returns:

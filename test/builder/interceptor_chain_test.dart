@@ -37,36 +37,6 @@ class ExecutionTracker {
   void add(String event) {
     events.add(event);
   }
-
-  void clear() {
-    events.clear();
-  }
-}
-
-// Wraps existing interceptor to track execution
-class TrackingInterceptorWrapper extends Interceptor {
-  TrackingInterceptorWrapper(this._inner, this._name, this._tracker);
-  final Interceptor _inner;
-  final String _name;
-  final ExecutionTracker _tracker;
-
-  @override
-  void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
-    _tracker.add('$_name:onRequest');
-    _inner.onRequest(options, handler);
-  }
-
-  @override
-  void onResponse(Response response, ResponseInterceptorHandler handler) {
-    _tracker.add('$_name:onResponse');
-    _inner.onResponse(response, handler);
-  }
-
-  @override
-  void onError(DioException err, ErrorInterceptorHandler handler) {
-    _tracker.add('$_name:onError');
-    _inner.onError(err, handler);
-  }
 }
 
 void main() {
@@ -83,7 +53,7 @@ void main() {
             clientId: 'client',
           )
           .withLogLevel(LogLevel.info) // Enables LoggingInterceptor
-          .withCache(CacheConfig()) // Enables CacheInterceptor
+          .withCache(const CacheConfig()) // Enables CacheInterceptor
           .withInterceptor(
             InterceptorsWrapper(
               // Custom Interceptor
@@ -122,8 +92,6 @@ void main() {
 
       final interceptors = dio.interceptors;
       final types = interceptors.map((i) => i.runtimeType.toString()).toList();
-
-      print('Actual interceptor types: $types');
 
       // Check indices
       final loggingIndex =

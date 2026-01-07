@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:typed_data';
 
 import 'package:dart_acdc/src/cache/cache_config.dart';
 import 'package:dart_acdc/src/cache/cache_store_factory.dart';
@@ -13,7 +12,7 @@ class FakeHttpClientAdapter implements HttpClientAdapter {
   ResponseBody? nextResponse;
 
   void setResponse(String data, int statusCode,
-      {Map<String, List<String>>? headers}) {
+      {Map<String, List<String>>? headers,}) {
     nextResponse = ResponseBody.fromString(
       data,
       statusCode,
@@ -47,9 +46,7 @@ void main() {
   setUpAll(() {
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(secureStorageChannel,
-            (MethodCall methodCall) async {
-      return null;
-    });
+            (methodCall) async => null,);
   });
 
   group('AcdcCacheInterceptor Custom ValidateStatus', () {
@@ -73,7 +70,6 @@ void main() {
 
     test('handles 304 when validateStatus allows it', () async {
       final config = CacheConfig(
-        inMemory: true,
         storePath: tempDir.path,
       );
       final interceptor = AcdcCacheInterceptor(
@@ -83,12 +79,10 @@ void main() {
       dio.interceptors.add(interceptor);
 
       // Allow 304 as specific success status
-      dio.options.validateStatus = (status) {
-        return status != null &&
+      dio.options.validateStatus = (status) => status != null &&
             (status >= 200 && status < 300 || status == 304);
-      };
 
-      final etag = '"test-etag-12345"';
+      const etag = '"test-etag-12345"';
 
       // 1. Initial request to populate cache
       fakeAdapter.setResponse(
@@ -117,9 +111,9 @@ void main() {
 
       // 4. Verification
       expect(response.statusCode, equals(200),
-          reason: 'Should resolve 304 to 200 with cached content');
+          reason: 'Should resolve 304 to 200 with cached content',);
       expect(response.data['data'], equals('fresh'),
-          reason: 'Should return cached data');
+          reason: 'Should return cached data',);
       expect(response.headers.value('x-acdc-from-cache'), equals('true'));
     });
   });

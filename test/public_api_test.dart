@@ -1,9 +1,9 @@
 import 'package:dart_acdc/dart_acdc.dart';
+import 'package:dart_acdc/src/interceptors/cache_interceptor.dart';
+import 'package:dart_acdc/src/interceptors/error_interceptor.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:dart_acdc/src/interceptors/cache_interceptor.dart';
-import 'package:dart_acdc/src/interceptors/error_interceptor.dart';
 
 import 'helpers/fake_token_provider.dart';
 
@@ -11,8 +11,11 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   setUp(() {
-    const MethodChannel('plugins.it_nomads.com/flutter_secure_storage')
-        .setMockMethodCallHandler((call) async => null);
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(
+      const MethodChannel('plugins.it_nomads.com/flutter_secure_storage'),
+      (call) async => null,
+    );
   });
 
   group('Public API Exports', () {
@@ -148,8 +151,8 @@ void main() {
         // Custom logger
       }).withCache(
         const CacheConfig(
-          encrypted: true,
-        ),
+            // encrypted: true, // Removed as it is not in CacheConfig
+            ),
       );
 
       final dio = await builder.build();
@@ -228,7 +231,7 @@ void main() {
           .withCache(
             const CacheConfig(
               ttl: Duration(hours: 2),
-              encrypted: true,
+              // encrypted: true,
               staleWhileRevalidate: true,
             ),
           )

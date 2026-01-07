@@ -146,11 +146,7 @@ class EncryptedCacheStore implements CacheStore {
   }
 
   @override
-  Future<void> close() async {
-    // Wait for init if it's pending, though if we close before init finishes it's awkward
-    // Just close the file store if it exists
-    return _fileStore?.close();
-  }
+  Future<void> close() async => _fileStore?.close();
 
   @override
   Future<void> delete(String key, {bool staleOnly = false}) async {
@@ -204,7 +200,7 @@ class EncryptedCacheStore implements CacheStore {
       final decrypted = _encrypter!.decryptBytes(encrypted, iv: iv);
 
       return response.copyWith(content: decrypted);
-    } catch (e) {
+    } on Exception catch (e) {
       // Decryption failed - treat as cache miss and delete corrupted entry
       await delete(key);
       return null;
@@ -237,7 +233,7 @@ class EncryptedCacheStore implements CacheStore {
 
         final decrypted = _encrypter!.decryptBytes(encrypted, iv: iv);
         decryptedResponses.add(response.copyWith(content: decrypted));
-      } catch (e) {
+      } on Exception catch (e) {
         // Skip corrupted entries
         await delete(response.key);
       }
@@ -290,10 +286,10 @@ class EncryptedCacheStore implements CacheStore {
   /// Combines IV and ciphertext into a single byte array.
   /// Format: [IV Length (1 byte)] [IV bytes] [Ciphertext bytes]
   Uint8List _serializeContent(Uint8List iv, Uint8List ciphertext) {
-    final bb = BytesBuilder();
-    bb.addByte(iv.length);
-    bb.add(iv);
-    bb.add(ciphertext);
+    final bb = BytesBuilder()
+      ..addByte(iv.length)
+      ..add(iv)
+      ..add(ciphertext);
     return bb.toBytes();
   }
 

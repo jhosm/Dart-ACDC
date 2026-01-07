@@ -1,4 +1,6 @@
 import 'package:dart_acdc/src/cache/cache_config.dart';
+import 'package:dart_acdc/src/cache/cache_store_factory.dart'
+    show CacheStoreFactory;
 import 'package:dart_acdc/src/cache/jwt_utils.dart';
 import 'package:dart_acdc/src/exceptions/acdc_network_exception.dart';
 import 'package:dio/dio.dart';
@@ -23,7 +25,7 @@ import 'package:dio_cache_interceptor/dio_cache_interceptor.dart';
 class AcdcCacheInterceptor extends Interceptor {
   /// Creates a cache interceptor from configuration and cache store.
   ///
-  /// The [store] parameter should be created using [CacheStoreFactory.build]
+  /// The [store] parameter should be created using [CacheStoreFactory]
   /// which handles platform-specific store creation:
   /// - Uses in-memory cache with configured size limits
   /// - Optionally encrypts cache with platform secure storage
@@ -37,7 +39,6 @@ class AcdcCacheInterceptor extends Interceptor {
     required CacheConfig config,
     required CacheStore store,
   }) : _config = config {
-
     _cacheOptions = CacheOptions(
       store: store,
       policy: config.staleWhileRevalidate
@@ -48,8 +49,17 @@ class AcdcCacheInterceptor extends Interceptor {
       keyBuilder: ({required url, headers, body}) {
         // Build base key using custom builder or default
         final baseKey = config.keyBuilder != null
-            ? config.keyBuilder!(RequestOptions(path: url.toString(), headers: headers))
-            : CacheOptions.defaultCacheKeyBuilder(url: url, headers: headers, body: body);
+            ? config.keyBuilder!(
+                RequestOptions(
+                  path: url.toString(),
+                  headers: headers,
+                ),
+              )
+            : CacheOptions.defaultCacheKeyBuilder(
+                url: url,
+                headers: headers,
+                body: body,
+              );
 
         // Add user isolation suffix if user ID header is present
         final userId = headers?['X-ACDC-User-Id'];
@@ -71,8 +81,17 @@ class AcdcCacheInterceptor extends Interceptor {
         keyBuilder: ({required url, headers, body}) {
           // Build base key using custom builder or default
           final baseKey = config.keyBuilder != null
-              ? config.keyBuilder!(RequestOptions(path: url.toString(), headers: headers))
-              : CacheOptions.defaultCacheKeyBuilder(url: url, headers: headers, body: body);
+              ? config.keyBuilder!(
+                  RequestOptions(
+                    path: url.toString(),
+                    headers: headers,
+                  ),
+                )
+              : CacheOptions.defaultCacheKeyBuilder(
+                  url: url,
+                  headers: headers,
+                  body: body,
+                );
 
           // Add user isolation suffix if user ID header is present
           final userId = headers?['X-ACDC-User-Id'];
@@ -109,7 +128,8 @@ class AcdcCacheInterceptor extends Interceptor {
     final baseKey = customKeyBuilder?.call(options) ??
         CacheOptions.defaultCacheKeyBuilder(
           url: Uri.parse(options.uri.toString()),
-          headers: options.headers.map((key, value) => MapEntry(key, value.toString())),
+          headers: options.headers
+              .map((key, value) => MapEntry(key, value.toString())),
           body: options.data,
         );
 
