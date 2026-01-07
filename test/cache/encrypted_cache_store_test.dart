@@ -246,4 +246,5 @@ CacheResponse _createCacheResponse({
       priority: CachePriority.normal,
       requestDate: DateTime.now(),
       responseDate: DateTime.now(),
+      statusCode: 200,
     );
