@@ -14,15 +14,12 @@ class SecureTokenProvider implements TokenProvider {
   /// [storage] can be provided for testing or custom configuration.
   /// If not provided, a default [FlutterSecureStorage] instance is used with
   /// secure defaults:
-  /// - Android: EncryptedSharedPreferences enabled
+  /// - Android: EncryptedSharedPreferences enabled (default in v10+)
   /// - iOS: Keychain accessible after first unlock
   const SecureTokenProvider({
     FlutterSecureStorage? storage,
   }) : _storage = storage ??
             const FlutterSecureStorage(
-              aOptions: AndroidOptions(
-                encryptedSharedPreferences: true,
-              ),
               iOptions: IOSOptions(
                 accessibility: KeychainAccessibility.first_unlock,
               ),

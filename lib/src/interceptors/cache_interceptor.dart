@@ -44,11 +44,20 @@ class AcdcCacheInterceptor extends Interceptor {
           ? CachePolicy.refreshForceCache
           : CachePolicy.request,
       maxStale: config.staleIfError ? const Duration(days: 7) : null,
-      hitCacheOnErrorExcept: config.staleIfError ? [] : [401, 403],
-      keyBuilder: (request) => buildCacheKeyWithUserIsolation(
-        request,
-        customKeyBuilder: config.keyBuilder,
-      ),
+      hitCacheOnErrorCodes: config.staleIfError ? [401, 403] : [],
+      keyBuilder: ({required url, headers, body}) {
+        // Build base key using custom builder or default
+        final baseKey = config.keyBuilder != null
+            ? config.keyBuilder!(RequestOptions(path: url.toString(), headers: headers))
+            : CacheOptions.defaultCacheKeyBuilder(url: url, headers: headers, body: body);
+
+        // Add user isolation suffix if user ID header is present
+        final userId = headers?['X-ACDC-User-Id'];
+        if (userId != null && userId.isNotEmpty) {
+          return '$baseKey:$userId';
+        }
+        return baseKey;
+      },
     );
 
     _dioCacheInterceptor = DioCacheInterceptor(
@@ -58,11 +67,20 @@ class AcdcCacheInterceptor extends Interceptor {
             ? CachePolicy.refreshForceCache
             : CachePolicy.request,
         maxStale: config.staleIfError ? const Duration(days: 7) : null,
-        hitCacheOnErrorExcept: config.staleIfError ? [] : [401, 403],
-        keyBuilder: (request) => buildCacheKeyWithUserIsolation(
-          request,
-          customKeyBuilder: config.keyBuilder,
-        ),
+        hitCacheOnErrorCodes: config.staleIfError ? [401, 403] : [],
+        keyBuilder: ({required url, headers, body}) {
+          // Build base key using custom builder or default
+          final baseKey = config.keyBuilder != null
+              ? config.keyBuilder!(RequestOptions(path: url.toString(), headers: headers))
+              : CacheOptions.defaultCacheKeyBuilder(url: url, headers: headers, body: body);
+
+          // Add user isolation suffix if user ID header is present
+          final userId = headers?['X-ACDC-User-Id'];
+          if (userId != null && userId.isNotEmpty) {
+            return '$baseKey:$userId';
+          }
+          return baseKey;
+        },
       ),
     );
   }
@@ -74,12 +92,12 @@ class AcdcCacheInterceptor extends Interceptor {
   /// Builds a cache key with user isolation.
   ///
   /// Returns:
-  /// - Unauthenticated: Standard key `{method}:{url}` (shared cache)
-  /// - Authenticated with user ID: `{method}:{url}:{userId}` (user-isolated)
+  /// - Unauthenticated: Standard key (shared cache)
+  /// - Authenticated with user ID: `{baseKey}:{userId}` (user-isolated)
   /// - Authenticated without user ID: Empty string (no caching)
   ///
-  /// The user ID is stored in `options.extra['_acdc_user_id']` by onRequest.
-  /// The auth flag is stored in `options.extra['_acdc_has_auth']`.
+  /// The user ID is read from `X-ACDC-User-Id` header (normal flow)
+  /// or from `options.extra['_acdc_user_id']` (testing/backward compat).
   ///
   /// This method is public to enable testing but should not be called directly
   /// by library users.
@@ -87,26 +105,36 @@ class AcdcCacheInterceptor extends Interceptor {
     RequestOptions options, {
     String Function(RequestOptions)? customKeyBuilder,
   }) {
-    final userId = options.extra['_acdc_user_id'] as String?;
-    final hasAuth = options.extra['_acdc_has_auth'] as bool? ?? false;
-
     // Build base cache key
     final baseKey = customKeyBuilder?.call(options) ??
-        CacheOptions.defaultCacheKeyBuilder(options);
+        CacheOptions.defaultCacheKeyBuilder(
+          url: Uri.parse(options.uri.toString()),
+          headers: options.headers.map((key, value) => MapEntry(key, value.toString())),
+          body: options.data,
+        );
 
-    if (!hasAuth) {
-      // Unauthenticated request - use standard shared cache
+    // Check for user ID in header first, then fall back to extra for backward compat
+    final userId = options.headers['X-ACDC-User-Id']?.toString() ??
+        options.extra['_acdc_user_id'] as String?;
+    final hasAuth = options.extra['_acdc_has_auth'] as bool? ?? false;
+
+    if (!hasAuth && userId == null) {
+      // No auth - unauthenticated, use shared cache
       return baseKey;
     }
 
-    if (userId == null || userId.isEmpty) {
+    if (hasAuth && (userId == null || userId.isEmpty)) {
       // Authenticated but no user ID - disable caching for security
-      // dio_cache_interceptor treats empty keys as non-cacheable
       return '';
     }
 
-    // Authenticated with user ID - use user-isolated cache
-    return '$baseKey:$userId';
+    if (userId != null && userId.isNotEmpty) {
+      // Authenticated with user ID - use user-isolated cache
+      return '$baseKey:$userId';
+    }
+
+    // Default: use shared cache
+    return baseKey;
   }
 
   @override
@@ -124,16 +152,17 @@ class AcdcCacheInterceptor extends Interceptor {
     );
   }
 
-  /// Extracts user ID from Authorization header and stores it in request extras.
+  /// Extracts user ID from Authorization header and stores it.
   ///
-  /// Sets two flags in options.extra:
-  /// - `_acdc_has_auth`: true if Authorization header is present
-  /// - `_acdc_user_id`: extracted user ID (if available)
+  /// Stores the user ID in:
+  /// - `X-ACDC-User-Id` header (used by cache keyBuilder)
+  /// - `options.extra['_acdc_user_id']` (for backward compatibility/testing)
+  /// - `options.extra['_acdc_has_auth']` (auth presence flag)
   ///
   /// This enables proper cache key generation:
   /// - No auth → shared cache
-  /// - Auth + user ID → user-isolated cache
-  /// - Auth but no user ID → no caching (security)
+  /// - Auth + user ID → user-isolated cache (key includes user ID)
+  /// - Auth but no user ID → no caching (empty key)
   Future<void> _extractAndStoreUserId(RequestOptions options) async {
     // Get Authorization header
     final authHeader = options.headers['Authorization']?.toString();
@@ -149,7 +178,8 @@ class AcdcCacheInterceptor extends Interceptor {
     // Extract token from "Bearer {token}" format
     final token = _extractToken(authHeader);
     if (token == null || token.isEmpty) {
-      // Has auth header but no token - no user ID
+      // Has auth header but no token - disable caching
+      options.headers['X-ACDC-User-Id'] = '';
       return;
     }
 
@@ -158,6 +188,7 @@ class AcdcCacheInterceptor extends Interceptor {
       try {
         final userId = await _config.userIdProvider!(token);
         if (userId != null && userId.isNotEmpty) {
+          options.headers['X-ACDC-User-Id'] = userId;
           options.extra['_acdc_user_id'] = userId;
           return;
         }
@@ -169,9 +200,12 @@ class AcdcCacheInterceptor extends Interceptor {
     // Extract user ID from JWT
     final userId = JwtUtils.extractUserId(token);
     if (userId != null && userId.isNotEmpty) {
+      options.headers['X-ACDC-User-Id'] = userId;
       options.extra['_acdc_user_id'] = userId;
+    } else {
+      // Auth present but no user ID - disable caching for security
+      options.headers['X-ACDC-User-Id'] = '';
     }
-    // If no user ID found but has auth, caching will be disabled (security)
   }
 
   /// Extracts the token from Authorization header.
@@ -240,8 +274,8 @@ class AcdcCacheInterceptor extends Interceptor {
   /// - response.extra['fromOfflineCache'] flag (set in onError for offline scenarios)
   void _addCacheMetadata(Response<dynamic> response) {
     // Check if response came from cache
-    // dio_cache_interceptor adds CacheResponse.cacheKey to extra when serving from cache
-    final fromCache = response.extra[CacheResponse.cacheKey] != null;
+    // dio_cache_interceptor adds extraCacheKey to extra when serving from cache
+    final fromCache = response.extra[extraCacheKey] != null;
 
     if (fromCache) {
       // Add X-ACDC-From-Cache header
@@ -309,7 +343,7 @@ class AcdcCacheInterceptor extends Interceptor {
   /// Clears cached entries for a specific URL.
   Future<void> clearCacheForUrl(String url) async {
     final key = CacheOptions.defaultCacheKeyBuilder(
-      RequestOptions(path: url),
+      url: Uri.parse(url),
     );
     await _cacheOptions.store?.delete(key);
   }
