@@ -2,7 +2,7 @@ import 'package:dart_acdc/dart_acdc.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
-import 'package:talker_flutter/talker_flutter.dart';
+import 'package:talker_flutter/talker_flutter.dart' as talker_pkg;
 // ignore: avoid_web_libraries_in_flutter
 // ignore: avoid_web_libraries_in_flutter
 import 'package:web/web.dart' as web;
@@ -44,7 +44,7 @@ class _MyHomePageState extends State<MyHomePage> {
   // Dependencies
   final SecureTokenProvider _tokenProvider = const SecureTokenProvider();
   final TextEditingController _clientIdController = TextEditingController();
-  final Talker _talker = TalkerFlutter.init();
+  final talker_pkg.Talker _talker = talker_pkg.TalkerFlutter.init();
 
   late Dio _dio;
 
@@ -393,7 +393,7 @@ class _MyHomePageState extends State<MyHomePage> {
             tooltip: 'Open Talker Logs',
             onPressed: () => Navigator.of(context).push(
               MaterialPageRoute(
-                builder: (context) => TalkerScreen(talker: _talker),
+                builder: (context) => talker_pkg.TalkerScreen(talker: _talker),
               ),
             ),
           ),

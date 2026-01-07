@@ -1,9 +1,9 @@
 import 'package:dart_acdc/dart_acdc.dart';
-import 'package:talker_flutter/talker_flutter.dart';
+import 'package:talker_flutter/talker_flutter.dart' as talker_pkg;
 
 /// Integrates dart_acdc logging with Talker.
 class TalkerLogDelegate implements AcdcLogDelegate {
-  final Talker talker;
+  final talker_pkg.Talker talker;
 
   TalkerLogDelegate(this.talker);
 
@@ -17,31 +17,39 @@ class TalkerLogDelegate implements AcdcLogDelegate {
   }
 
   // Map Acdc LogLevel to Talker LogLevel
-  // Note: We use fully qualified names or explicit checks to avoid collisions
-  // if imports were conflicting, but here we map manually.
-  talker_flutter.LogLevel _mapLevel(LogLevel level) {
+  talker_pkg.LogLevel _mapLevel(LogLevel level) {
     switch (level) {
       case LogLevel.debug:
-        return talker_flutter.LogLevel.debug;
+        return talker_pkg.LogLevel.debug;
       case LogLevel.info:
-        return talker_flutter.LogLevel.info;
+        return talker_pkg.LogLevel.info;
       case LogLevel.warning:
-        return talker_flutter.LogLevel.warning;
+        return talker_pkg.LogLevel.warning;
       case LogLevel.error:
-        return talker_flutter.LogLevel.error;
+        return talker_pkg.LogLevel.error;
       case LogLevel.none:
-        return talker_flutter.LogLevel.verbose;
+        return talker_pkg.LogLevel.verbose;
     }
   }
 }
 
 /// Custom Talker log for ACDC events
-class AcdcTalkerLog extends TalkerLog {
-  AcdcTalkerLog(String message, {super.data, super.logLevel}) : super(message);
+class AcdcTalkerLog extends talker_pkg.TalkerLog {
+  final Map<String, dynamic>? data;
+
+  AcdcTalkerLog(String message, {this.data, super.logLevel}) : super(message);
 
   @override
   String get title => 'ACDC';
 
   @override
-  AnsiPen get pen => AnsiPen()..cyan();
+  String? get message {
+    if (data != null && data!.isNotEmpty) {
+      return '${super.message ?? ''}\nData: $data';
+    }
+    return super.message;
+  }
+
+  @override
+  talker_pkg.AnsiPen get pen => talker_pkg.AnsiPen()..cyan();
 }
