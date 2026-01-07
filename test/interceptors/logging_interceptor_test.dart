@@ -1,4 +1,5 @@
 import 'package:dart_acdc/src/interceptors/logging_interceptor.dart';
+import 'package:dart_acdc/src/logging/acdc_log_delegate.dart';
 import 'package:dart_acdc/src/logging/log_level.dart';
 import 'package:dio/dio.dart';
 import 'package:test/test.dart';
@@ -11,11 +12,9 @@ void main() {
     setUp(() {
       logs = [];
       interceptor = LoggingInterceptor(
-        logger: (message, level, metadata) {
-          if (metadata != null) {
-            logs.add(metadata);
-          }
-        },
+        logDelegate: _MockLogDelegate((message, level, metadata) {
+          logs.add(metadata);
+        }),
         sensitiveFields: ['password', 'token', 'secret', 'authorization'],
       );
     });
@@ -93,9 +92,9 @@ void main() {
   group('LoggingInterceptor Resilience', () {
     test('proceeds when logger throws exception', () {
       final interceptor = LoggingInterceptor(
-        logger: (message, level, metadata) {
+        logDelegate: _MockLogDelegate((message, level, metadata) {
           throw Exception('Logger failed');
-        },
+        }),
       );
 
       final options = RequestOptions(path: '/test');
@@ -116,7 +115,7 @@ void main() {
       late LoggingInterceptor interceptor;
 
       interceptor = LoggingInterceptor(
-        logger: (message, level, metadata) {
+        logDelegate: _MockLogDelegate((message, level, metadata) {
           logCount++;
           // Simulate circular dependency by trying to log again
           if (logCount == 1) {
@@ -125,7 +124,7 @@ void main() {
             final nestedOptions = RequestOptions(path: '/nested');
             interceptor.onRequest(nestedOptions, _FakeRequestHandler());
           }
-        },
+        }),
       );
 
       final options = RequestOptions(path: '/test');
@@ -137,9 +136,9 @@ void main() {
 
     test('handles logger exception in onResponse', () {
       final interceptor = LoggingInterceptor(
-        logger: (message, level, metadata) {
+        logDelegate: _MockLogDelegate((message, level, metadata) {
           throw Exception('Response logger failed');
-        },
+        }),
       );
 
       final options = RequestOptions(path: '/test');
@@ -165,9 +164,9 @@ void main() {
 
     test('handles logger exception in onError', () {
       final interceptor = LoggingInterceptor(
-        logger: (message, level, metadata) {
+        logDelegate: _MockLogDelegate((message, level, metadata) {
           throw Exception('Error logger failed');
-        },
+        }),
       );
 
       final options = RequestOptions(path: '/test');
@@ -190,9 +189,9 @@ void main() {
 
     test('handles exception during body redaction', () {
       final interceptor = LoggingInterceptor(
-        logger: (message, level, metadata) {
+        logDelegate: _MockLogDelegate((message, level, metadata) {
           // Logger is called, just capture it
-        },
+        }),
       );
 
       // Create data that might cause issues during serialization
@@ -216,11 +215,11 @@ void main() {
     setUp(() {
       logs = [];
       interceptor = LoggingInterceptor(
-        logger: (message, level, metadata) {
+        logDelegate: _MockLogDelegate((message, level, metadata) {
           if (metadata != null && metadata['type'] == 'slow_request') {
             logs.add(metadata);
           }
-        },
+        }),
         slowRequestThreshold: const Duration(milliseconds: 100),
       );
     });
@@ -265,11 +264,11 @@ void main() {
     test('logs warning for large request payload', () {
       logs = [];
       final interceptor = LoggingInterceptor(
-        logger: (message, level, metadata) {
+        logDelegate: _MockLogDelegate((message, level, metadata) {
           if (metadata != null && metadata['type'] == 'large_payload') {
             logs.add(metadata);
           }
-        },
+        }),
         largePayloadThreshold: 100, // 100 bytes threshold
       );
 
@@ -288,11 +287,11 @@ void main() {
     test('logs warning for large response payload', () {
       logs = [];
       final interceptor = LoggingInterceptor(
-        logger: (message, level, metadata) {
+        logDelegate: _MockLogDelegate((message, level, metadata) {
           if (metadata != null && metadata['type'] == 'large_payload') {
             logs.add(metadata);
           }
-        },
+        }),
         largePayloadThreshold: 100, // 100 bytes threshold
       );
 
@@ -323,11 +322,11 @@ void main() {
     setUp(() {
       logs = [];
       interceptor = LoggingInterceptor(
-        logger: (message, level, metadata) {
+        logDelegate: _MockLogDelegate((message, level, metadata) {
           if (metadata != null && metadata['type'] == 'error') {
             logs.add(metadata);
           }
-        },
+        }),
       );
     });
 
@@ -371,9 +370,9 @@ void main() {
 
       var capturedLevel = LogLevel.info;
       LoggingInterceptor(
-        logger: (message, level, metadata) {
+        logDelegate: _MockLogDelegate((message, level, metadata) {
           capturedLevel = level;
-        },
+        }),
       ).onError(err, _FakeErrorHandler());
 
       expect(capturedLevel, LogLevel.warning);
@@ -393,9 +392,9 @@ void main() {
 
       var capturedLevel = LogLevel.info;
       LoggingInterceptor(
-        logger: (message, level, metadata) {
+        logDelegate: _MockLogDelegate((message, level, metadata) {
           capturedLevel = level;
-        },
+        }),
       ).onError(err, _FakeErrorHandler());
 
       expect(capturedLevel, LogLevel.error);
@@ -410,14 +409,22 @@ void main() {
 
       var capturedLevel = LogLevel.error;
       LoggingInterceptor(
-        logger: (message, level, metadata) {
+        logDelegate: _MockLogDelegate((message, level, metadata) {
           capturedLevel = level;
-        },
+        }),
       ).onError(err, _FakeErrorHandler());
 
       expect(capturedLevel, LogLevel.info);
     });
   });
+}
+
+class _MockLogDelegate implements AcdcLogDelegate {
+  final void Function(String, LogLevel, Map<String, dynamic>) onLog;
+  _MockLogDelegate(this.onLog);
+  @override
+  void log(String message, LogLevel level, Map<String, dynamic> metadata) =>
+      onLog(message, level, metadata);
 }
 
 class _FakeRequestHandler extends RequestInterceptorHandler {

@@ -43,6 +43,7 @@ dependencies:
   openapi:
     path: ./lib/api_client
   web: ^1.0.0
+  talker_flutter: ^5.1.9
 
 dev_dependencies:
   flutter_test:

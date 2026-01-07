@@ -15,22 +15,16 @@ void main() {
       logs = [];
 
       // Define custom logger
-      void customLogger(
-        String message,
-        LogLevel level,
-        Map<String, dynamic>? metadata,
-      ) {
-        logs.add('[$level] $message');
-        if (metadata != null && metadata.isNotEmpty) {
-          logs.add('Metadata: $metadata');
-        }
-      }
-
       // Build client with custom logger
       dio = await const AcdcClientBuilder()
           .withBaseUrl('https://api.example.com')
           .withTokenProvider(FakeTokenProvider())
-          .withLogger(customLogger)
+          .withLogDelegate(_CustomLogDelegate((message, level, metadata) {
+            logs.add('[$level] $message');
+            if (metadata != null && metadata.isNotEmpty) {
+              logs.add('Metadata: $metadata');
+            }
+          }))
           .withLogLevel(LogLevel.info)
           .disableCache()
           .build();
@@ -89,4 +83,12 @@ void main() {
       );
     });
   });
+}
+
+class _CustomLogDelegate implements AcdcLogDelegate {
+  final void Function(String, LogLevel, Map<String, dynamic>?) onLog;
+  _CustomLogDelegate(this.onLog);
+  @override
+  void log(String message, LogLevel level, Map<String, dynamic> metadata) =>
+      onLog(message, level, metadata);
 }

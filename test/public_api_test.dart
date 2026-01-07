@@ -95,16 +95,8 @@ void main() {
       expect(LogLevel.none, isNotNull);
     });
 
-    test('AcdcLogger typedef is exported', () {
-      // Type check that AcdcLogger function signature is correct
-      void logger(
-        message,
-        level,
-        metadata,
-      ) {
-        // Mock logger
-      }
-      expect(logger, isNotNull);
+    test('AcdcLogDelegate interface is exported', () {
+      expect(AcdcLogDelegate, isNotNull);
     });
 
     test(
@@ -147,13 +139,12 @@ void main() {
             clientId: 'test-client',
           )
           .withLogLevel(LogLevel.debug)
-          .withLogger((message, level, metadata) {
-        // Custom logger
-      }).withCache(
-        const CacheConfig(
-            // encrypted: true, // Removed as it is not in CacheConfig
-            ),
-      );
+          .withLogDelegate(_MockLogDelegate())
+          .withCache(
+            const CacheConfig(
+                // encrypted: true, // Removed as it is not in CacheConfig
+                ),
+          );
 
       final dio = await builder.build();
       expect(dio, isA<Dio>());
@@ -241,4 +232,9 @@ void main() {
       expect(dio.options.connectTimeout, const Duration(seconds: 45));
     });
   });
+}
+
+class _MockLogDelegate implements AcdcLogDelegate {
+  @override
+  void log(String message, LogLevel level, Map<String, dynamic> metadata) {}
 }

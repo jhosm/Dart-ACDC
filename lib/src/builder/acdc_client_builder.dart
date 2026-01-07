@@ -9,7 +9,7 @@ import 'package:dart_acdc/src/interceptors/auth_interceptor.dart';
 import 'package:dart_acdc/src/interceptors/cache_interceptor.dart';
 import 'package:dart_acdc/src/interceptors/error_interceptor.dart';
 import 'package:dart_acdc/src/interceptors/logging_interceptor.dart';
-import 'package:dart_acdc/src/logging/acdc_logger.dart';
+import 'package:dart_acdc/src/logging/acdc_log_delegate.dart';
 import 'package:dart_acdc/src/logging/log_level.dart';
 import 'package:dio/dio.dart';
 
@@ -38,7 +38,7 @@ class AcdcClientBuilder {
     String? tokenRevocationEndpoint,
     Duration? tokenRefreshThreshold,
     LogLevel? logLevel,
-    AcdcLogger? logger,
+    AcdcLogDelegate? logDelegate,
     List<dynamic>? sensitiveFields,
     Duration? slowRequestThreshold,
     int? largePayloadThreshold,
@@ -59,7 +59,7 @@ class AcdcClientBuilder {
         _tokenRevocationEndpoint = tokenRevocationEndpoint,
         _tokenRefreshThreshold = tokenRefreshThreshold,
         _logLevel = logLevel,
-        _logger = logger,
+        _logDelegate = logDelegate,
         _sensitiveFields = sensitiveFields,
         _slowRequestThreshold = slowRequestThreshold,
         _largePayloadThreshold = largePayloadThreshold,
@@ -81,7 +81,7 @@ class AcdcClientBuilder {
   final String? _tokenRevocationEndpoint;
   final Duration? _tokenRefreshThreshold;
   final LogLevel? _logLevel;
-  final AcdcLogger? _logger;
+  final AcdcLogDelegate? _logDelegate;
   final List<dynamic>? _sensitiveFields;
   final Duration? _slowRequestThreshold;
   final int? _largePayloadThreshold;
@@ -192,20 +192,11 @@ class AcdcClientBuilder {
   /// Defaults to [LogLevel.info] for production builds.
   AcdcClientBuilder withLogLevel(LogLevel level) => _copyWith(logLevel: level);
 
-  /// Configures a custom logger function.
+  /// Configures a custom log delegate.
   ///
-  /// Allows integrating with custom logging systems (e.g., Firebase Crashlytics).
-  ///
-  /// Example:
-  /// ```dart
-  /// builder.withLogger((message, level, metadata) {
-  ///   print('[$level] $message');
-  ///   if (metadata != null) {
-  ///     print('  Metadata: $metadata');
-  ///   }
-  /// })
-  /// ```
-  AcdcClientBuilder withLogger(AcdcLogger logger) => _copyWith(logger: logger);
+  /// Allows integrating with custom logging systems via [AcdcLogDelegate].
+  AcdcClientBuilder withLogDelegate(AcdcLogDelegate delegate) =>
+      _copyWith(logDelegate: delegate);
 
   /// Configures sensitive fields to redact from logs.
   ///
@@ -331,7 +322,7 @@ class AcdcClientBuilder {
     String? tokenRevocationEndpoint,
     Duration? tokenRefreshThreshold,
     LogLevel? logLevel,
-    AcdcLogger? logger,
+    AcdcLogDelegate? logDelegate,
     List<dynamic>? sensitiveFields,
     Duration? slowRequestThreshold,
     int? largePayloadThreshold,
@@ -356,7 +347,7 @@ class AcdcClientBuilder {
             tokenRevocationEndpoint ?? _tokenRevocationEndpoint,
         tokenRefreshThreshold: tokenRefreshThreshold ?? _tokenRefreshThreshold,
         logLevel: logLevel ?? _logLevel,
-        logger: logger ?? _logger,
+        logDelegate: logDelegate ?? _logDelegate,
         sensitiveFields: sensitiveFields ?? _sensitiveFields,
         slowRequestThreshold: slowRequestThreshold ?? _slowRequestThreshold,
         largePayloadThreshold: largePayloadThreshold ?? _largePayloadThreshold,
@@ -482,7 +473,7 @@ class AcdcClientBuilder {
       dio.interceptors.add(
         LoggingInterceptor(
           level: logLevel,
-          logger: _logger,
+          logDelegate: _logDelegate,
         ),
       );
     }

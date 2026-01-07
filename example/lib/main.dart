@@ -2,10 +2,12 @@ import 'package:dart_acdc/dart_acdc.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:talker_flutter/talker_flutter.dart';
 // ignore: avoid_web_libraries_in_flutter
 // ignore: avoid_web_libraries_in_flutter
 import 'package:web/web.dart' as web;
 import 'google_tasks_auth_helper.dart';
+import 'logging/talker_log_delegate.dart';
 
 const String kRedirectUrl = 'dartacdc://callback';
 
@@ -42,6 +44,7 @@ class _MyHomePageState extends State<MyHomePage> {
   // Dependencies
   final SecureTokenProvider _tokenProvider = const SecureTokenProvider();
   final TextEditingController _clientIdController = TextEditingController();
+  final Talker _talker = TalkerFlutter.init();
 
   late Dio _dio;
 
@@ -122,9 +125,17 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   Future<void> _initializeClient() async {
+    // Demonstrate Composite Delegate: Talker + Local UI Log
+    final compositeDelegate = _CompositeLogDelegate([
+      // 1. Delegate to Talker
+      TalkerLogDelegate(_talker),
+      // 2. Delegate to local UI via callback wrapper
+      _CallbackLogDelegate(_addLog),
+    ]);
+
     _dio = await AcdcClientBuilder()
         .withBaseUrl('https://tasks.googleapis.com/tasks/v1')
-        .withLogger(_addLog)
+        .withLogDelegate(compositeDelegate)
         .withLogLevel(_logLevel)
         .withTokenProvider(_tokenProvider)
         .withCache(
@@ -377,6 +388,15 @@ class _MyHomePageState extends State<MyHomePage> {
       appBar: AppBar(
         title: Text(widget.title),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.bug_report),
+            tooltip: 'Open Talker Logs',
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (context) => TalkerScreen(talker: _talker),
+              ),
+            ),
+          ),
           IconButton(
             icon: const Icon(Icons.refresh),
             tooltip: 'Re-initialize Client',
@@ -654,5 +674,27 @@ class _MyHomePageState extends State<MyHomePage> {
         ],
       ),
     );
+  }
+}
+
+class _CompositeLogDelegate implements AcdcLogDelegate {
+  final List<AcdcLogDelegate> delegates;
+  _CompositeLogDelegate(this.delegates);
+
+  @override
+  void log(String message, LogLevel level, Map<String, dynamic> metadata) {
+    for (final delegate in delegates) {
+      delegate.log(message, level, metadata);
+    }
+  }
+}
+
+class _CallbackLogDelegate implements AcdcLogDelegate {
+  final void Function(String, LogLevel, Map<String, dynamic>?) callback;
+  _CallbackLogDelegate(this.callback);
+
+  @override
+  void log(String message, LogLevel level, Map<String, dynamic> metadata) {
+    callback(message, level, metadata);
   }
 }

@@ -5,6 +5,7 @@ import 'package:dart_acdc/src/cache/cache_config.dart';
 import 'package:dart_acdc/src/interceptors/auth_interceptor.dart';
 import 'package:dart_acdc/src/interceptors/cache_interceptor.dart';
 import 'package:dart_acdc/src/interceptors/error_interceptor.dart';
+import 'package:dart_acdc/src/logging/acdc_log_delegate.dart';
 import 'package:dart_acdc/src/logging/log_level.dart';
 import 'package:dio/dio.dart';
 import 'package:test/test.dart';
@@ -287,11 +288,9 @@ void main() {
         expect(builder, isA<AcdcClientBuilder>());
       });
 
-      test('withLogger creates builder with custom logger', () {
+      test('withLogDelegate creates builder with custom log delegate', () {
         final builder =
-            const AcdcClientBuilder().withLogger((message, level, metadata) {
-          // Custom logger implementation
-        });
+            const AcdcClientBuilder().withLogDelegate(_MockLogDelegate());
 
         expect(builder, isA<AcdcClientBuilder>());
       });
@@ -608,4 +607,9 @@ void main() {
       expect(config.userIdProvider, isNotNull);
     });
   });
+}
+
+class _MockLogDelegate implements AcdcLogDelegate {
+  @override
+  void log(String message, LogLevel level, Map<String, dynamic> metadata) {}
 }

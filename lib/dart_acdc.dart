@@ -192,60 +192,62 @@ library;
 /// Access via `dio.auth` extension after configuring authentication.
 export 'src/auth/acdc_auth_manager.dart' show AcdcAuthManager, AcdcAuth;
 export 'src/auth/secure_token_provider.dart' show SecureTokenProvider;
+
 /// Interface for storing and retrieving authentication tokens.
 ///
 /// Implement this to integrate with your secure storage solution
 /// (iOS Keychain, Android Keystore, flutter_secure_storage, etc.).
 export 'src/auth/token_provider.dart' show TokenProvider;
+
 /// Result of a token refresh operation.
 ///
 /// Contains new access token and optionally a new refresh token
 /// (when token rotation is enabled).
 export 'src/auth/token_refresh_result.dart' show TokenRefreshResult;
+
 /// HTTP client builder with fluent API.
 ///
 /// Use this to configure and create Dio instances with authentication,
 /// caching, logging, and error handling built-in.
 export 'src/builder/acdc_client_builder.dart' show AcdcClientBuilder;
+
 /// Manager for cache operations.
 ///
 /// Access via `dio.cache` extension.
 export 'src/cache/acdc_cache_manager.dart' show AcdcCacheManager, AcdcCache;
+
 /// Configuration for HTTP response caching.
 ///
 /// Controls cache TTL, size limits, encryption, and offline behavior.
 export 'src/cache/cache_config.dart' show CacheConfig;
+
 /// Authentication errors (401, 403, token refresh failures).
 export 'src/exceptions/acdc_auth_exception.dart' show AcdcAuthException;
+
 /// Cache operation errors.
 export 'src/exceptions/acdc_cache_exception.dart'
     show AcdcCacheException, CacheOperation;
+
 /// Client errors (4xx status codes, except 401/403).
 export 'src/exceptions/acdc_client_exception.dart' show AcdcClientException;
+
 /// Base exception class for all ACDC errors.
 ///
 /// All exceptions extend DioException for compatibility with Dio error handling.
 export 'src/exceptions/acdc_exception.dart' show AcdcException;
+
 /// Network connectivity errors (timeouts, connection failures, DNS errors).
 export 'src/exceptions/acdc_network_exception.dart'
     show AcdcNetworkException, NetworkErrorType;
+
 /// Server errors (5xx status codes).
 export 'src/exceptions/acdc_server_exception.dart' show AcdcServerException;
-/// Custom logger function type.
+
+/// Interface for custom logging implementations.
 ///
-/// Implement this to integrate with your logging system
-/// (Firebase Crashlytics, Sentry, etc.).
-///
-/// Example:
-/// ```dart
-/// void myLogger(String message, LogLevel level, Map<String, dynamic>? metadata) {
-///   print('[$level] $message');
-///   if (metadata != null) {
-///     print('  Metadata: $metadata');
-///   }
-/// }
-/// ```
-export 'src/logging/acdc_logger.dart' show AcdcLogger;
+/// Implement this to bridge logs to external libraries like Talker or Logger.
+export 'src/logging/acdc_log_delegate.dart' show AcdcLogDelegate;
+
 /// Log level for controlling logging verbosity.
 ///
 /// Use LogLevel.none to disable HTTP logging entirely.

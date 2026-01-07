@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'package:dart_acdc/src/logging/acdc_logger.dart';
+import 'package:dart_acdc/src/logging/acdc_log_delegate.dart';
 import 'package:dart_acdc/src/logging/log_level.dart';
 import 'package:dio/dio.dart';
 
@@ -7,7 +7,7 @@ import 'package:dio/dio.dart';
 ///
 /// Features:
 /// - Human-readable console logs (when enabled via [printLogs]).
-/// - Structured logging via optional [AcdcLogger] callback.
+/// - Structured logging via optional [AcdcLogDelegate].
 /// - Adjustable verbosity levels.
 /// - Automatic redaction of sensitive fields (headers and body).
 /// - Resilient error handling (logging failures don't break the app).
@@ -15,7 +15,7 @@ class LoggingInterceptor extends Interceptor {
   /// Creates a new [LoggingInterceptor].
   LoggingInterceptor({
     this.level = LogLevel.info,
-    this.logger,
+    this.logDelegate,
     List<String>? sensitiveFields,
     this.logRequestHeaders = true,
     this.logResponseHeaders = true,
@@ -48,8 +48,8 @@ class LoggingInterceptor extends Interceptor {
   /// The log verbosity level.
   final LogLevel level;
 
-  /// Custom logger function.
-  final AcdcLogger? logger;
+  /// Custom logger delegate.
+  final AcdcLogDelegate? logDelegate;
 
   /// List of field names (case-insensitive) to redact from bodies and headers.
   final List<String> sensitiveFields;
@@ -84,7 +84,7 @@ class LoggingInterceptor extends Interceptor {
     LogLevel logLevel,
     Map<String, dynamic> metadata,
   ) {
-    if (logger == null) return;
+    if (logDelegate == null) return;
 
     // Prevent circular logging dependencies
     if (_isLogging) {
@@ -103,7 +103,7 @@ class LoggingInterceptor extends Interceptor {
       // Invoke logger with timeout protection
       // Note: We can't use async/await here since the logger is synchronous
       // The timeout is a best-effort defense - the logger should be fast
-      logger!(message, logLevel, metadata);
+      logDelegate!.log(message, logLevel, metadata);
     } on Object catch (e) {
       // Fallback to print() in case of logger failure
       if (printLogs) {
@@ -131,7 +131,7 @@ class LoggingInterceptor extends Interceptor {
       }
 
       // 2. Structured / Custom Logging
-      if (logger != null) {
+      if (logDelegate != null) {
         // Track request start time for duration calculation in response
         options.extra['acdc_request_start_time'] =
             DateTime.now().millisecondsSinceEpoch;
@@ -187,7 +187,7 @@ class LoggingInterceptor extends Interceptor {
         _printDebugResponse(response);
       }
 
-      if (logger != null) {
+      if (logDelegate != null) {
         final redactedBody = _redactBody(response.data);
         final redactedHeaders = _redactHeaders(response.headers.map);
         final durationMs = _calculateDuration(response);
@@ -254,7 +254,7 @@ class LoggingInterceptor extends Interceptor {
         _printDebugError(err);
       }
 
-      if (logger != null) {
+      if (logDelegate != null) {
         final errorDetails = _analyzeError(err);
         final logLevel = _getErrorLogLevel(err);
 
@@ -387,7 +387,7 @@ class LoggingInterceptor extends Interceptor {
     String url,
     int? durationMs,
   ) {
-    if (largePayloadThreshold == null || logger == null) return;
+    if (largePayloadThreshold == null || logDelegate == null) return;
 
     final size = _estimatePayloadSize(data);
     if (size > largePayloadThreshold!) {
