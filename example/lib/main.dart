@@ -56,9 +56,6 @@ class _MyHomePageState extends State<MyHomePage> {
   // Data State
   List<Map<String, dynamic>> _taskLists = [];
 
-  final List<String> _logs = [];
-  final ScrollController _logScrollController = ScrollController();
-
   // Settings
   final LogLevel _logLevel = LogLevel.info;
 
@@ -71,7 +68,6 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   void dispose() {
-    _logScrollController.dispose();
     _clientIdController.dispose();
     super.dispose();
   }
@@ -85,57 +81,10 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
-  void _addLog(String message, LogLevel level, Map<String, dynamic>? metadata) {
-    if (!mounted) return;
-
-    final timestamp = DateTime.now().toIso8601String().substring(11, 23);
-    final metaStr = metadata != null ? ' ${_formatMetadata(metadata)}' : '';
-
-    setState(() {
-      _logs.add('[$timestamp] [$level] $message$metaStr');
-      if (_logScrollController.hasClients) {
-        Future.delayed(const Duration(milliseconds: 100), () {
-          if (_logScrollController.hasClients) {
-            _logScrollController.animateTo(
-              _logScrollController.position.maxScrollExtent,
-              duration: const Duration(milliseconds: 200),
-              curve: Curves.easeOut,
-            );
-          }
-        });
-      }
-    });
-
-    debugPrint('[$level] $message $metaStr');
-  }
-
-  String _formatMetadata(Map<String, dynamic> metadata) {
-    final type = metadata['type'];
-    switch (type) {
-      case 'request':
-        return '{${metadata['method']} ${metadata['url']}}';
-      case 'response':
-        final cache = metadata['from_cache'] == true ? ' [CACHE]' : '';
-        return '{${metadata['statusCode']} in ${metadata['duration_ms']}ms$cache}';
-      case 'error':
-        return '{${metadata['error_type']}: ${metadata['statusCode'] ?? 'N/A'}}';
-      default:
-        return metadata.toString();
-    }
-  }
-
   Future<void> _initializeClient() async {
-    // Demonstrate Composite Delegate: Talker + Local UI Log
-    final compositeDelegate = _CompositeLogDelegate([
-      // 1. Delegate to Talker
-      TalkerLogDelegate(_talker),
-      // 2. Delegate to local UI via callback wrapper
-      _CallbackLogDelegate(_addLog),
-    ]);
-
     _dio = await AcdcClientBuilder()
         .withBaseUrl('https://tasks.googleapis.com/tasks/v1')
-        .withLogDelegate(compositeDelegate)
+        .withLogDelegate(TalkerLogDelegate(_talker))
         .withLogLevel(_logLevel)
         .withTokenProvider(_tokenProvider)
         .withCache(
@@ -146,15 +95,9 @@ class _MyHomePageState extends State<MyHomePage> {
         )
         .build();
 
-    _addLog('ACDC Client re-initialized', LogLevel.info, {
+    _talker.info('ACDC Client re-initialized', {
       'cache': true,
       'auth': _isLoggedIn ? 'LoggedIn' : 'LoggedOut',
-    });
-  }
-
-  void _clearLogs() {
-    setState(() {
-      _logs.clear();
     });
   }
 
@@ -199,14 +142,14 @@ class _MyHomePageState extends State<MyHomePage> {
         _isLoggedIn = true;
       });
 
-      _addLog('User logged in & tokens stored securely', LogLevel.info, null);
+      _talker.info('User logged in & tokens stored securely');
       await _initializeClient();
       await _fetchData(forceRefresh: false);
-    } catch (e) {
+    } catch (e, st) {
       setState(() {
         _error = 'Login Failed: $e';
       });
-      _addLog('Login failed', LogLevel.error, {'error': e.toString()});
+      _talker.handle(e, st, 'Login failed');
     } finally {
       setState(() {
         _isLoading = false;
@@ -217,10 +160,10 @@ class _MyHomePageState extends State<MyHomePage> {
   Future<void> _logout() async {
     if (_dio.auth.isConfigured) {
       await _dio.auth.logout();
-      _addLog('User logged out via dio.auth.logout()', LogLevel.info, null);
+      _talker.info('User logged out via dio.auth.logout()');
     } else {
       await _tokenProvider.clearTokens();
-      _addLog('User logged out (manual clear)', LogLevel.info, null);
+      _talker.info('User logged out (manual clear)');
     }
 
     setState(() {
@@ -249,7 +192,7 @@ class _MyHomePageState extends State<MyHomePage> {
           'dio_cache_force_refresh': true,
         });
         await _dio.cache.clearCache();
-        _addLog('Cache cleared before fetch', LogLevel.info, null);
+        _talker.info('Cache cleared before fetch');
       } else {
         _dio.options.extra.remove('force_refresh');
         _dio.options.extra.remove('dio_cache_force_refresh');
@@ -269,7 +212,7 @@ class _MyHomePageState extends State<MyHomePage> {
         _taskLists = items;
       });
 
-      _addLog('Task Lists fetched successfully', LogLevel.info, {
+      _talker.info('Task Lists fetched successfully', {
         'count': _taskLists.length,
         'cached': response.extra['from_cache'] ?? false,
       });
@@ -308,21 +251,16 @@ class _MyHomePageState extends State<MyHomePage> {
           ? '${dataStr.substring(0, 50)}...'
           : dataStr;
 
-      _addLog('Public Data fetched (max-age: 10s)', LogLevel.info, {
+      _talker.info('Public Data fetched (max-age: 10s)', {
         'status': response.statusCode,
         'cached': response.extra['from_cache'] ?? false,
         'data': preview,
       });
-    } on DioException catch (e) {
+    } on DioException catch (e, st) {
       if (e.response?.statusCode == 404) {
-        _addLog('Public API not found (404)', LogLevel.error, {
-          'error': e.toString(),
-        });
+        _talker.handle(e, st, 'Public API not found (404)');
       } else {
-        _addLog('Public API Error', LogLevel.error, {
-          'error': e.toString(),
-          'status': e.response?.statusCode,
-        });
+        _talker.handle(e, st, 'Public API Error');
       }
       setState(() {
         _error = 'Public Call Error: ${e.message}';
@@ -358,16 +296,13 @@ class _MyHomePageState extends State<MyHomePage> {
           ? '${dataStr.substring(0, 50)}...'
           : dataStr;
 
-      _addLog('Public ETag Data fetched', LogLevel.info, {
+      _talker.info('Public ETag Data fetched', {
         'status': response.statusCode,
         'cached': response.extra['from_cache'] ?? false,
         'data': preview,
       });
-    } on DioException catch (e) {
-      _addLog('Public ETag API Error', LogLevel.error, {
-        'error': e.toString(),
-        'status': e.response?.statusCode,
-      });
+    } on DioException catch (e, st) {
+      _talker.handle(e, st, 'Public ETag API Error');
       setState(() {
         _error = 'Public Call Error: ${e.message}';
       });
@@ -565,58 +500,6 @@ class _MyHomePageState extends State<MyHomePage> {
                     ),
                   ),
                   const SizedBox(height: 16),
-
-                  const Divider(height: 32),
-
-                  // Logs Header
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'Logs',
-                        style: Theme.of(context).textTheme.titleMedium,
-                      ),
-                      TextButton(
-                        onPressed: _clearLogs,
-                        child: const Text('Clear'),
-                      ),
-                    ],
-                  ),
-
-                  // Logs List
-                  Expanded(
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: Colors.black87,
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: _logs.isEmpty
-                          ? const Center(
-                              child: Text(
-                                'No logs',
-                                style: TextStyle(color: Colors.grey),
-                              ),
-                            )
-                          : ListView.builder(
-                              controller: _logScrollController,
-                              padding: const EdgeInsets.all(8),
-                              itemCount: _logs.length,
-                              itemBuilder: (context, index) {
-                                return Padding(
-                                  padding: const EdgeInsets.only(bottom: 4),
-                                  child: Text(
-                                    _logs[index],
-                                    style: const TextStyle(
-                                      color: Colors.lightGreenAccent,
-                                      fontFamily: 'monospace',
-                                      fontSize: 10,
-                                    ),
-                                  ),
-                                );
-                              },
-                            ),
-                    ),
-                  ),
                 ],
               ),
             ),
@@ -674,27 +557,5 @@ class _MyHomePageState extends State<MyHomePage> {
         ],
       ),
     );
-  }
-}
-
-class _CompositeLogDelegate implements AcdcLogDelegate {
-  final List<AcdcLogDelegate> delegates;
-  _CompositeLogDelegate(this.delegates);
-
-  @override
-  void log(String message, LogLevel level, Map<String, dynamic> metadata) {
-    for (final delegate in delegates) {
-      delegate.log(message, level, metadata);
-    }
-  }
-}
-
-class _CallbackLogDelegate implements AcdcLogDelegate {
-  final void Function(String, LogLevel, Map<String, dynamic>?) callback;
-  _CallbackLogDelegate(this.callback);
-
-  @override
-  void log(String message, LogLevel level, Map<String, dynamic> metadata) {
-    callback(message, level, metadata);
   }
 }
