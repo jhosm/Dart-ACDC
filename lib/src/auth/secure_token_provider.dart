@@ -20,6 +20,9 @@ class SecureTokenProvider implements TokenProvider {
     FlutterSecureStorage? storage,
   }) : _storage = storage ??
             const FlutterSecureStorage(
+              aOptions: AndroidOptions(
+                encryptedSharedPreferences: true,
+              ),
               iOptions: IOSOptions(
                 accessibility: KeychainAccessibility.first_unlock,
               ),
