@@ -7,6 +7,7 @@ import 'package:shelf/shelf_io.dart' as shelf_io;
 import 'package:test/test.dart';
 
 import '../helpers/fake_oauth_server.dart';
+import '../helpers/mock_network_info.dart';
 
 /// Integration test for TokenProvider exception handling.
 ///
@@ -52,6 +53,7 @@ void main() {
             clientId: 'test-client',
           )
           .disableCache()
+          .withNetworkInfo(MockNetworkInfo())
           .build();
 
       // Make request - should succeed without auth header
@@ -79,6 +81,7 @@ void main() {
             clientId: 'test-client',
           )
           .disableCache()
+          .withNetworkInfo(MockNetworkInfo())
           .build();
 
       // Make request - should proceed without proactive refresh
@@ -107,6 +110,7 @@ void main() {
             clientId: 'test-client',
           )
           .disableCache()
+          .withNetworkInfo(MockNetworkInfo())
           .build();
 
       // Return 401 to trigger reactive refresh
@@ -144,6 +148,7 @@ void main() {
             clientId: 'test-client',
           )
           .disableCache()
+          .withNetworkInfo(MockNetworkInfo())
           .build();
 
       apiServer.respondWith(200, {'result': 'ok'});
@@ -177,6 +182,7 @@ void main() {
             clientId: 'test-client',
           )
           .withTokenRevocationEndpoint(oauthServer.revokeUrl)
+          .withNetworkInfo(MockNetworkInfo())
           .build();
 
       // Logout should complete despite clearTokens exception
@@ -205,6 +211,7 @@ void main() {
             clientId: 'test-client',
           )
           .disableCache()
+          .withNetworkInfo(MockNetworkInfo())
           .build();
 
       // Request should succeed without auth (complete degradation)
@@ -244,6 +251,7 @@ void main() {
             clientId: 'test-client',
           )
           .disableCache()
+          .withNetworkInfo(MockNetworkInfo())
           .build();
 
       apiServer.respondWith(200, {'result': 'ok'});
@@ -270,6 +278,7 @@ void main() {
             clientId: 'test-client',
           )
           .disableCache()
+          .withNetworkInfo(MockNetworkInfo())
           .build();
 
       // Request should succeed with auth header

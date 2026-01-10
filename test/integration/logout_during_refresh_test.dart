@@ -8,6 +8,7 @@ import 'package:shelf/shelf_io.dart' as shelf_io;
 import 'package:test/test.dart';
 
 import '../helpers/fake_oauth_server.dart';
+import '../helpers/mock_network_info.dart';
 
 /// Integration test for logout during active token refresh.
 ///
@@ -61,6 +62,7 @@ void main() {
       final dio = await const AcdcClientBuilder()
           .withBaseUrl(apiServer.baseUrl)
           .withTokenProvider(tokenProvider)
+          .withNetworkInfo(MockNetworkInfo())
           .withTokenRefreshEndpoint(
             url: oauthServer.tokenUrl,
             clientId: 'test-client',
@@ -112,6 +114,7 @@ void main() {
       final dio = await const AcdcClientBuilder()
           .withBaseUrl(apiServer.baseUrl)
           .withTokenProvider(tokenProvider)
+          .withNetworkInfo(MockNetworkInfo())
           .withTokenRefreshEndpoint(
             url: oauthServer.tokenUrl,
             clientId: 'test-client',
@@ -145,6 +148,7 @@ void main() {
       final dio = await const AcdcClientBuilder()
           .withBaseUrl(apiServer.baseUrl)
           .withTokenProvider(tokenProvider)
+          .withNetworkInfo(MockNetworkInfo())
           .withTokenRefreshEndpoint(
             url: oauthServer.tokenUrl,
             clientId: 'test-client',
@@ -172,6 +176,7 @@ void main() {
       final dio = await const AcdcClientBuilder()
           .withBaseUrl(apiServer.baseUrl)
           .withTokenProvider(tokenProvider)
+          .withNetworkInfo(MockNetworkInfo())
           .withTokenRefreshEndpoint(
             url: oauthServer.tokenUrl,
             clientId: 'test-client',

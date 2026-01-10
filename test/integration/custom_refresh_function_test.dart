@@ -7,6 +7,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shelf/shelf.dart' as shelf;
 import 'package:shelf/shelf_io.dart' as shelf_io;
 
+import '../helpers/mock_network_info.dart';
+
 /// Integration test for custom token refresh function.
 ///
 /// Tests that a custom refresh function provided via withCustomTokenRefresh():
@@ -59,6 +61,7 @@ void main() {
       final dio = await const AcdcClientBuilder()
           .withBaseUrl(apiServer.baseUrl)
           .withTokenProvider(tokenProvider)
+          .withNetworkInfo(MockNetworkInfo())
           .withCustomTokenRefresh(customRefresh)
           .disableCache()
           .build();
@@ -113,6 +116,7 @@ void main() {
       final dio = await const AcdcClientBuilder()
           .withBaseUrl(apiServer.baseUrl)
           .withTokenProvider(tokenProvider)
+          .withNetworkInfo(MockNetworkInfo())
           .withCustomTokenRefresh(customRefresh)
           .disableCache()
           .build();
@@ -166,6 +170,7 @@ void main() {
       final dio = await const AcdcClientBuilder()
           .withBaseUrl(apiServer.baseUrl)
           .withTokenProvider(tokenProvider)
+          .withNetworkInfo(MockNetworkInfo())
           .withCustomTokenRefresh(customRefresh)
           .disableCache()
           .build();
@@ -201,6 +206,7 @@ void main() {
       final dio = await const AcdcClientBuilder()
           .withBaseUrl(apiServer.baseUrl)
           .withTokenProvider(tokenProvider)
+          .withNetworkInfo(MockNetworkInfo())
           .withCustomTokenRefresh(customRefresh)
           .disableCache()
           .build();
@@ -240,6 +246,7 @@ void main() {
       final dio = await const AcdcClientBuilder()
           .withBaseUrl(apiServer.baseUrl)
           .withTokenProvider(tokenProvider)
+          .withNetworkInfo(MockNetworkInfo())
           .withCustomTokenRefresh(customRefresh)
           .disableCache()
           .build();
@@ -276,6 +283,7 @@ void main() {
       final dio = await const AcdcClientBuilder()
           .withBaseUrl(apiServer.baseUrl)
           .withTokenProvider(tokenProvider)
+          .withNetworkInfo(MockNetworkInfo())
           .withCustomTokenRefresh(customRefresh)
           .disableCache()
           .build();

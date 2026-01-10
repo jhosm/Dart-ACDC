@@ -9,6 +9,8 @@ import 'package:dart_acdc/src/logging/log_level.dart';
 import 'package:dio/dio.dart';
 import 'package:test/test.dart';
 
+import '../helpers/mock_network_info.dart';
+
 // Mock TokenProvider
 class MockTokenProvider implements TokenProvider {
   @override
@@ -71,6 +73,7 @@ void main() {
               },
             ),
           )
+          .withNetworkInfo(MockNetworkInfo())
           .build();
 
       // We need to wrap existing interceptors to track them because they are added internally.

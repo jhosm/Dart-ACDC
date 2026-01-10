@@ -11,6 +11,7 @@ import 'package:dart_acdc/src/interceptors/error_interceptor.dart';
 import 'package:dart_acdc/src/interceptors/logging_interceptor.dart';
 import 'package:dart_acdc/src/logging/acdc_log_delegate.dart';
 import 'package:dart_acdc/src/logging/log_level.dart';
+import 'package:dart_acdc/src/network_info/network_info.dart';
 import 'package:dio/dio.dart';
 
 /// Immutable builder for creating pre-configured Dio HTTP clients.
@@ -50,6 +51,7 @@ class AcdcClientBuilder {
     String? initialRefreshToken,
     DateTime? initialAccessExpiry,
     DateTime? initialRefreshExpiry,
+    NetworkInfo? networkInfo,
   })  : _baseUrl = baseUrl,
         _timeout = timeout,
         _tokenProvider = tokenProvider,
@@ -70,7 +72,8 @@ class AcdcClientBuilder {
         _initialAccessToken = initialAccessToken,
         _initialRefreshToken = initialRefreshToken,
         _initialAccessExpiry = initialAccessExpiry,
-        _initialRefreshExpiry = initialRefreshExpiry;
+        _initialRefreshExpiry = initialRefreshExpiry,
+        _networkInfo = networkInfo;
 
   final String? _baseUrl;
   final Duration? _timeout;
@@ -93,6 +96,7 @@ class AcdcClientBuilder {
   final String? _initialRefreshToken;
   final DateTime? _initialAccessExpiry;
   final DateTime? _initialRefreshExpiry;
+  final NetworkInfo? _networkInfo;
 
   /// Configures the base URL for all requests.
   ///
@@ -312,6 +316,13 @@ class AcdcClientBuilder {
         initialRefreshExpiry: refreshExpiry,
       );
 
+  /// Configures a custom network info implementation.
+  ///
+  /// Useful for testing to mock network states or for providing
+  /// a shared instance.
+  AcdcClientBuilder withNetworkInfo(NetworkInfo info) =>
+      _copyWith(networkInfo: info);
+
   AcdcClientBuilder _copyWith({
     String? baseUrl,
     Duration? timeout,
@@ -334,6 +345,7 @@ class AcdcClientBuilder {
     String? initialRefreshToken,
     DateTime? initialAccessExpiry,
     DateTime? initialRefreshExpiry,
+    NetworkInfo? networkInfo,
   }) =>
       AcdcClientBuilder(
         baseUrl: baseUrl ?? _baseUrl,
@@ -359,6 +371,7 @@ class AcdcClientBuilder {
         initialRefreshToken: initialRefreshToken ?? _initialRefreshToken,
         initialAccessExpiry: initialAccessExpiry ?? _initialAccessExpiry,
         initialRefreshExpiry: initialRefreshExpiry ?? _initialRefreshExpiry,
+        networkInfo: networkInfo ?? _networkInfo,
       );
 
   /// Builds and returns a configured Dio instance.
@@ -495,6 +508,11 @@ class AcdcClientBuilder {
     if (_customInterceptors != null) {
       dio.interceptors.addAll(_customInterceptors!);
     }
+
+    // Initialize NetworkInfo
+    // Use injected instance or create default implementation
+    final networkInfo = _networkInfo ?? NetworkInfoImpl();
+    dio.options.extra['_acdc_network_info'] = networkInfo;
 
     return dio;
   }

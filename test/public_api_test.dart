@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'helpers/fake_token_provider.dart';
+import 'helpers/mock_network_info.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -43,6 +44,7 @@ void main() {
     test('AcdcAuthManager and AcdcAuth extension are exported', () async {
       final dio = await const AcdcClientBuilder()
           .withTokenProvider(FakeTokenProvider())
+          .withNetworkInfo(MockNetworkInfo())
           .withTokenRefreshEndpoint(
             url: 'https://auth.example.com/token',
             clientId: 'test',
@@ -104,6 +106,7 @@ void main() {
         () async {
       final dio = await const AcdcClientBuilder()
           .withBaseUrl('https://api.example.com')
+          .withNetworkInfo(MockNetworkInfo())
           .build();
 
       // Check interceptors
@@ -134,6 +137,7 @@ void main() {
           .withBaseUrl('https://api.example.com')
           .withTimeout(const Duration(seconds: 30))
           .withTokenProvider(FakeTokenProvider())
+          .withNetworkInfo(MockNetworkInfo())
           .withTokenRefreshEndpoint(
             url: 'https://auth.example.com/token',
             clientId: 'test-client',
@@ -168,6 +172,7 @@ void main() {
       final dio = await const AcdcClientBuilder()
           .withBaseUrl('https://api.example.com')
           .withInterceptor(customInterceptor)
+          .withNetworkInfo(MockNetworkInfo())
           .build();
 
       expect(dio.interceptors.contains(customInterceptor), isTrue);
@@ -177,6 +182,7 @@ void main() {
       final dio = await const AcdcClientBuilder()
           .withBaseUrl('https://api.example.com')
           .withTokenProvider(FakeTokenProvider())
+          .withNetworkInfo(MockNetworkInfo())
           .withTokenRefreshEndpoint(
             url: 'https://auth.example.com/token',
             clientId: 'test-client',
@@ -191,6 +197,7 @@ void main() {
     test('Zero-config client creation works', () async {
       final dio = await const AcdcClientBuilder()
           .withBaseUrl('https://api.example.com')
+          .withNetworkInfo(MockNetworkInfo())
           .build();
 
       expect(dio, isA<Dio>());
@@ -201,6 +208,7 @@ void main() {
       final dio = await const AcdcClientBuilder()
           .withBaseUrl('https://api.example.com')
           .withTokenProvider(FakeTokenProvider())
+          .withNetworkInfo(MockNetworkInfo())
           .withTokenRefreshEndpoint(
             url: 'https://auth.example.com/oauth/token',
             clientId: 'my-client-id',
@@ -217,6 +225,7 @@ void main() {
     test('Custom configured client creation works', () async {
       final dio = await const AcdcClientBuilder()
           .withBaseUrl('https://api.example.com')
+          .withNetworkInfo(MockNetworkInfo())
           .withTimeout(const Duration(seconds: 45))
           .withLogLevel(LogLevel.warning)
           .withCache(

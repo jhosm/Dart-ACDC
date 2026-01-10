@@ -9,7 +9,9 @@ import 'package:shelf/shelf_io.dart' as shelf_io;
 import 'package:test/test.dart';
 
 import '../helpers/fake_oauth_server.dart';
+import '../helpers/fake_oauth_server.dart';
 import '../helpers/fake_token_provider.dart';
+import '../helpers/mock_network_info.dart';
 
 /// Integration test for a fully-configured ACDC client.
 ///
@@ -62,7 +64,9 @@ void main() {
           )
           .withTokenRevocationEndpoint(oauthServer.revokeUrl)
           .withLogLevel(LogLevel.debug)
+          .withLogLevel(LogLevel.debug)
           .disableCache()
+          .withNetworkInfo(MockNetworkInfo())
           .build();
 
       // Make authenticated request
@@ -103,6 +107,7 @@ void main() {
             clientId: 'test-client',
           )
           .disableCache()
+          .withNetworkInfo(MockNetworkInfo())
           .build();
 
       // Make request - should trigger proactive refresh
@@ -140,6 +145,7 @@ void main() {
             clientId: 'test-client',
           )
           .disableCache()
+          .withNetworkInfo(MockNetworkInfo())
           .build();
 
       // First request returns 401, then 200 after refresh
@@ -164,7 +170,9 @@ void main() {
       final dio1 = await const AcdcClientBuilder()
           .withBaseUrl(apiServer.baseUrl)
           .withTokenProvider(tokenProvider)
+          .withTokenProvider(tokenProvider)
           .disableCache()
+          .withNetworkInfo(MockNetworkInfo())
           .build();
 
       await expectLater(
@@ -185,7 +193,9 @@ void main() {
       final dio2 = await const AcdcClientBuilder()
           .withBaseUrl(apiServer.baseUrl)
           .withTokenProvider(tokenProvider)
+          .withTokenProvider(tokenProvider)
           .disableCache()
+          .withNetworkInfo(MockNetworkInfo())
           .build();
 
       await expectLater(
@@ -206,7 +216,9 @@ void main() {
       final dio3 = await const AcdcClientBuilder()
           .withBaseUrl(apiServer.baseUrl)
           .withTokenProvider(tokenProvider)
+          .withTokenProvider(tokenProvider)
           .disableCache()
+          .withNetworkInfo(MockNetworkInfo())
           .build();
 
       await expectLater(
@@ -244,7 +256,9 @@ void main() {
             clientId: 'test-client',
           )
           .withInterceptor(customInterceptor)
+          .withInterceptor(customInterceptor)
           .disableCache()
+          .withNetworkInfo(MockNetworkInfo())
           .build();
 
       apiServer.respondWith(200, {'status': 'ok'});
@@ -283,6 +297,7 @@ void main() {
             clientId: 'test-client',
           )
           .disableCache()
+          .withNetworkInfo(MockNetworkInfo())
           .build();
 
       apiServer.respondWith(200, {'result': 'ok'});
@@ -323,6 +338,7 @@ void main() {
             clientId: 'test-client',
           )
           .withTokenRevocationEndpoint(oauthServer.revokeUrl)
+          .withNetworkInfo(MockNetworkInfo())
           .build();
 
       // Logout
@@ -341,7 +357,9 @@ void main() {
           .withBaseUrl('http://invalid-host-that-does-not-exist.test')
           .withTokenProvider(tokenProvider)
           .withTimeout(const Duration(milliseconds: 100))
+          .withTimeout(const Duration(milliseconds: 100))
           .disableCache()
+          .withNetworkInfo(MockNetworkInfo())
           .build();
 
       expect(

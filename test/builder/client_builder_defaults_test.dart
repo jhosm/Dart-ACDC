@@ -3,6 +3,8 @@ import 'package:dart_acdc/src/interceptors/auth_interceptor.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../helpers/mock_network_info.dart';
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -20,7 +22,7 @@ void main() {
     test('build() adds AuthInterceptor with SecureTokenProvider by default',
         () async {
       const builder = AcdcClientBuilder();
-      final dio = await builder.build();
+      final dio = await builder.withNetworkInfo(MockNetworkInfo()).build();
 
       // Verify that AuthInterceptor is in the list of interceptors
       final authInterceptor =

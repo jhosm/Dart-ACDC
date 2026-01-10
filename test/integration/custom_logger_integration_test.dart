@@ -4,6 +4,7 @@ import 'package:http_mock_adapter/http_mock_adapter.dart';
 import 'package:test/test.dart';
 
 import '../helpers/fake_token_provider.dart';
+import '../helpers/mock_network_info.dart';
 
 void main() {
   group('Custom Logger Integration', () {
@@ -19,6 +20,7 @@ void main() {
       dio = await const AcdcClientBuilder()
           .withBaseUrl('https://api.example.com')
           .withTokenProvider(FakeTokenProvider())
+          .withNetworkInfo(MockNetworkInfo())
           .withLogDelegate(_CustomLogDelegate((message, level, metadata) {
             logs.add('[$level] $message');
             if (metadata != null && metadata.isNotEmpty) {

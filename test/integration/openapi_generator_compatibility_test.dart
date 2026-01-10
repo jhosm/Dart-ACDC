@@ -9,6 +9,7 @@ import 'package:shelf/shelf.dart' as shelf;
 import 'package:shelf/shelf_io.dart' as shelf_io;
 
 import '../helpers/fake_oauth_server.dart';
+import '../helpers/mock_network_info.dart';
 
 /// Integration test verifying ACDC-configured Dio instances work seamlessly
 /// with OpenAPI-generated clients.
@@ -60,6 +61,7 @@ void main() {
           .withBaseUrl(apiServer.baseUrl)
           .withTimeout(const Duration(seconds: 5))
           .withTokenProvider(tokenProvider)
+          .withNetworkInfo(MockNetworkInfo())
           .withTokenRefreshEndpoint(
             url: oauthServer.tokenUrl,
             clientId: 'test-client',
@@ -95,6 +97,7 @@ void main() {
       final dio = await const AcdcClientBuilder()
           .withBaseUrl(apiServer.baseUrl)
           .withTokenProvider(tokenProvider)
+          .withNetworkInfo(MockNetworkInfo())
           .withTokenRefreshEndpoint(
             url: oauthServer.tokenUrl,
             clientId: 'test-client',
@@ -155,6 +158,7 @@ void main() {
       final dio = await const AcdcClientBuilder()
           .withBaseUrl(apiServer.baseUrl)
           .withTokenProvider(tokenProvider)
+          .withNetworkInfo(MockNetworkInfo())
           .withTokenRefreshEndpoint(
             url: oauthServer.tokenUrl,
             clientId: 'test-client',
@@ -206,6 +210,7 @@ void main() {
       final dio = await const AcdcClientBuilder()
           .withBaseUrl(apiServer.baseUrl)
           .withTokenProvider(tokenProvider)
+          .withNetworkInfo(MockNetworkInfo())
           .withTokenRefreshEndpoint(
             url: oauthServer.tokenUrl,
             clientId: 'test-client',
@@ -244,6 +249,7 @@ void main() {
       final dio = await const AcdcClientBuilder()
           .withBaseUrl(apiServer.baseUrl)
           .withTokenProvider(TestTokenProvider())
+          .withNetworkInfo(MockNetworkInfo())
           .disableCache()
           .build();
 
@@ -299,6 +305,7 @@ void main() {
       final dio = await const AcdcClientBuilder()
           .withBaseUrl(apiServer.baseUrl)
           .withTokenProvider(tokenProvider)
+          .withNetworkInfo(MockNetworkInfo())
           .withTokenRefreshEndpoint(
             url: oauthServer.tokenUrl,
             clientId: 'test-client',
@@ -343,6 +350,7 @@ void main() {
       final dio = await const AcdcClientBuilder()
           .withBaseUrl(apiServer.baseUrl)
           .withTokenProvider(tokenProvider)
+          .withNetworkInfo(MockNetworkInfo())
           .withTokenRefreshEndpoint(
             url: oauthServer.tokenUrl,
             clientId: 'test-client',

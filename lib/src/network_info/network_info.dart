@@ -21,6 +21,9 @@ abstract class NetworkInfo {
 
   /// Stream of network status changes.
   Stream<NetworkStatus> get onStatusChange;
+
+  /// Disposes resources.
+  void dispose();
 }
 
 /// Implementation of [NetworkInfo] using [Connectivity].

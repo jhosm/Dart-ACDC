@@ -2,9 +2,14 @@ import 'package:dart_acdc/dart_acdc.dart';
 
 import 'package:test/test.dart';
 
+import '../helpers/mock_network_info.dart';
+
 void main() {
   test('AuthManager is accessible when auth is disabled', () async {
-    final dio = await const AcdcClientBuilder().disableAuth().build();
+    final dio = await const AcdcClientBuilder()
+        .disableAuth()
+        .withNetworkInfo(MockNetworkInfo())
+        .build();
 
     expect(() => dio.auth, returnsNormally);
     expect(dio.auth, isNotNull);

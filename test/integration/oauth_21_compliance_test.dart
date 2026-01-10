@@ -2,6 +2,7 @@ import 'package:dart_acdc/dart_acdc.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../helpers/fake_oauth_server.dart';
+import '../helpers/mock_network_info.dart';
 
 /// Integration tests for OAuth 2.1 compliance.
 ///
@@ -50,6 +51,7 @@ void main() {
       final dio = await const AcdcClientBuilder()
           .withBaseUrl('http://localhost:9999')
           .withTokenProvider(tokenProvider)
+          .withNetworkInfo(MockNetworkInfo())
           .withTokenRefreshEndpoint(
             url: oauthServer.tokenUrl,
             clientId: clientId,
@@ -141,6 +143,7 @@ void main() {
       final dio = await const AcdcClientBuilder()
           .withBaseUrl('http://localhost:9999')
           .withTokenProvider(tokenProvider)
+          .withNetworkInfo(MockNetworkInfo())
           .withTokenRefreshEndpoint(
             url: oauthServer.tokenUrl,
             clientId: clientId,
@@ -186,6 +189,7 @@ void main() {
       final dio = await const AcdcClientBuilder()
           .withBaseUrl('http://localhost:9999')
           .withTokenProvider(tokenProvider)
+          .withNetworkInfo(MockNetworkInfo())
           .withTokenRefreshEndpoint(
             url: oauthServer.tokenUrl,
             clientId: clientId,
@@ -228,6 +232,7 @@ void main() {
       final dio = await const AcdcClientBuilder()
           .withBaseUrl('http://localhost:9999')
           .withTokenProvider(tokenProvider)
+          .withNetworkInfo(MockNetworkInfo())
           .withTokenRefreshEndpoint(
             url: oauthServer.tokenUrl,
             clientId: clientId,

@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http_mock_adapter/http_mock_adapter.dart';
 
 import '../helpers/fake_token_provider.dart';
+import '../helpers/mock_network_info.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -15,6 +16,7 @@ void main() {
       builder = const AcdcClientBuilder()
           .withBaseUrl('https://api.example.com')
           .withTokenProvider(FakeTokenProvider())
+          .withNetworkInfo(MockNetworkInfo())
           .withTimeout(const Duration(seconds: 5));
     });
 

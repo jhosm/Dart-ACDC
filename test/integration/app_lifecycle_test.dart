@@ -7,6 +7,7 @@ import 'package:shelf/shelf_io.dart' as shelf_io;
 import 'package:test/test.dart';
 
 import '../helpers/fake_oauth_server.dart';
+import '../helpers/mock_network_info.dart';
 
 /// Integration tests for app lifecycle scenarios during token refresh.
 ///
@@ -74,6 +75,7 @@ void main() {
             clientId: clientId,
           )
           .disableCache()
+          .withNetworkInfo(MockNetworkInfo())
           .build();
 
       // Configure API server to return success
@@ -123,6 +125,7 @@ void main() {
             clientId: clientId,
           )
           .disableCache()
+          .withNetworkInfo(MockNetworkInfo())
           .build();
 
       // Configure API server to require valid auth - return 401 if no auth header
@@ -184,6 +187,7 @@ void main() {
             clientId: clientId,
           )
           .disableCache()
+          .withNetworkInfo(MockNetworkInfo())
           .build();
 
       // Configure API server to require valid auth - return 401 if no auth header
@@ -280,6 +284,7 @@ void main() {
             clientId: clientId,
           )
           .disableCache()
+          .withNetworkInfo(MockNetworkInfo())
           .build();
 
       // Configure API server
@@ -336,6 +341,7 @@ void main() {
             clientId: clientId,
           )
           .disableCache()
+          .withNetworkInfo(MockNetworkInfo())
           .build();
 
       // Configure API server to require valid auth - return 401 if no auth header

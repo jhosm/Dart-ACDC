@@ -2,6 +2,7 @@ import 'package:dart_acdc/dart_acdc.dart';
 import 'package:test/test.dart';
 
 import '../helpers/fake_token_provider.dart';
+import '../helpers/mock_network_info.dart';
 
 // Create a mock class for TokenProvider
 
@@ -27,7 +28,8 @@ void main() {
             refreshToken: 'initial-refresh',
             accessExpiry: accessExpiry,
             refreshExpiry: refreshExpiry,
-          );
+          )
+          .withNetworkInfo(MockNetworkInfo());
 
       await builder.build();
 
@@ -47,7 +49,8 @@ void main() {
           .withTokenProvider(slowProvider)
           .withInitialTokens(
             accessToken: 'initial-access',
-          );
+          )
+          .withNetworkInfo(MockNetworkInfo());
 
       final stopwatch = Stopwatch()..start();
       await builder.build();
