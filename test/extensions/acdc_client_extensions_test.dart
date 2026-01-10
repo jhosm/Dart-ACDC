@@ -4,6 +4,8 @@ import 'package:dart_acdc/src/network_info/network_info.dart';
 import 'package:dio/dio.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
+import 'dart:async';
+import 'dart:typed_data';
 import 'package:test/test.dart';
 
 import 'acdc_client_extensions_test.mocks.dart';
@@ -48,5 +50,133 @@ void main() {
       // Dio doesn't expose 'closed' state easily without checking internal adapter or making request.
       // But purely from extension logic, we just want to ensure it passes through.
     });
+
+    group('streamRequest', () {
+      test('emits single response when SWR is not triggered', () async {
+        dio.httpClientAdapter = MockAdapter((options) async {
+          return ResponseBody.fromString(
+            '{"data": "fresh"}',
+            200,
+            headers: {
+              Headers.contentTypeHeader: [Headers.jsonContentType]
+            },
+          );
+        });
+
+        final stream = dio.streamRequest<Map<String, dynamic>>('/test');
+
+        final responses = await stream.toList();
+        expect(responses, hasLength(1));
+        expect(responses.first.data!['data'], 'fresh');
+      });
+
+      test('emits cached and fresh response when SWR callback is triggered',
+          () async {
+        // Simulate Interceptor behavior via Adapter (simplified)
+        // In reality, Interceptor runs swr_callback, and Adapter handles requests.
+        dio.httpClientAdapter = MockAdapter((options) async {
+          // Check if this is the initial request or background refresh
+          // But streamRequest logic adds swr_callback to initial request.
+
+          final swrCallback =
+              options.extra['swr_callback'] as void Function(Future<dynamic>)?;
+
+          if (swrCallback != null) {
+            // This mocks the Interceptor finding a cached response, serving it,
+            // and triggering background refresh.
+
+            // 2. Trigger background refresh via callback
+            // The callback expects a Future (the background request).
+            // We simulate the background request completing later.
+            final backgroundFuture =
+                Future.delayed(Duration(milliseconds: 50), () {
+              return Response<Map<String, dynamic>>(
+                requestOptions: RequestOptions(path: '/test'),
+                data: {'data': 'fresh'},
+                statusCode: 200,
+              );
+            });
+
+            swrCallback(backgroundFuture);
+
+            // 1. Return "Cached" response immediately
+            return ResponseBody.fromString(
+              '{"data": "cached"}',
+              200,
+              headers: {
+                Headers.contentTypeHeader: [Headers.jsonContentType]
+              },
+            );
+          }
+
+          return ResponseBody.fromString('{"data": "normal"}', 200, headers: {
+            Headers.contentTypeHeader: [Headers.jsonContentType]
+          });
+        });
+
+        final stream = dio.streamRequest<Map<String, dynamic>>('/test');
+
+        final responses = await stream.toList();
+        expect(responses, hasLength(2));
+        expect(responses[0].data!['data'], 'cached');
+        expect(responses[1].data!['data'], 'fresh');
+      });
+
+      test('emits error from background refresh', () async {
+        dio.httpClientAdapter = MockAdapter((options) async {
+          final swrCallback =
+              options.extra['swr_callback'] as void Function(Future<dynamic>)?;
+          if (swrCallback != null) {
+            final backgroundFuture =
+                Future.delayed(Duration(milliseconds: 10), () {
+              throw DioException(
+                  requestOptions: options, error: 'Background error');
+            });
+            swrCallback(backgroundFuture);
+
+            return ResponseBody.fromString('{"data": "cached"}', 200, headers: {
+              Headers.contentTypeHeader: [Headers.jsonContentType]
+            });
+          }
+          return ResponseBody.fromString('{}', 200);
+        });
+
+        final stream = dio.streamRequest<Map<String, dynamic>>('/test');
+
+        // Should emit cached then error
+        bool cachedReceived = false;
+        bool errorReceived = false;
+        try {
+          await for (final response in stream) {
+            if (!cachedReceived) {
+              expect(response.data!['data'], 'cached');
+              cachedReceived = true;
+            } else {
+              fail('Should not receive second response, expecting error');
+            }
+          }
+        } catch (e) {
+          errorReceived = true;
+          expect(e, isA<DioException>());
+        }
+
+        expect(cachedReceived, isTrue);
+        expect(errorReceived, isTrue);
+      });
+    });
   });
+}
+
+class MockAdapter implements HttpClientAdapter {
+  final Future<ResponseBody> Function(RequestOptions) handler;
+  MockAdapter(this.handler);
+
+  @override
+  Future<ResponseBody> fetch(RequestOptions options,
+      Stream<Uint8List>? requestStream, Future? cancelFuture) async {
+    return handler(options);
+  }
+
+  @override
+  void close({bool force = false}) {}
 }

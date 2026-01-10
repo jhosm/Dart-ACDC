@@ -24,6 +24,9 @@ import 'package:dio_cache_interceptor/dio_cache_interceptor.dart';
 /// - Authenticated requests with identifiable user: Cached with user isolation
 /// - Authenticated requests without identifiable user: NOT cached (security)
 class AcdcCacheInterceptor extends Interceptor {
+  /// Callback to trigger background refresh (SWR).
+  final Future<dynamic> Function(RequestOptions)? onRefresh;
+
   /// Creates a cache interceptor from configuration and cache store.
   ///
   /// The [store] parameter should be created using [CacheStoreFactory]
@@ -39,13 +42,17 @@ class AcdcCacheInterceptor extends Interceptor {
   AcdcCacheInterceptor({
     required CacheConfig config,
     required CacheStore store,
+    this.onRefresh,
   }) : _config = config {
     _cacheOptions = CacheOptions(
       store: store,
+      // Always use request policy if SWR is enabled, as we handle SWR manually
       policy: config.staleWhileRevalidate
-          ? CachePolicy.refreshForceCache
+          ? CachePolicy.request
           : CachePolicy.request,
-      maxStale: config.staleIfError ? const Duration(days: 7) : null,
+      maxStale: (config.staleIfError || config.staleWhileRevalidate)
+          ? const Duration(days: 7)
+          : null,
       hitCacheOnErrorCodes: config.staleIfError ? [401, 403] : [],
       keyBuilder: ({required url, headers, body}) {
         // Build base key using custom builder or default
@@ -75,7 +82,7 @@ class AcdcCacheInterceptor extends Interceptor {
       options: CacheOptions(
         store: store,
         policy: config.staleWhileRevalidate
-            ? CachePolicy.refreshForceCache
+            ? CachePolicy.request
             : CachePolicy.request,
         maxStale: config.staleIfError ? const Duration(days: 7) : null,
         hitCacheOnErrorCodes: config.staleIfError ? [401, 403] : [],
@@ -168,6 +175,59 @@ class AcdcCacheInterceptor extends Interceptor {
   ) async {
     // Extract user ID from Authorization header for cache isolation
     await _extractAndStoreUserId(options);
+
+    // Handle Stale-While-Revalidate manually logic
+    if (_config.staleWhileRevalidate &&
+        options.method.toUpperCase() == 'GET' &&
+        options.extra['swr_refresh'] != true) {
+      final key = buildCacheKeyWithUserIsolation(
+        options,
+        customKeyBuilder: _config.keyBuilder,
+      );
+
+      final cachedResponse = await _cacheOptions.store?.get(key);
+
+      if (cachedResponse != null) {
+        // Serve stale cache immediately
+        final response = cachedResponse.toResponse(options);
+        // Important: Update status code to 200, as it might be stored differently
+        response.statusCode = 200;
+
+        // Add metadata
+        _addCacheMetadata(response);
+
+        // Resolve request
+        handler.resolve(response);
+
+        // Trigger background refresh
+        // Copy options and force refresh policy via extra
+        final refreshOptions = options.copyWith(
+          extra: _cacheOptions
+              .copyWith(policy: CachePolicy.refreshForceCache)
+              .toExtra()
+            ..['swr_refresh'] = true, // Prevent infinite loop
+        );
+
+        // Use onRefresh callback if provided
+        // We use Future.microtask to ensure it's detached from current flow
+        if (onRefresh != null) {
+          final refreshFuture = onRefresh!(refreshOptions);
+
+          // Allow catching the refresh future via callback (for streamRequest support)
+          final swrCallback =
+              options.extra['swr_callback'] as void Function(Future<dynamic>)?;
+          if (swrCallback != null) {
+            swrCallback(refreshFuture);
+          }
+
+          Future.microtask(() => refreshFuture).catchError((e) {
+            // Ignore background refresh errors
+            // Optionally log if we had a logger reference
+          });
+        }
+        return;
+      }
+    }
 
     // Delegate to dio_cache_interceptor with custom handler to intercept cache hits
     _dioCacheInterceptor.onRequest(

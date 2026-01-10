@@ -439,6 +439,7 @@ class AcdcClientBuilder {
       cacheInterceptor = AcdcCacheInterceptor(
         config: cacheConfig,
         store: store,
+        onRefresh: (options) => dio.fetch(options),
       );
     }
 

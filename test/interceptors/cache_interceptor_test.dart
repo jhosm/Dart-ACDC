@@ -1,3 +1,4 @@
+import 'dart:typed_data';
 import 'package:dart_acdc/src/cache/cache_config.dart';
 import 'package:dart_acdc/src/interceptors/cache_interceptor.dart';
 import 'package:dio/dio.dart';
@@ -250,8 +251,6 @@ void main() {
         );
 
         // Verify interceptor is created successfully
-        // Actual stale-while-revalidate behavior is handled by dio_cache_interceptor
-        // with CachePolicy.refreshForceCache
         expect(interceptor, isA<AcdcCacheInterceptor>());
       });
 
@@ -289,9 +288,65 @@ void main() {
           ),
           returnsNormally,
         );
+      });
 
-        // Note: In actual usage, dio_cache_interceptor adds the cache metadata
-        // and our interceptor adds the X-ACDC-From-Cache header
+      // Better test: Integration style with Dio instance in the test.
+      test('integration: serves cache and triggers refresh', () async {
+        final dio = Dio();
+        final store = MemCacheStore();
+        bool refreshCalled = false;
+
+        final interceptor = AcdcCacheInterceptor(
+          config: const CacheConfig(staleWhileRevalidate: true),
+          store: store,
+          onRefresh: (options) async {
+            refreshCalled = true;
+          },
+        );
+        dio.interceptors.add(interceptor);
+
+        final path = 'https://api.example.com/data';
+        final key = CacheOptions.defaultCacheKeyBuilder(
+            url: Uri.parse(path), headers: {});
+
+        // To properly seed, maybe easier to just use the Store API or a real request first?
+        // Let's try real request to seed.
+        // But we need a mock adapter to reply.
+        final adapter = MockAdapter((options) async {
+          final headers = {
+            Headers.contentTypeHeader: [Headers.jsonContentType],
+            'cache-control': ['max-age=3600'],
+            'etag': ['12345'],
+          };
+          if (options.extra['swr_refresh'] == true) {
+            return ResponseBody.fromString('{"fresh": true}', 200,
+                headers: headers);
+          }
+          return ResponseBody.fromString('{"fresh": false}', 200,
+              headers: headers);
+        });
+        dio.httpClientAdapter = adapter;
+
+        // 1. Seed Request (disable SWR to just cache)
+        // We can't easily disable SWR on the interceptor instance, but we can pass swr_refresh=true to bypass logic
+        await dio.get(path, options: Options(extra: {'swr_refresh': true}));
+
+        // Verify cache exists
+        expect(await store.exists(key), isTrue);
+
+        // 2. SWR Request
+        refreshCalled = false;
+        final response = await dio.get(path);
+
+        // Should get cached value (fresh=true because we seeded with swr_refresh=true)
+        expect(response.data['fresh'], isTrue);
+        expect(response.headers.value('X-ACDC-From-Cache'), 'true');
+
+        // Wait for microtask
+        await Future.delayed(Duration(milliseconds: 100));
+
+        // callback should be called
+        expect(refreshCalled, isTrue);
       });
     });
 
@@ -508,4 +563,18 @@ void main() {
       });
     });
   });
+}
+
+class MockAdapter implements HttpClientAdapter {
+  final Future<ResponseBody> Function(RequestOptions) handler;
+  MockAdapter(this.handler);
+
+  @override
+  Future<ResponseBody> fetch(RequestOptions options,
+      Stream<Uint8List>? requestStream, Future? cancelFuture) async {
+    return handler(options);
+  }
+
+  @override
+  void close({bool force = false}) {}
 }
