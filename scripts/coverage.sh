@@ -4,17 +4,7 @@
 set -e
 
 echo "Running tests with coverage..."
-dart test --coverage=coverage
-
-echo ""
-echo "Formatting coverage data to LCOV..."
-export PATH="$PATH:$HOME/.pub-cache/bin"
-dart pub global run coverage:format_coverage \
-  --lcov \
-  --in=coverage \
-  --out=coverage/lcov.info \
-  --packages=.dart_tool/package_config.json \
-  --report-on=lib
+flutter test --coverage
 
 echo ""
 echo "Generating HTML coverage report..."

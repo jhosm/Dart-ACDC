@@ -607,7 +607,6 @@ void main() {
 
         expect(hasCacheInterceptor, true);
       });
-      test('build adds cache interceptor with custom config', () {
 
       /*
       // Skipping due to platform channel mocking issues with connectivity_plus
