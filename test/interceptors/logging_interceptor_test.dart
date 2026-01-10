@@ -416,6 +416,118 @@ void main() {
 
       expect(capturedLevel, LogLevel.info);
     });
+
+    test('logs send timeout', () {
+      final options = RequestOptions(path: '/test');
+      final err = DioException.sendTimeout(
+        requestOptions: options,
+        timeout: const Duration(seconds: 5),
+      );
+
+      interceptor.onError(err, _FakeErrorHandler());
+
+      expect(logs.length, 1);
+      final metadata = logs.first;
+      expect(metadata['error_type'], 'send_timeout');
+    });
+
+    test('logs receive timeout', () {
+      final options = RequestOptions(path: '/test');
+      final err = DioException.receiveTimeout(
+        requestOptions: options,
+        timeout: const Duration(seconds: 5),
+      );
+
+      interceptor.onError(err, _FakeErrorHandler());
+
+      expect(logs.length, 1);
+      final metadata = logs.first;
+      expect(metadata['error_type'], 'receive_timeout');
+    });
+
+    test('logs unknown error', () {
+      final options = RequestOptions(path: '/test');
+      final err = DioException.connectionError(
+          requestOptions: options, reason: 'Unknown', error: 'Unknown');
+
+      interceptor.onError(err, _FakeErrorHandler());
+
+      expect(logs.length, 1);
+      final metadata = logs.first;
+      expect(metadata['error_type'], 'network_error');
+    });
+  });
+
+  group('LoggingInterceptor Print Logs', () {
+    test('prints request logs to console', () {
+      final interceptor = LoggingInterceptor(
+        printLogs: true,
+      );
+
+      final options = RequestOptions(
+        path: '/test',
+        data: {'key': 'value'},
+        headers: {'header': 'value'},
+      );
+
+      // We can't easily assert print output in unit tests without Zone interception
+      // But we can ensure it doesn't throw
+      expect(
+        () => interceptor.onRequest(options, RequestInterceptorHandler()),
+        returnsNormally,
+      );
+    });
+
+    test('prints response logs to console', () {
+      final interceptor = LoggingInterceptor(
+        printLogs: true,
+      );
+
+      final response = Response<dynamic>(
+        requestOptions: RequestOptions(path: '/test'),
+        statusCode: 200,
+        data: {'key': 'value'},
+        headers: Headers.fromMap({
+          'header': ['value']
+        }),
+      );
+
+      expect(
+        () => interceptor.onResponse(response, ResponseInterceptorHandler()),
+        returnsNormally,
+      );
+    });
+
+    test('prints error logs to console', () {
+      final interceptor = LoggingInterceptor(
+        printLogs: true,
+      );
+
+      final err = DioException.connectionTimeout(
+        requestOptions: RequestOptions(path: '/test'),
+        timeout: const Duration(seconds: 1),
+      );
+
+      expect(
+        () => interceptor.onError(err, _FakeErrorHandler()),
+        returnsNormally,
+      );
+    });
+    test('prints safeLog fallback to console', () {
+      final interceptor = LoggingInterceptor(
+        printLogs: true,
+        logDelegate: _MockLogDelegate((message, level, metadata) {
+          throw Exception('Logger failed');
+        }),
+      );
+
+      final options = RequestOptions(path: '/test');
+
+      expect(
+        () => interceptor.onRequest(options, RequestInterceptorHandler()),
+        returnsNormally,
+      );
+    });
   });
 }
 

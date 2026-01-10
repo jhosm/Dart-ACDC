@@ -446,5 +446,66 @@ void main() {
         expect(key, 'public_key');
       });
     });
+
+    group('Edge Cases', () {
+      test('handles request with auth but no user ID (security check)', () {
+        final options = RequestOptions(
+          path: '/users',
+          extra: {
+            '_acdc_has_auth': true,
+          },
+        );
+
+        final key =
+            AcdcCacheInterceptor.buildCacheKeyWithUserIsolation(options);
+        // Should return empty string to disable caching
+        expect(key, isEmpty);
+      });
+
+      test('handles request with auth and empty user ID', () {
+        final options = RequestOptions(
+          path: '/users',
+          extra: {
+            '_acdc_has_auth': true,
+            '_acdc_user_id': '',
+          },
+        );
+
+        final key =
+            AcdcCacheInterceptor.buildCacheKeyWithUserIsolation(options);
+        // Should return empty string to disable caching
+        expect(key, isEmpty);
+      });
+
+      test('handles request without auth', () {
+        final options = RequestOptions(
+          path: '/users',
+          extra: {
+            '_acdc_has_auth': false,
+          },
+        );
+
+        // Base key generation relies on defaultCacheKeyBuilder,
+        // effectively tested by existence of non-empty key
+        final key =
+            AcdcCacheInterceptor.buildCacheKeyWithUserIsolation(options);
+        expect(key, isNotEmpty);
+      });
+
+      test('onRequest handles missing Authorization header', () async {
+        final interceptor = AcdcCacheInterceptor(
+          config: const CacheConfig(),
+          store: MemCacheStore(),
+        );
+
+        final options = RequestOptions(path: '/public');
+        final handler = RequestInterceptorHandler();
+
+        await interceptor.onRequest(options, handler);
+
+        // _acdc_has_auth should be false
+        expect(options.extra['_acdc_has_auth'], isFalse);
+      });
+    });
   });
 }
