@@ -131,11 +131,16 @@
 /// Integrate with your logging system:
 ///
 /// ```dart
-/// final dio = AcdcClientBuilder()
-///   .withLogger((message, level, metadata) {
+/// class MyLogDelegate implements AcdcLogDelegate {
+///   @override
+///   void log(String message, LogLevel level, Map<String, dynamic> metadata) {
 ///     // Forward to your logging system
 ///     myLogger.log(level, message, metadata);
-///   })
+///   }
+/// }
+///
+/// final dio = AcdcClientBuilder()
+///   .withLogDelegate(MyLogDelegate())
 ///   .build();
 /// ```
 ///
