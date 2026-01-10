@@ -257,3 +257,6 @@ export 'src/logging/acdc_log_delegate.dart' show AcdcLogDelegate;
 ///
 /// Use LogLevel.none to disable HTTP logging entirely.
 export 'src/logging/log_level.dart' show LogLevel;
+
+/// Network connectivity monitoring.
+export 'src/network_info/network_info.dart' show NetworkInfo, NetworkStatus;
