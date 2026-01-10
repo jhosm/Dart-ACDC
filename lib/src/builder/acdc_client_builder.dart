@@ -5,8 +5,10 @@ import 'package:dart_acdc/src/auth/token_refresh_result.dart';
 import 'package:dart_acdc/src/cache/acdc_cache_manager.dart';
 import 'package:dart_acdc/src/cache/cache_config.dart';
 import 'package:dart_acdc/src/cache/cache_store_factory.dart';
+import 'package:dart_acdc/src/cancellation/active_request_tracker.dart';
 import 'package:dart_acdc/src/interceptors/auth_interceptor.dart';
 import 'package:dart_acdc/src/interceptors/cache_interceptor.dart';
+import 'package:dart_acdc/src/interceptors/cancellation_interceptor.dart';
 import 'package:dart_acdc/src/interceptors/error_interceptor.dart';
 import 'package:dart_acdc/src/interceptors/logging_interceptor.dart';
 import 'package:dart_acdc/src/interceptors/offline_interceptor.dart';
@@ -504,8 +506,16 @@ class AcdcClientBuilder {
       cacheStore: cacheInterceptor?.store,
     );
 
+    // Create ActiveRequestTracker and CancellationInterceptor
+    final activeRequestTracker = ActiveRequestTracker();
+    final cancellationInterceptor =
+        CancellationInterceptor(activeRequestTracker);
+
+    // Store tracker in Dio options for extension access
+    dio.options.extra['_acdc_active_request_tracker'] = activeRequestTracker;
+
     // Set up interceptor chain in correct order
-    // Request phase: Logging → Error → Auth → Cache
+    // Request phase: Logging → Error → Cancellation → Auth → Cache
     // Response phase: Cache → Auth → Error → Logging
     // Custom interceptors are added at the end
 
@@ -523,20 +533,23 @@ class AcdcClientBuilder {
     // 2. Add error interceptor
     dio.interceptors.add(const ErrorInterceptor());
 
-    // 3. Add offline interceptor (before auth/cache to fail fast or return from cache)
+    // 3. Add cancellation interceptor (ensure tokens are tracked early)
+    dio.interceptors.add(cancellationInterceptor);
+
+    // 4. Add offline interceptor (before auth/cache to fail fast or return from cache)
     dio.interceptors.add(offlineInterceptor);
 
-    // 4. Add auth interceptor if enabled
+    // 5. Add auth interceptor if enabled
     if (authInterceptor != null) {
       dio.interceptors.add(authInterceptor);
     }
 
-    // 5. Add cache interceptor if caching is enabled
+    // 6. Add cache interceptor if caching is enabled
     if (cacheInterceptor != null) {
       dio.interceptors.add(cacheInterceptor);
     }
 
-    // 6. Add custom interceptors at the end
+    // 7. Add custom interceptors at the end
     if (_customInterceptors != null) {
       dio.interceptors.addAll(_customInterceptors!);
     }

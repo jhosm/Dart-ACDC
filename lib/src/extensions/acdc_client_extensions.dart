@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:dart_acdc/src/cancellation/active_request_tracker.dart';
 import 'package:dart_acdc/src/network_info/network_info.dart';
 import 'package:dio/dio.dart';
 
@@ -19,6 +20,20 @@ extension AcdcClientExtensions on Dio {
   void closeAcdc({bool force = false}) {
     close(force: force);
     networkInfo?.dispose();
+    activeRequestTracker?.cancelAll();
+  }
+
+  /// Cancels all active requests tracked by [ActiveRequestTracker].
+  ///
+  /// [reason]: Optional reason for cancellation.
+  void cancelAll([Object? reason]) {
+    activeRequestTracker?.cancelAll(reason);
+  }
+
+  /// Retrieves the [ActiveRequestTracker] associated with this client.
+  ActiveRequestTracker? get activeRequestTracker {
+    return options.extra['_acdc_active_request_tracker']
+        as ActiveRequestTracker?;
   }
 
   /// Streams the response, emitting cached data immediately (if available via SWR)
