@@ -20,6 +20,7 @@ Designed to be the "missing link" between [OpenAPI Generator](https://github.com
 - ✅ **Type-safe**: Full Dart type safety and null safety
 - ✅ **Testable**: Easy mocking and testing
 - ✅ **Production-ready**: Battle-tested patterns for mobile apps
+- ✅ **Efficient**: Automatic request deduplication to save bandwidth
 
 ## Installation
 
@@ -156,6 +157,17 @@ await dio.auth.clearCache();
 ```dart
 final dio = AcdcClientBuilder()
   .withTimeout(Duration(seconds: 30))
+  .build();
+```
+
+### Request Deduplication
+
+By default, Dart-ACDC deduplicates simultaneous identical requests (same method, URL, headers, and data) to prevent redundant network calls.
+
+```dart
+final dio = AcdcClientBuilder()
+  // Disable deduplication if needed
+  .withDeduplication(enabled: false)
   .build();
 ```
 

@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'package:dart_acdc/src/cancellation/active_request_tracker.dart';
+import 'package:dart_acdc/src/interceptors/cache_interceptor.dart'
+    show AcdcCacheInterceptor;
 import 'package:dart_acdc/src/network_info/network_info.dart';
 import 'package:dio/dio.dart';
 
@@ -9,9 +11,8 @@ extension AcdcClientExtensions on Dio {
   ///
   /// Returns `null` if the client was not configured with offline detection support
   /// (though `AcdcClientBuilder` adds it by default).
-  NetworkInfo? get networkInfo {
-    return options.extra['_acdc_network_info'] as NetworkInfo?;
-  }
+  NetworkInfo? get networkInfo =>
+      options.extra['_acdc_network_info'] as NetworkInfo?;
 
   /// Closes the client and disposes associated resources including [NetworkInfo].
   ///
@@ -31,10 +32,8 @@ extension AcdcClientExtensions on Dio {
   }
 
   /// Retrieves the [ActiveRequestTracker] associated with this client.
-  ActiveRequestTracker? get activeRequestTracker {
-    return options.extra['_acdc_active_request_tracker']
-        as ActiveRequestTracker?;
-  }
+  ActiveRequestTracker? get activeRequestTracker =>
+      options.extra['_acdc_active_request_tracker'] as ActiveRequestTracker?;
 
   /// Streams the response, emitting cached data immediately (if available via SWR)
   /// and then fresh data from the network.
@@ -89,7 +88,7 @@ extension AcdcClientExtensions on Dio {
         }
       } catch (e) {
         // Forward errors from background refresh
-        throw e;
+        rethrow;
       }
     }
   }

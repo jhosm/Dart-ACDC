@@ -9,7 +9,6 @@ import 'package:shelf/shelf_io.dart' as shelf_io;
 import 'package:test/test.dart';
 
 import '../helpers/fake_oauth_server.dart';
-import '../helpers/fake_oauth_server.dart';
 import '../helpers/fake_token_provider.dart';
 import '../helpers/mock_network_info.dart';
 

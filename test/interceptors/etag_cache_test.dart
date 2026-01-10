@@ -12,8 +12,11 @@ class FakeHttpClientAdapter implements HttpClientAdapter {
   ResponseBody? nextResponse;
 
   // Helper to set next response easily
-  void setResponse(String data, int statusCode,
-      {Map<String, List<String>>? headers,}) {
+  void setResponse(
+    String data,
+    int statusCode, {
+    Map<String, List<String>>? headers,
+  }) {
     nextResponse = ResponseBody.fromString(
       data,
       statusCode,
@@ -25,7 +28,7 @@ class FakeHttpClientAdapter implements HttpClientAdapter {
   Future<ResponseBody> fetch(
     RequestOptions options,
     Stream<Uint8List>? requestStream,
-    Future? cancelFuture,
+    Future<dynamic>? cancelFuture,
   ) async {
     requests.add(options);
 
@@ -51,8 +54,7 @@ void main() {
 
   setUpAll(() {
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-        .setMockMethodCallHandler(secureStorageChannel,
-            (methodCall) async {
+        .setMockMethodCallHandler(secureStorageChannel, (methodCall) async {
       // Simple mock: always return null for read (Simulating empty storage),
       // success for write/delete
       if (methodCall.method == 'read') {
@@ -108,7 +110,7 @@ void main() {
       );
 
       // 2. Perform first request
-      await dio.get('/data');
+      await dio.get<Map<String, dynamic>>('/data');
 
       // 3. Verify request happened
       expect(fakeAdapter.requests.length, equals(1));
@@ -139,7 +141,7 @@ void main() {
       );
 
       // 2. Perform first request to populate cache
-      await dio.get('/data');
+      await dio.get<Map<String, dynamic>>('/data');
 
       // 3. Clear requests log to isolate next request verification
       fakeAdapter.requests.clear();
@@ -150,11 +152,12 @@ void main() {
         200,
         headers: {
           'etag': [etag],
+          'content-type': ['application/json'],
         },
       );
 
       // 5. Perform second request
-      await dio.get('/data');
+      await dio.get<Map<String, dynamic>>('/data');
 
       // 6. Verify If-None-Match header was sent
       expect(fakeAdapter.requests.length, equals(1));
@@ -188,7 +191,7 @@ void main() {
       );
 
       // 2. Populate cache
-      await dio.get('/data');
+      await dio.get<Map<String, dynamic>>('/data');
 
       // 3. Configure mock to return 304 for next request
       fakeAdapter.setResponse(
@@ -202,17 +205,21 @@ void main() {
       );
 
       // 4. Perform second request
-      final response = await dio.get('/data');
+      final response = await dio.get<Map<String, dynamic>>('/data');
 
       // 5. Verify response is from cache and has original data
       expect(
-          response.statusCode,
-          equals(
-              200,),); // Dio/Interceptor should resolve 304 to 200 with cached content
-      expect(response.data['data'], equals('fresh'));
+        response.statusCode,
+        equals(
+          200,
+        ),
+      ); // Dio/Interceptor should resolve 304 to 200 with cached content
+      expect(response.data!['data'], equals('fresh'));
       expect(response.headers.value('x-acdc-from-cache'), equals('true'));
-      expect(response.headers.value('if-none-match'),
-          isNull,); // Client should NOT see if-none-match in response? No, request header.
+      expect(
+        response.headers.value('if-none-match'),
+        isNull,
+      ); // Client should NOT see if-none-match in response? No, request header.
     });
   });
 }

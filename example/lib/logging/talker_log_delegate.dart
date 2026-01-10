@@ -11,7 +11,7 @@ class TalkerLogDelegate implements AcdcLogDelegate {
   void log(String message, LogLevel level, Map<String, dynamic> metadata) {
     final talkerLevel = _mapLevel(level);
 
-    talker.logTyped(
+    talker.logCustom(
       AcdcTalkerLog(message, logLevel: talkerLevel, data: metadata),
     );
   }
@@ -37,7 +37,7 @@ class TalkerLogDelegate implements AcdcLogDelegate {
 class AcdcTalkerLog extends talker_pkg.TalkerLog {
   final Map<String, dynamic>? data;
 
-  AcdcTalkerLog(String message, {this.data, super.logLevel}) : super(message);
+  AcdcTalkerLog(String super.message, {this.data, super.logLevel});
 
   @override
   String get title => 'ACDC';

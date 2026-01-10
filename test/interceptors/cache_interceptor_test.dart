@@ -294,7 +294,7 @@ void main() {
       test('integration: serves cache and triggers refresh', () async {
         final dio = Dio();
         final store = MemCacheStore();
-        bool refreshCalled = false;
+        var refreshCalled = false;
 
         final interceptor = AcdcCacheInterceptor(
           config: const CacheConfig(staleWhileRevalidate: true),
@@ -305,9 +305,11 @@ void main() {
         );
         dio.interceptors.add(interceptor);
 
-        final path = 'https://api.example.com/data';
+        const path = 'https://api.example.com/data';
         final key = CacheOptions.defaultCacheKeyBuilder(
-            url: Uri.parse(path), headers: {});
+          url: Uri.parse(path),
+          headers: {},
+        );
 
         // To properly seed, maybe easier to just use the Store API or a real request first?
         // Let's try real request to seed.
@@ -319,31 +321,40 @@ void main() {
             'etag': ['12345'],
           };
           if (options.extra['swr_refresh'] == true) {
-            return ResponseBody.fromString('{"fresh": true}', 200,
-                headers: headers);
+            return ResponseBody.fromString(
+              '{"fresh": true}',
+              200,
+              headers: headers,
+            );
           }
-          return ResponseBody.fromString('{"fresh": false}', 200,
-              headers: headers);
+          return ResponseBody.fromString(
+            '{"fresh": false}',
+            200,
+            headers: headers,
+          );
         });
         dio.httpClientAdapter = adapter;
 
         // 1. Seed Request (disable SWR to just cache)
         // We can't easily disable SWR on the interceptor instance, but we can pass swr_refresh=true to bypass logic
-        await dio.get(path, options: Options(extra: {'swr_refresh': true}));
+        await dio.get<dynamic>(
+          path,
+          options: Options(extra: {'swr_refresh': true}),
+        );
 
         // Verify cache exists
         expect(await store.exists(key), isTrue);
 
         // 2. SWR Request
         refreshCalled = false;
-        final response = await dio.get(path);
+        final response = await dio.get<Map<String, dynamic>>(path);
 
         // Should get cached value (fresh=true because we seeded with swr_refresh=true)
-        expect(response.data['fresh'], isTrue);
+        expect(response.data!['fresh'], isTrue);
         expect(response.headers.value('X-ACDC-From-Cache'), 'true');
 
         // Wait for microtask
-        await Future.delayed(Duration(milliseconds: 100));
+        await Future<void>.delayed(const Duration(milliseconds: 100));
 
         // callback should be called
         expect(refreshCalled, isTrue);
@@ -566,14 +577,16 @@ void main() {
 }
 
 class MockAdapter implements HttpClientAdapter {
-  final Future<ResponseBody> Function(RequestOptions) handler;
   MockAdapter(this.handler);
+  final Future<ResponseBody> Function(RequestOptions) handler;
 
   @override
-  Future<ResponseBody> fetch(RequestOptions options,
-      Stream<Uint8List>? requestStream, Future? cancelFuture) async {
-    return handler(options);
-  }
+  Future<ResponseBody> fetch(
+    RequestOptions options,
+    Stream<Uint8List>? requestStream,
+    Future<dynamic>? cancelFuture,
+  ) async =>
+      handler(options);
 
   @override
   void close({bool force = false}) {}

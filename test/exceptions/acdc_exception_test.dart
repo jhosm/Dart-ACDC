@@ -31,8 +31,14 @@ void main() {
       final redacted = AcdcException.redactUrl(url);
 
       // URL encoding may encode the asterisks
-      expect(redacted, anyOf(contains('token=***REDACTED***'), contains('REDACTED')));
-      expect(redacted, anyOf(contains('api_key=***REDACTED***'), contains('REDACTED')));
+      expect(
+        redacted,
+        anyOf(contains('token=***REDACTED***'), contains('REDACTED')),
+      );
+      expect(
+        redacted,
+        anyOf(contains('api_key=***REDACTED***'), contains('REDACTED')),
+      );
       expect(redacted, contains('name=john'));
       expect(redacted, isNot(contains('secret123')));
       expect(redacted, isNot(contains('key456')));

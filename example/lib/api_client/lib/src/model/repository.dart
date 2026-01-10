@@ -11,17 +11,17 @@ part 'repository.g.dart';
 /// Repository
 ///
 /// Properties:
-/// * [id] 
-/// * [name] 
-/// * [fullName] 
-/// * [private] 
-/// * [htmlUrl] 
-/// * [description] 
-/// * [stargazersCount] 
-/// * [watchersCount] 
-/// * [language] 
-/// * [forksCount] 
-/// * [openIssuesCount] 
+/// * [id]
+/// * [name]
+/// * [fullName]
+/// * [private]
+/// * [htmlUrl]
+/// * [description]
+/// * [stargazersCount]
+/// * [watchersCount]
+/// * [language]
+/// * [forksCount]
+/// * [openIssuesCount]
 @BuiltValue()
 abstract class Repository implements Built<Repository, RepositoryBuilder> {
   @BuiltValueField(wireName: r'id')
@@ -165,7 +165,11 @@ class _$RepositorySerializer implements PrimitiveSerializer<Repository> {
     Repository object, {
     FullType specifiedType = FullType.unspecified,
   }) {
-    return _serializeProperties(serializers, object, specifiedType: specifiedType).toList();
+    return _serializeProperties(
+      serializers,
+      object,
+      specifiedType: specifiedType,
+    ).toList();
   }
 
   void _deserializeProperties(
@@ -181,80 +185,87 @@ class _$RepositorySerializer implements PrimitiveSerializer<Repository> {
       final value = serializedList[i + 1];
       switch (key) {
         case r'id':
-          final valueDes = serializers.deserialize(
-            value,
-            specifiedType: const FullType(int),
-          ) as int;
+          final valueDes =
+              serializers.deserialize(value, specifiedType: const FullType(int))
+                  as int;
           result.id = valueDes;
           break;
         case r'name':
-          final valueDes = serializers.deserialize(
-            value,
-            specifiedType: const FullType(String),
-          ) as String;
+          final valueDes =
+              serializers.deserialize(
+                    value,
+                    specifiedType: const FullType(String),
+                  )
+                  as String;
           result.name = valueDes;
           break;
         case r'full_name':
-          final valueDes = serializers.deserialize(
-            value,
-            specifiedType: const FullType(String),
-          ) as String;
+          final valueDes =
+              serializers.deserialize(
+                    value,
+                    specifiedType: const FullType(String),
+                  )
+                  as String;
           result.fullName = valueDes;
           break;
         case r'private':
-          final valueDes = serializers.deserialize(
-            value,
-            specifiedType: const FullType(bool),
-          ) as bool;
+          final valueDes =
+              serializers.deserialize(
+                    value,
+                    specifiedType: const FullType(bool),
+                  )
+                  as bool;
           result.private = valueDes;
           break;
         case r'html_url':
-          final valueDes = serializers.deserialize(
-            value,
-            specifiedType: const FullType(String),
-          ) as String;
+          final valueDes =
+              serializers.deserialize(
+                    value,
+                    specifiedType: const FullType(String),
+                  )
+                  as String;
           result.htmlUrl = valueDes;
           break;
         case r'description':
-          final valueDes = serializers.deserialize(
-            value,
-            specifiedType: const FullType(String),
-          ) as String;
+          final valueDes =
+              serializers.deserialize(
+                    value,
+                    specifiedType: const FullType(String),
+                  )
+                  as String;
           result.description = valueDes;
           break;
         case r'stargazers_count':
-          final valueDes = serializers.deserialize(
-            value,
-            specifiedType: const FullType(int),
-          ) as int;
+          final valueDes =
+              serializers.deserialize(value, specifiedType: const FullType(int))
+                  as int;
           result.stargazersCount = valueDes;
           break;
         case r'watchers_count':
-          final valueDes = serializers.deserialize(
-            value,
-            specifiedType: const FullType(int),
-          ) as int;
+          final valueDes =
+              serializers.deserialize(value, specifiedType: const FullType(int))
+                  as int;
           result.watchersCount = valueDes;
           break;
         case r'language':
-          final valueDes = serializers.deserialize(
-            value,
-            specifiedType: const FullType(String),
-          ) as String;
+          final valueDes =
+              serializers.deserialize(
+                    value,
+                    specifiedType: const FullType(String),
+                  )
+                  as String;
           result.language = valueDes;
           break;
         case r'forks_count':
-          final valueDes = serializers.deserialize(
-            value,
-            specifiedType: const FullType(int),
-          ) as int;
+          final valueDes =
+              serializers.deserialize(value, specifiedType: const FullType(int))
+                  as int;
           result.forksCount = valueDes;
           break;
         case r'open_issues_count':
-          final valueDes = serializers.deserialize(
-            value,
-            specifiedType: const FullType(int),
-          ) as int;
+          final valueDes =
+              serializers.deserialize(value, specifiedType: const FullType(int))
+                  as int;
           result.openIssuesCount = valueDes;
           break;
         default:
@@ -285,4 +296,3 @@ class _$RepositorySerializer implements PrimitiveSerializer<Repository> {
     return result.build();
   }
 }
-

@@ -118,7 +118,7 @@ class OfflineInterceptor extends Interceptor {
 
         return response;
       }
-    } catch (e) {
+    } on Object catch (_) {
       // Ignore cache errors, proceed to fail fast
     }
     return null;

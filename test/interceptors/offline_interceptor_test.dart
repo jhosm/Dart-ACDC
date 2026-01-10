@@ -1,7 +1,7 @@
 import 'package:dart_acdc/src/cache/cache_config.dart';
 import 'package:dart_acdc/src/exceptions/acdc_network_exception.dart';
-import 'package:dart_acdc/src/interceptors/offline_interceptor.dart';
 import 'package:dart_acdc/src/interceptors/cache_interceptor.dart';
+import 'package:dart_acdc/src/interceptors/offline_interceptor.dart';
 import 'package:dart_acdc/src/network_info/network_info.dart';
 import 'package:dio/dio.dart';
 import 'package:dio_cache_interceptor/dio_cache_interceptor.dart';

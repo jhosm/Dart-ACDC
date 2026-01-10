@@ -11,10 +11,10 @@ part 'post.g.dart';
 /// Post
 ///
 /// Properties:
-/// * [id] 
-/// * [title] 
-/// * [body] 
-/// * [userId] 
+/// * [id]
+/// * [title]
+/// * [body]
+/// * [userId]
 @BuiltValue()
 abstract class Post implements Built<Post, PostBuilder> {
   @BuiltValueField(wireName: r'id')
@@ -88,7 +88,11 @@ class _$PostSerializer implements PrimitiveSerializer<Post> {
     Post object, {
     FullType specifiedType = FullType.unspecified,
   }) {
-    return _serializeProperties(serializers, object, specifiedType: specifiedType).toList();
+    return _serializeProperties(
+      serializers,
+      object,
+      specifiedType: specifiedType,
+    ).toList();
   }
 
   void _deserializeProperties(
@@ -104,31 +108,33 @@ class _$PostSerializer implements PrimitiveSerializer<Post> {
       final value = serializedList[i + 1];
       switch (key) {
         case r'id':
-          final valueDes = serializers.deserialize(
-            value,
-            specifiedType: const FullType(int),
-          ) as int;
+          final valueDes =
+              serializers.deserialize(value, specifiedType: const FullType(int))
+                  as int;
           result.id = valueDes;
           break;
         case r'title':
-          final valueDes = serializers.deserialize(
-            value,
-            specifiedType: const FullType(String),
-          ) as String;
+          final valueDes =
+              serializers.deserialize(
+                    value,
+                    specifiedType: const FullType(String),
+                  )
+                  as String;
           result.title = valueDes;
           break;
         case r'body':
-          final valueDes = serializers.deserialize(
-            value,
-            specifiedType: const FullType(String),
-          ) as String;
+          final valueDes =
+              serializers.deserialize(
+                    value,
+                    specifiedType: const FullType(String),
+                  )
+                  as String;
           result.body = valueDes;
           break;
         case r'userId':
-          final valueDes = serializers.deserialize(
-            value,
-            specifiedType: const FullType(int),
-          ) as int;
+          final valueDes =
+              serializers.deserialize(value, specifiedType: const FullType(int))
+                  as int;
           result.userId = valueDes;
           break;
         default:
@@ -159,4 +165,3 @@ class _$PostSerializer implements PrimitiveSerializer<Post> {
     return result.build();
   }
 }
-

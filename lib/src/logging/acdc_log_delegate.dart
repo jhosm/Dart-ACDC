@@ -1,3 +1,5 @@
+import 'package:dart_acdc/src/interceptors/logging_interceptor.dart'
+    show LoggingInterceptor;
 import 'package:dart_acdc/src/logging/log_level.dart';
 
 /// Interface for custom logging implementations.
@@ -14,6 +16,7 @@ import 'package:dart_acdc/src/logging/log_level.dart';
 ///   }
 /// }
 /// ```
+// ignore: one_member_abstracts
 abstract interface class AcdcLogDelegate {
   /// Logs a message with the specified level and metadata.
   ///

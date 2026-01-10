@@ -14,4 +14,3 @@ export 'package:openapi/src/api/default_api.dart';
 
 export 'package:openapi/src/model/private_user.dart';
 export 'package:openapi/src/model/repository.dart';
-

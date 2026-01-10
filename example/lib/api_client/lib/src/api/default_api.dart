@@ -13,7 +13,6 @@ import 'package:openapi/src/model/private_user.dart';
 import 'package:openapi/src/model/repository.dart';
 
 class DefaultApi {
-
   final Dio _dio;
 
   final Serializers _serializers;
@@ -21,7 +20,7 @@ class DefaultApi {
   const DefaultApi(this._dio, this._serializers);
 
   /// Get the authenticated user
-  /// 
+  ///
   ///
   /// Parameters:
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
@@ -33,7 +32,7 @@ class DefaultApi {
   ///
   /// Returns a [Future] containing a [Response] with a [PrivateUser] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<PrivateUser>> getAuthenticatedUser({ 
+  Future<Response<PrivateUser>> getAuthenticatedUser({
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
     Map<String, dynamic>? extra,
@@ -44,16 +43,10 @@ class DefaultApi {
     final _path = r'/user';
     final _options = Options(
       method: r'GET',
-      headers: <String, dynamic>{
-        ...?headers,
-      },
+      headers: <String, dynamic>{...?headers},
       extra: <String, dynamic>{
         'secure': <Map<String, String>>[
-          {
-            'type': 'http',
-            'scheme': 'bearer',
-            'name': 'bearerAuth',
-          },
+          {'type': 'http', 'scheme': 'bearer', 'name': 'bearerAuth'},
         ],
         ...?extra,
       },
@@ -72,11 +65,13 @@ class DefaultApi {
 
     try {
       final rawResponse = _response.data;
-      _responseData = rawResponse == null ? null : _serializers.deserialize(
-        rawResponse,
-        specifiedType: const FullType(PrivateUser),
-      ) as PrivateUser;
-
+      _responseData = rawResponse == null
+          ? null
+          : _serializers.deserialize(
+                  rawResponse,
+                  specifiedType: const FullType(PrivateUser),
+                )
+                as PrivateUser;
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -100,7 +95,7 @@ class DefaultApi {
   }
 
   /// List repositories for the authenticated user
-  /// 
+  ///
   ///
   /// Parameters:
   /// * [sort] - Property to sort repositories by
@@ -114,7 +109,7 @@ class DefaultApi {
   ///
   /// Returns a [Future] containing a [Response] with a [BuiltList<Repository>] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<BuiltList<Repository>>> listRepos({ 
+  Future<Response<BuiltList<Repository>>> listRepos({
     String? sort = 'full_name',
     String? direction,
     CancelToken? cancelToken,
@@ -127,16 +122,10 @@ class DefaultApi {
     final _path = r'/user/repos';
     final _options = Options(
       method: r'GET',
-      headers: <String, dynamic>{
-        ...?headers,
-      },
+      headers: <String, dynamic>{...?headers},
       extra: <String, dynamic>{
         'secure': <Map<String, String>>[
-          {
-            'type': 'http',
-            'scheme': 'bearer',
-            'name': 'bearerAuth',
-          },
+          {'type': 'http', 'scheme': 'bearer', 'name': 'bearerAuth'},
         ],
         ...?extra,
       },
@@ -144,8 +133,18 @@ class DefaultApi {
     );
 
     final _queryParameters = <String, dynamic>{
-      if (sort != null) r'sort': encodeQueryParameter(_serializers, sort, const FullType(String)),
-      if (direction != null) r'direction': encodeQueryParameter(_serializers, direction, const FullType(String)),
+      if (sort != null)
+        r'sort': encodeQueryParameter(
+          _serializers,
+          sort,
+          const FullType(String),
+        ),
+      if (direction != null)
+        r'direction': encodeQueryParameter(
+          _serializers,
+          direction,
+          const FullType(String),
+        ),
     };
 
     final _response = await _dio.request<Object>(
@@ -161,11 +160,15 @@ class DefaultApi {
 
     try {
       final rawResponse = _response.data;
-      _responseData = rawResponse == null ? null : _serializers.deserialize(
-        rawResponse,
-        specifiedType: const FullType(BuiltList, [FullType(Repository)]),
-      ) as BuiltList<Repository>;
-
+      _responseData = rawResponse == null
+          ? null
+          : _serializers.deserialize(
+                  rawResponse,
+                  specifiedType: const FullType(BuiltList, [
+                    FullType(Repository),
+                  ]),
+                )
+                as BuiltList<Repository>;
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -187,5 +190,4 @@ class DefaultApi {
       extra: _response.extra,
     );
   }
-
 }

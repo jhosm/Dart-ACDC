@@ -153,7 +153,10 @@ void main() {
 
         // Inject token
         AuthRequestHelper.injectBearerToken(options, 'access-token-123');
-        expect(options.headers['Authorization'], equals('Bearer access-token-123'));
+        expect(
+          options.headers['Authorization'],
+          equals('Bearer access-token-123'),
+        );
 
         // Not a retry initially
         expect(AuthRequestHelper.isRetryRequest(options), isFalse);

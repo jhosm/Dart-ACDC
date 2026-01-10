@@ -29,10 +29,10 @@ void main() {
     });
 
     test('should remove tokens', () {
-      tracker.add(token1);
-      tracker.add(token2);
-
-      tracker.remove(token1);
+      tracker
+        ..add(token1)
+        ..add(token2)
+        ..remove(token1);
       expect(tracker.activeCount, 1);
       expect(tracker.isTracked(token1), isFalse);
       expect(tracker.isTracked(token2), isTrue);
@@ -40,8 +40,9 @@ void main() {
 
     group('cancelAll', () {
       test('should cancel all tracked tokens with reason', () {
-        tracker.add(token1);
-        tracker.add(token2);
+        tracker
+          ..add(token1)
+          ..add(token2);
 
         const reason = 'test reason';
         tracker.cancelAll(reason);
@@ -53,10 +54,10 @@ void main() {
       });
 
       test('should clear the tracker after cancellation', () {
-        tracker.add(token1);
-        tracker.add(token2);
-
-        tracker.cancelAll();
+        tracker
+          ..add(token1)
+          ..add(token2)
+          ..cancelAll();
 
         expect(tracker.activeCount, 0);
       });
@@ -81,10 +82,10 @@ void main() {
         // that we can hook into to call remove()).
         // But we rely on the implementation detail that it copies the list.
 
-        tracker.add(token1);
-        tracker.add(token2);
-
-        tracker.cancelAll();
+        tracker
+          ..add(token1)
+          ..add(token2)
+          ..cancelAll();
 
         expect(tracker.activeCount, 0);
       });

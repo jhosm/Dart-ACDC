@@ -11,8 +11,11 @@ class FakeHttpClientAdapter implements HttpClientAdapter {
   final List<RequestOptions> requests = [];
   ResponseBody? nextResponse;
 
-  void setResponse(String data, int statusCode,
-      {Map<String, List<String>>? headers,}) {
+  void setResponse(
+    String data,
+    int statusCode, {
+    Map<String, List<String>>? headers,
+  }) {
     nextResponse = ResponseBody.fromString(
       data,
       statusCode,
@@ -24,7 +27,7 @@ class FakeHttpClientAdapter implements HttpClientAdapter {
   Future<ResponseBody> fetch(
     RequestOptions options,
     Stream<Uint8List>? requestStream,
-    Future? cancelFuture,
+    Future<dynamic>? cancelFuture,
   ) async {
     requests.add(options);
     if (nextResponse != null) {
@@ -45,8 +48,10 @@ void main() {
 
   setUpAll(() {
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-        .setMockMethodCallHandler(secureStorageChannel,
-            (methodCall) async => null,);
+        .setMockMethodCallHandler(
+      secureStorageChannel,
+      (methodCall) async => null,
+    );
   });
 
   group('AcdcCacheInterceptor Custom ValidateStatus', () {
@@ -79,8 +84,8 @@ void main() {
       dio.interceptors.add(interceptor);
 
       // Allow 304 as specific success status
-      dio.options.validateStatus = (status) => status != null &&
-            (status >= 200 && status < 300 || status == 304);
+      dio.options.validateStatus = (status) =>
+          status != null && (status >= 200 && status < 300 || status == 304);
 
       const etag = '"test-etag-12345"';
 
@@ -94,7 +99,7 @@ void main() {
           'cache-control': ['public, max-age=0'],
         },
       );
-      await dio.get('/data');
+      await dio.get<Map<String, dynamic>>('/data');
 
       // 2. Second request returns 304
       fakeAdapter.setResponse(
@@ -107,13 +112,19 @@ void main() {
       );
 
       // 3. Perform request
-      final response = await dio.get('/data');
+      final response = await dio.get<Map<String, dynamic>>('/data');
 
       // 4. Verification
-      expect(response.statusCode, equals(200),
-          reason: 'Should resolve 304 to 200 with cached content',);
-      expect(response.data['data'], equals('fresh'),
-          reason: 'Should return cached data',);
+      expect(
+        response.statusCode,
+        equals(200),
+        reason: 'Should resolve 304 to 200 with cached content',
+      );
+      expect(
+        response.data!['data'],
+        equals('fresh'),
+        reason: 'Should return cached data',
+      );
       expect(response.headers.value('x-acdc-from-cache'), equals('true'));
     });
   });

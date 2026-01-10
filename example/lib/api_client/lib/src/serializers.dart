@@ -19,20 +19,18 @@ import 'package:openapi/src/model/repository.dart';
 
 part 'serializers.g.dart';
 
-@SerializersFor([
-  PrivateUser,
-  Repository,
-])
-Serializers serializers = (_$serializers.toBuilder()
-      ..addBuilderFactory(
-        const FullType(BuiltList, [FullType(Repository)]),
-        () => ListBuilder<Repository>(),
-      )
-      ..add(const OneOfSerializer())
-      ..add(const AnyOfSerializer())
-      ..add(const DateSerializer())
-      ..add(Iso8601DateTimeSerializer())
-    ).build();
+@SerializersFor([PrivateUser, Repository])
+Serializers serializers =
+    (_$serializers.toBuilder()
+          ..addBuilderFactory(
+            const FullType(BuiltList, [FullType(Repository)]),
+            () => ListBuilder<Repository>(),
+          )
+          ..add(const OneOfSerializer())
+          ..add(const AnyOfSerializer())
+          ..add(const DateSerializer())
+          ..add(Iso8601DateTimeSerializer()))
+        .build();
 
 Serializers standardSerializers =
     (serializers.toBuilder()..addPlugin(StandardJsonPlugin())).build();

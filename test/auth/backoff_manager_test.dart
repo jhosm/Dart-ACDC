@@ -186,7 +186,9 @@ void main() {
         manager.increment(); // 2 seconds backoff
 
         // Wait for backoff to elapse
-        await Future<void>.delayed(const Duration(seconds: 2, milliseconds: 100));
+        await Future<void>.delayed(
+          const Duration(seconds: 2, milliseconds: 100),
+        );
 
         expect(manager.shouldWait(), isFalse);
       });

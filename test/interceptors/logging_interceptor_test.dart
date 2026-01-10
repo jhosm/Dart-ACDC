@@ -216,7 +216,7 @@ void main() {
       logs = [];
       interceptor = LoggingInterceptor(
         logDelegate: _MockLogDelegate((message, level, metadata) {
-          if (metadata != null && metadata['type'] == 'slow_request') {
+          if (metadata['type'] == 'slow_request') {
             logs.add(metadata);
           }
         }),
@@ -265,7 +265,7 @@ void main() {
       logs = [];
       final interceptor = LoggingInterceptor(
         logDelegate: _MockLogDelegate((message, level, metadata) {
-          if (metadata != null && metadata['type'] == 'large_payload') {
+          if (metadata['type'] == 'large_payload') {
             logs.add(metadata);
           }
         }),
@@ -288,7 +288,7 @@ void main() {
       logs = [];
       final interceptor = LoggingInterceptor(
         logDelegate: _MockLogDelegate((message, level, metadata) {
-          if (metadata != null && metadata['type'] == 'large_payload') {
+          if (metadata['type'] == 'large_payload') {
             logs.add(metadata);
           }
         }),
@@ -323,7 +323,7 @@ void main() {
       logs = [];
       interceptor = LoggingInterceptor(
         logDelegate: _MockLogDelegate((message, level, metadata) {
-          if (metadata != null && metadata['type'] == 'error') {
+          if (metadata['type'] == 'error') {
             logs.add(metadata);
           }
         }),
@@ -448,7 +448,10 @@ void main() {
     test('logs unknown error', () {
       final options = RequestOptions(path: '/test');
       final err = DioException.connectionError(
-          requestOptions: options, reason: 'Unknown', error: 'Unknown');
+        requestOptions: options,
+        reason: 'Unknown',
+        error: 'Unknown',
+      );
 
       interceptor.onError(err, _FakeErrorHandler());
 
@@ -488,7 +491,7 @@ void main() {
         statusCode: 200,
         data: {'key': 'value'},
         headers: Headers.fromMap({
-          'header': ['value']
+          'header': ['value'],
         }),
       );
 
@@ -532,8 +535,8 @@ void main() {
 }
 
 class _MockLogDelegate implements AcdcLogDelegate {
-  final void Function(String, LogLevel, Map<String, dynamic>) onLog;
   _MockLogDelegate(this.onLog);
+  final void Function(String, LogLevel, Map<String, dynamic>) onLog;
   @override
   void log(String message, LogLevel level, Map<String, dynamic> metadata) =>
       onLog(message, level, metadata);

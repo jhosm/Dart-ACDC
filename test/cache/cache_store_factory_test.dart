@@ -2,20 +2,19 @@ import 'package:dart_acdc/src/cache/cache_config.dart';
 import 'package:dart_acdc/src/cache/cache_store_factory.dart';
 import 'package:dart_acdc/src/cache/encrypted_cache_store.dart';
 import 'package:dart_acdc/src/cache/two_tier_cache_store.dart';
-import 'package:dio_cache_interceptor/dio_cache_interceptor.dart';
 import 'package:test/test.dart';
 
 void main() {
   group('CacheStoreFactory', () {
     test('builds TwoTierCacheStore when inMemory is true', () {
-      final config = CacheConfig(inMemory: true);
+      const config = CacheConfig();
       final store = CacheStoreFactory.build(config);
 
       expect(store, isA<TwoTierCacheStore>());
     });
 
     test('builds EncryptedCacheStore when inMemory is false', () {
-      final config = CacheConfig(inMemory: false);
+      const config = CacheConfig(inMemory: false);
       final store = CacheStoreFactory.build(config);
 
       expect(store, isA<EncryptedCacheStore>());
@@ -32,7 +31,7 @@ void main() {
     // and initialization doesn't throw.
 
     test('build does not throw error', () {
-      final config = CacheConfig();
+      const config = CacheConfig();
       expect(() => CacheStoreFactory.build(config), returnsNormally);
     });
   });

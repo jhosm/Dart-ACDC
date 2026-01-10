@@ -28,17 +28,17 @@ abstract class NetworkInfo {
 
 /// Implementation of [NetworkInfo] using [Connectivity].
 class NetworkInfoImpl implements NetworkInfo {
+  /// Creates a new [NetworkInfoImpl].
+  NetworkInfoImpl({Connectivity? connectivity})
+      : _connectivity = connectivity ?? Connectivity() {
+    _init();
+  }
   final Connectivity _connectivity;
 
   // defaulting to online as per spec to avoid false positives on startup
   bool _isConnected = true;
   final _controller = StreamController<NetworkStatus>.broadcast();
   StreamSubscription<List<ConnectivityResult>>? _subscription;
-
-  NetworkInfoImpl({Connectivity? connectivity})
-      : _connectivity = connectivity ?? Connectivity() {
-    _init();
-  }
 
   void _init() {
     // Listen to changes
@@ -52,7 +52,7 @@ class NetworkInfoImpl implements NetworkInfo {
     // If any result is not none, we are connected.
     // connectivity_plus returns [ConnectivityResult.none] if disconnected.
     // It returns a list of active connections.
-    final bool newState = results.any((r) => r != ConnectivityResult.none);
+    final newState = results.any((r) => r != ConnectivityResult.none);
 
     if (_isConnected != newState) {
       _isConnected = newState;
@@ -67,6 +67,7 @@ class NetworkInfoImpl implements NetworkInfo {
   Stream<NetworkStatus> get onStatusChange => _controller.stream;
 
   /// Disposes resources.
+  @override
   void dispose() {
     _subscription?.cancel();
     _controller.close();

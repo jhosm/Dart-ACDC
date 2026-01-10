@@ -4,7 +4,7 @@ import 'package:test/test.dart';
 void main() {
   group('UserIdExtractor', () {
     test('returns no auth when header is missing', () async {
-      final extractor = UserIdExtractor();
+      const extractor = UserIdExtractor();
       final result = await extractor.extract(null);
 
       expect(result.hasAuth, isFalse);
@@ -13,7 +13,7 @@ void main() {
     });
 
     test('returns no auth when header is empty', () async {
-      final extractor = UserIdExtractor();
+      const extractor = UserIdExtractor();
       final result = await extractor.extract('');
 
       expect(result.hasAuth, isFalse);
@@ -21,7 +21,7 @@ void main() {
 
     test('returns auth without user ID when token is missing from header',
         () async {
-      final extractor = UserIdExtractor();
+      const extractor = UserIdExtractor();
       final result = await extractor.extract('Bearer ');
 
       expect(result.hasAuth, isTrue); // Header present but empty token
@@ -29,7 +29,7 @@ void main() {
     });
 
     test('extracts user ID from valid JWT', () async {
-      final extractor = UserIdExtractor();
+      const extractor = UserIdExtractor();
       // encoded {"sub": "user-123"}
       const token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.'
           'eyJzdWIiOiJ1c2VyLTEyMyJ9.'

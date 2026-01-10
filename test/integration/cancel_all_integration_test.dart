@@ -12,7 +12,7 @@ void main() {
     late DioAdapter adapter;
 
     setUp(() async {
-      client = await AcdcClientBuilder()
+      client = await const AcdcClientBuilder()
           .withBaseUrl('https://example.com')
           .disableAuth()
           .disableCache()
@@ -32,7 +32,7 @@ void main() {
       // Helper to make a request and capture errors
       Future<void> makeRequest() async {
         try {
-          await client.get('/delayed');
+          await client.get<Map<String, dynamic>>('/delayed');
           fail('Request should have been cancelled');
         } on DioException catch (e) {
           errors.add(e);
@@ -41,12 +41,12 @@ void main() {
 
       // Start 5 concurrent requests
       final futures = <Future<void>>[];
-      for (int i = 0; i < 5; i++) {
+      for (var i = 0; i < 5; i++) {
         futures.add(makeRequest());
       }
 
       // Allow requests to be processed and added to tracker
-      await Future.delayed(const Duration(milliseconds: 100));
+      await Future<void>.delayed(const Duration(milliseconds: 100));
 
       // Cancel all
       const reason = 'Integration test cancellation';
@@ -72,10 +72,12 @@ void main() {
 
       client.cancelAll();
 
-      final response = await client.get('/instant');
+      final response = await client.get<Map<String, dynamic>>('/instant');
       expect(response.statusCode, 200);
-      expect(client.activeRequestTracker?.activeCount,
-          0); // Should be empty after success
+      expect(
+        client.activeRequestTracker?.activeCount,
+        0,
+      ); // Should be empty after success
     });
   });
 }

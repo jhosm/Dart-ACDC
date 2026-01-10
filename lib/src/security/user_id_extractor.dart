@@ -2,6 +2,7 @@ import 'package:dart_acdc/src/cache/jwt_utils.dart';
 
 /// Result of a user ID extraction attempt.
 class UserIdResult {
+  /// Creates a [UserIdResult].
   const UserIdResult({
     required this.hasAuth,
     this.userId,
@@ -25,6 +26,7 @@ class UserIdResult {
 /// - Extracting tokens (Bearer or direct)
 /// - Decoding user IDs from tokens (JWT or custom provider)
 class UserIdExtractor {
+  /// Creates a [UserIdExtractor].
   const UserIdExtractor({
     this.userIdProvider,
   });

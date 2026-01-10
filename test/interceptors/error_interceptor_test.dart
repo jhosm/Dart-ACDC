@@ -205,7 +205,9 @@ void main() {
         expect(clientException.message, contains('Invalid response format'));
       });
 
-      test('converts 3xx redirect to AcdcClientException when redirects disabled', () {
+      test(
+          'converts 3xx redirect to AcdcClientException when redirects disabled',
+          () {
         for (final statusCode in [301, 302, 307, 308]) {
           final dioException = DioException(
             requestOptions: RequestOptions(path: '/test'),

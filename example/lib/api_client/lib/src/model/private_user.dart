@@ -11,11 +11,11 @@ part 'private_user.g.dart';
 /// PrivateUser
 ///
 /// Properties:
-/// * [login] 
-/// * [id] 
-/// * [avatarUrl] 
-/// * [name] 
-/// * [email] 
+/// * [login]
+/// * [id]
+/// * [avatarUrl]
+/// * [name]
+/// * [email]
 @BuiltValue()
 abstract class PrivateUser implements Built<PrivateUser, PrivateUserBuilder> {
   @BuiltValueField(wireName: r'login')
@@ -99,7 +99,11 @@ class _$PrivateUserSerializer implements PrimitiveSerializer<PrivateUser> {
     PrivateUser object, {
     FullType specifiedType = FullType.unspecified,
   }) {
-    return _serializeProperties(serializers, object, specifiedType: specifiedType).toList();
+    return _serializeProperties(
+      serializers,
+      object,
+      specifiedType: specifiedType,
+    ).toList();
   }
 
   void _deserializeProperties(
@@ -115,38 +119,45 @@ class _$PrivateUserSerializer implements PrimitiveSerializer<PrivateUser> {
       final value = serializedList[i + 1];
       switch (key) {
         case r'login':
-          final valueDes = serializers.deserialize(
-            value,
-            specifiedType: const FullType(String),
-          ) as String;
+          final valueDes =
+              serializers.deserialize(
+                    value,
+                    specifiedType: const FullType(String),
+                  )
+                  as String;
           result.login = valueDes;
           break;
         case r'id':
-          final valueDes = serializers.deserialize(
-            value,
-            specifiedType: const FullType(int),
-          ) as int;
+          final valueDes =
+              serializers.deserialize(value, specifiedType: const FullType(int))
+                  as int;
           result.id = valueDes;
           break;
         case r'avatar_url':
-          final valueDes = serializers.deserialize(
-            value,
-            specifiedType: const FullType(String),
-          ) as String;
+          final valueDes =
+              serializers.deserialize(
+                    value,
+                    specifiedType: const FullType(String),
+                  )
+                  as String;
           result.avatarUrl = valueDes;
           break;
         case r'name':
-          final valueDes = serializers.deserialize(
-            value,
-            specifiedType: const FullType(String),
-          ) as String;
+          final valueDes =
+              serializers.deserialize(
+                    value,
+                    specifiedType: const FullType(String),
+                  )
+                  as String;
           result.name = valueDes;
           break;
         case r'email':
-          final valueDes = serializers.deserialize(
-            value,
-            specifiedType: const FullType(String),
-          ) as String;
+          final valueDes =
+              serializers.deserialize(
+                    value,
+                    specifiedType: const FullType(String),
+                  )
+                  as String;
           result.email = valueDes;
           break;
         default:
@@ -177,4 +188,3 @@ class _$PrivateUserSerializer implements PrimitiveSerializer<PrivateUser> {
     return result.build();
   }
 }
-

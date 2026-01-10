@@ -21,12 +21,14 @@ void main() {
           .withBaseUrl('https://api.example.com')
           .withTokenProvider(FakeTokenProvider())
           .withNetworkInfo(MockNetworkInfo())
-          .withLogDelegate(_CustomLogDelegate((message, level, metadata) {
-            logs.add('[$level] $message');
-            if (metadata != null && metadata.isNotEmpty) {
-              logs.add('Metadata: $metadata');
-            }
-          }))
+          .withLogDelegate(
+            _CustomLogDelegate((message, level, metadata) {
+              logs.add('[$level] $message');
+              if (metadata != null && metadata.isNotEmpty) {
+                logs.add('Metadata: $metadata');
+              }
+            }),
+          )
           .withLogLevel(LogLevel.info)
           .disableCache()
           .build();
@@ -88,8 +90,8 @@ void main() {
 }
 
 class _CustomLogDelegate implements AcdcLogDelegate {
-  final void Function(String, LogLevel, Map<String, dynamic>?) onLog;
   _CustomLogDelegate(this.onLog);
+  final void Function(String, LogLevel, Map<String, dynamic>?) onLog;
   @override
   void log(String message, LogLevel level, Map<String, dynamic> metadata) =>
       onLog(message, level, metadata);

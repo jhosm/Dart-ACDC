@@ -32,8 +32,8 @@ void main() {
     });
 
     test('toString returns correct string representation', () {
-      final accessExpiry = DateTime.utc(2023, 1, 1, 12, 0, 0);
-      final refreshExpiry = DateTime.utc(2023, 2, 1, 12, 0, 0);
+      final accessExpiry = DateTime.utc(2023, 1, 1, 12);
+      final refreshExpiry = DateTime.utc(2023, 2, 1, 12);
 
       final result = TokenRefreshResult(
         accessToken: 'new_access_token',

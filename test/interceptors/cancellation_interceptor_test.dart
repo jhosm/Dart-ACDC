@@ -12,22 +12,22 @@ class FakeRequestInterceptorHandler extends RequestInterceptorHandler {
   }
 
   @override
-  void resolve(Response response, [bool newRequest = false]) {}
+  void resolve(Response<dynamic> response, [bool newRequest = false]) {}
 
   @override
   void reject(DioException error, [bool newRequest = false]) {}
 }
 
 class FakeResponseInterceptorHandler extends ResponseInterceptorHandler {
-  Response? nextResponse;
+  Response<dynamic>? nextResponse;
 
   @override
-  void next(Response response) {
+  void next(Response<dynamic> response) {
     nextResponse = response;
   }
 
   @override
-  void resolve(Response response) {}
+  void resolve(Response<dynamic> response) {}
 
   @override
   void reject(DioException error, [bool newRequest = false]) {}
@@ -42,7 +42,7 @@ class FakeErrorInterceptorHandler extends ErrorInterceptorHandler {
   }
 
   @override
-  void resolve(Response response) {}
+  void resolve(Response<dynamic> response) {}
 
   @override
   void reject(DioException error, [bool newRequest = false]) {}
@@ -90,7 +90,7 @@ void main() {
         requestOptions.cancelToken = token;
         tracker.add(token); // Add manually to simulate request start
 
-        final response = Response(requestOptions: requestOptions);
+        final response = Response<dynamic>(requestOptions: requestOptions);
         final handler = FakeResponseInterceptorHandler();
 
         interceptor.onResponse(response, handler);

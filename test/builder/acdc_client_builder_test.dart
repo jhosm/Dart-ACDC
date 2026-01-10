@@ -1,23 +1,21 @@
-import 'package:flutter/services.dart';
-import 'package:flutter_test/flutter_test.dart';
-
 import 'package:dart_acdc/src/auth/acdc_auth_manager.dart';
 import 'package:dart_acdc/src/auth/token_refresh_result.dart';
 import 'package:dart_acdc/src/builder/acdc_client_builder.dart';
 import 'package:dart_acdc/src/cache/cache_config.dart';
+import 'package:dart_acdc/src/extensions/acdc_client_extensions.dart';
 import 'package:dart_acdc/src/interceptors/auth_interceptor.dart';
 import 'package:dart_acdc/src/interceptors/cache_interceptor.dart';
+import 'package:dart_acdc/src/interceptors/deduplication_interceptor.dart';
 import 'package:dart_acdc/src/interceptors/error_interceptor.dart';
-import 'package:dart_acdc/src/interceptors/logging_interceptor.dart';
 import 'package:dart_acdc/src/interceptors/offline_interceptor.dart';
 import 'package:dart_acdc/src/logging/acdc_log_delegate.dart';
 import 'package:dart_acdc/src/logging/log_level.dart';
 import 'package:dio/dio.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 import '../helpers/fake_token_provider.dart';
 import '../helpers/mock_network_info.dart';
-import 'package:dart_acdc/src/extensions/acdc_client_extensions.dart';
-import 'package:dart_acdc/src/network_info/network_info.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -26,7 +24,7 @@ void main() {
     const channel = MethodChannel('dev.fluttercommunity.plus/connectivity');
 
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-        .setMockMethodCallHandler(channel, (MethodCall methodCall) async {
+        .setMockMethodCallHandler(channel, (methodCall) async {
       // print('MockMethodCallHandler: method=${methodCall.method}');
       if (methodCall.method == 'check') {
         return 'wifi'; // For older versions?
@@ -97,6 +95,13 @@ void main() {
       test('withNetworkInfo returns new instance', () {
         const builder1 = AcdcClientBuilder();
         final builder2 = builder1.withNetworkInfo(MockNetworkInfo());
+
+        expect(builder1, isNot(same(builder2)));
+      });
+
+      test('withDeduplication returns new instance', () {
+        const builder1 = AcdcClientBuilder();
+        final builder2 = builder1.withDeduplication(enabled: false);
 
         expect(builder1, isNot(same(builder2)));
       });
@@ -255,6 +260,13 @@ void main() {
         final builder = const AcdcClientBuilder()
             .withCache(const CacheConfig())
             .disableCache();
+
+        expect(builder, isA<AcdcClientBuilder>());
+      });
+
+      test('withDeduplication creates builder with dedup config', () {
+        final builder =
+            const AcdcClientBuilder().withDeduplication(enabled: false);
 
         expect(builder, isA<AcdcClientBuilder>());
       });
@@ -737,6 +749,29 @@ void main() {
 
       expect(interceptor, isNotNull);
       expect(interceptor!.failFast, isTrue);
+    });
+
+    test('build adds DeduplicationInterceptor by default', () async {
+      const builder = AcdcClientBuilder();
+      final dio = await builder.withNetworkInfo(MockNetworkInfo()).build();
+
+      final interceptor =
+          dio.interceptors.whereType<DeduplicationInterceptor>().firstOrNull;
+
+      expect(interceptor, isNotNull);
+    });
+
+    test('build does NOT add DeduplicationInterceptor when disabled', () async {
+      const builder = AcdcClientBuilder();
+      final dio = await builder
+          .withNetworkInfo(MockNetworkInfo())
+          .withDeduplication(enabled: false)
+          .build();
+
+      final interceptor =
+          dio.interceptors.whereType<DeduplicationInterceptor>().firstOrNull;
+
+      expect(interceptor, isNull);
     });
   });
 }

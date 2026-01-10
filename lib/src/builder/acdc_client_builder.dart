@@ -9,6 +9,7 @@ import 'package:dart_acdc/src/cancellation/active_request_tracker.dart';
 import 'package:dart_acdc/src/interceptors/auth_interceptor.dart';
 import 'package:dart_acdc/src/interceptors/cache_interceptor.dart';
 import 'package:dart_acdc/src/interceptors/cancellation_interceptor.dart';
+import 'package:dart_acdc/src/interceptors/deduplication_interceptor.dart';
 import 'package:dart_acdc/src/interceptors/error_interceptor.dart';
 import 'package:dart_acdc/src/interceptors/logging_interceptor.dart';
 import 'package:dart_acdc/src/interceptors/offline_interceptor.dart';
@@ -56,6 +57,7 @@ class AcdcClientBuilder {
     DateTime? initialRefreshExpiry,
     NetworkInfo? networkInfo,
     bool? offlineFailFast,
+    bool? deduplicationEnabled,
   })  : _baseUrl = baseUrl,
         _timeout = timeout,
         _tokenProvider = tokenProvider,
@@ -78,7 +80,8 @@ class AcdcClientBuilder {
         _initialAccessExpiry = initialAccessExpiry,
         _initialRefreshExpiry = initialRefreshExpiry,
         _networkInfo = networkInfo,
-        _offlineFailFast = offlineFailFast ?? true;
+        _offlineFailFast = offlineFailFast ?? true,
+        _deduplicationEnabled = deduplicationEnabled ?? true;
 
   final String? _baseUrl;
   final Duration? _timeout;
@@ -103,6 +106,7 @@ class AcdcClientBuilder {
   final DateTime? _initialRefreshExpiry;
   final NetworkInfo? _networkInfo;
   final bool _offlineFailFast;
+  final bool _deduplicationEnabled;
 
   /// Configures the base URL for all requests.
   ///
@@ -336,6 +340,15 @@ class AcdcClientBuilder {
   AcdcClientBuilder withOfflineDetection({bool failFast = true}) =>
       _copyWith(offlineFailFast: failFast);
 
+  /// Configures request deduplication.
+  ///
+  /// When enabled, simultaneous identical requests (same method, URI, headers, body)
+  /// will share a single network call.
+  ///
+  /// Defaults to true.
+  AcdcClientBuilder withDeduplication({bool enabled = true}) =>
+      _copyWith(deduplicationEnabled: enabled);
+
   AcdcClientBuilder _copyWith({
     String? baseUrl,
     Duration? timeout,
@@ -360,6 +373,7 @@ class AcdcClientBuilder {
     DateTime? initialRefreshExpiry,
     NetworkInfo? networkInfo,
     bool? offlineFailFast,
+    bool? deduplicationEnabled,
   }) =>
       AcdcClientBuilder(
         baseUrl: baseUrl ?? _baseUrl,
@@ -387,6 +401,7 @@ class AcdcClientBuilder {
         initialRefreshExpiry: initialRefreshExpiry ?? _initialRefreshExpiry,
         networkInfo: networkInfo ?? _networkInfo,
         offlineFailFast: offlineFailFast ?? _offlineFailFast,
+        deduplicationEnabled: deduplicationEnabled ?? _deduplicationEnabled,
       );
 
   /// Builds and returns a configured Dio instance.
@@ -441,7 +456,7 @@ class AcdcClientBuilder {
       cacheInterceptor = AcdcCacheInterceptor(
         config: cacheConfig,
         store: store,
-        onRefresh: (options) => dio.fetch(options),
+        onRefresh: (options) => dio.fetch<dynamic>(options),
       );
     }
 
@@ -552,6 +567,11 @@ class AcdcClientBuilder {
     // 7. Add custom interceptors at the end
     if (_customInterceptors != null) {
       dio.interceptors.addAll(_customInterceptors!);
+    }
+
+    // 8. Add deduplication interceptor (Last, to allow custom interceptors to affect identity)
+    if (_deduplicationEnabled) {
+      dio.interceptors.add(DeduplicationInterceptor());
     }
 
     return dio;

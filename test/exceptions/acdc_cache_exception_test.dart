@@ -7,7 +7,7 @@ void main() {
   group('AcdcCacheException', () {
     final requestOptions = RequestOptions(path: '/test');
     final stackTrace = StackTrace.current;
-    final error = 'Cache error';
+    const error = 'Cache error';
 
     test('constructor sets properties correctly', () {
       final exception = AcdcCacheException(

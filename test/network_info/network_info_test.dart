@@ -20,7 +20,7 @@ void main() {
   group('NetworkInfo', () {
     test('default status is online on initialization', () {
       when(mockConnectivity.onConnectivityChanged)
-          .thenAnswer((_) => Stream.empty());
+          .thenAnswer((_) => const Stream.empty());
       when(mockConnectivity.checkConnectivity())
           .thenAnswer((_) async => [ConnectivityResult.wifi]);
 
@@ -39,7 +39,7 @@ void main() {
       networkInfo = NetworkInfoImpl(connectivity: mockConnectivity);
 
       // Wait for async init (checkConnectivity future)
-      await Future.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
       expect(networkInfo.isConnected, isTrue);
 
       scheduleMicrotask(() {
@@ -52,7 +52,7 @@ void main() {
       );
       expect(networkInfo.isConnected, isFalse);
 
-      controller.close();
+      await controller.close();
     });
 
     test('updates status when connectivity changes to online', () async {
@@ -66,7 +66,7 @@ void main() {
       networkInfo = NetworkInfoImpl(connectivity: mockConnectivity);
 
       // Wait for async init
-      await Future.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
       // Should eventually update to offline after checkConnectivity returns
       if (networkInfo.isConnected) {
         // It starts as true by default, but should flip to false if checkConnectivity returns none
@@ -79,11 +79,12 @@ void main() {
 
       // But testing "start offline" is interesting too.
       // Since default is TRUE, if checkConnectivity returns NONE, it should flip to FALSE and emit event.
+      await controller.close();
     });
 
     test('initial check updates status if offline', () async {
       when(mockConnectivity.onConnectivityChanged)
-          .thenAnswer((_) => Stream.empty());
+          .thenAnswer((_) => const Stream.empty());
       when(mockConnectivity.checkConnectivity())
           .thenAnswer((_) async => [ConnectivityResult.none]);
 
@@ -92,7 +93,7 @@ void main() {
       expect(networkInfo.isConnected, isTrue); // Default safe value
 
       // Wait for checkConnectivity result
-      await Future.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
 
       // Should now be false
       expect(networkInfo.isConnected, isFalse);
@@ -106,31 +107,31 @@ void main() {
           .thenAnswer((_) async => [ConnectivityResult.wifi]); // Online
 
       networkInfo = NetworkInfoImpl(connectivity: mockConnectivity);
-      await Future.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
 
       // Go to mobile (still online)
       controller.add([ConnectivityResult.mobile]);
 
       // Should NOT emit
-      bool emitted = false;
+      var emitted = false;
       final subscription = networkInfo.onStatusChange.listen((_) {
         emitted = true;
       });
 
-      await Future.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
       expect(emitted, isFalse);
 
-      subscription.cancel();
-      controller.close();
+      await subscription.cancel();
+      await controller.close();
     });
     test('dispose cancels subscription and closes controller', () async {
       when(mockConnectivity.onConnectivityChanged)
-          .thenAnswer((_) => Stream.empty());
+          .thenAnswer((_) => const Stream.empty());
       when(mockConnectivity.checkConnectivity())
           .thenAnswer((_) async => [ConnectivityResult.wifi]);
 
       networkInfo = NetworkInfoImpl(connectivity: mockConnectivity);
-      await Future.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
 
       // Should not throw
       expect(() => networkInfo.dispose(), returnsNormally);

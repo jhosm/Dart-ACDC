@@ -11,11 +11,9 @@ void main() {
   const channel = MethodChannel('plugins.it_nomads.com/flutter_secure_storage');
 
   setUp(() {
+    // Return null for all storage reads/writes to simulate empty/working storage
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-        .setMockMethodCallHandler(channel, (methodCall) async {
-      // Return null for all storage reads/writes to simulate empty/working storage
-      return null;
-    });
+        .setMockMethodCallHandler(channel, (methodCall) async => null);
   });
 
   group('AcdcClientBuilder Defaults', () {

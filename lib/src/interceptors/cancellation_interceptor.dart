@@ -7,16 +7,14 @@ import 'package:dio/dio.dart';
 /// [ActiveRequestTracker]. This enables collective cancellation of all
 /// in-flight requests.
 class CancellationInterceptor extends Interceptor {
-  final ActiveRequestTracker _tracker;
-
+  /// Creates a [CancellationInterceptor].
   const CancellationInterceptor(this._tracker);
+  final ActiveRequestTracker _tracker;
 
   @override
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
     // Ensure a CancelToken exists
-    if (options.cancelToken == null) {
-      options.cancelToken = CancelToken();
-    }
+    options.cancelToken ??= CancelToken();
 
     // Track the token
     _tracker.add(options.cancelToken!);
@@ -25,7 +23,10 @@ class CancellationInterceptor extends Interceptor {
   }
 
   @override
-  void onResponse(Response response, ResponseInterceptorHandler handler) {
+  void onResponse(
+    Response<dynamic> response,
+    ResponseInterceptorHandler handler,
+  ) {
     _removeFromTracker(response.requestOptions);
     handler.next(response);
   }

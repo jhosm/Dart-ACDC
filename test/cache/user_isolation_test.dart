@@ -61,7 +61,8 @@ void main() {
         expect(options.extra['_acdc_user_id'], equals('user-456'));
       });
 
-      test('marks request as unauthenticated when Authorization header is missing',
+      test(
+          'marks request as unauthenticated when Authorization header is missing',
           () async {
         final options = RequestOptions(
           path: '/public/data',
@@ -118,8 +119,7 @@ void main() {
         expect(options.extra['_acdc_user_id'], equals('custom-user-id'));
       });
 
-      test('falls back to JWT extraction when custom provider fails',
-          () async {
+      test('falls back to JWT extraction when custom provider fails', () async {
         final customCache = AcdcCacheInterceptor(
           config: CacheConfig(
             userIdProvider: (token) async => throw Exception('Provider failed'),

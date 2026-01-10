@@ -101,8 +101,7 @@ class ErrorInterceptor extends Interceptor {
 
   /// Checks if the exception is due to a malformed response.
   bool _isMalformedResponse(DioException exception) {
-    if (exception.type == DioExceptionType.unknown &&
-        exception.error != null) {
+    if (exception.type == DioExceptionType.unknown && exception.error != null) {
       final error = exception.error;
       // Check for common parsing errors
       return error is FormatException ||

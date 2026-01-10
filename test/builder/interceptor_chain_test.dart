@@ -92,9 +92,7 @@ void main() {
       // [Logging, Auth, Cache, Error, Custom]
 
       // Let's verify the list content directly.
-
       final interceptors = dio.interceptors;
-      final types = interceptors.map((i) => i.runtimeType.toString()).toList();
 
       // Check indices
       final loggingIndex =

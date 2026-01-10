@@ -1,7 +1,8 @@
+import 'dart:async';
+
 import 'package:dart_acdc/src/cache/cache_config.dart';
 import 'package:dart_acdc/src/cache/cache_store_factory.dart'
     show CacheStoreFactory;
-import 'package:dart_acdc/src/cache/jwt_utils.dart';
 import 'package:dart_acdc/src/exceptions/acdc_network_exception.dart';
 import 'package:dart_acdc/src/security/user_id_extractor.dart';
 import 'package:dio/dio.dart';
@@ -24,9 +25,6 @@ import 'package:dio_cache_interceptor/dio_cache_interceptor.dart';
 /// - Authenticated requests with identifiable user: Cached with user isolation
 /// - Authenticated requests without identifiable user: NOT cached (security)
 class AcdcCacheInterceptor extends Interceptor {
-  /// Callback to trigger background refresh (SWR).
-  final Future<dynamic> Function(RequestOptions)? onRefresh;
-
   /// Creates a cache interceptor from configuration and cache store.
   ///
   /// The [store] parameter should be created using [CacheStoreFactory]
@@ -112,6 +110,9 @@ class AcdcCacheInterceptor extends Interceptor {
     );
   }
 
+  /// Callback to trigger background refresh (SWR).
+  final Future<dynamic> Function(RequestOptions)? onRefresh;
+
   final CacheConfig _config;
   late final CacheOptions _cacheOptions;
   late final DioCacheInterceptor _dioCacheInterceptor;
@@ -189,9 +190,8 @@ class AcdcCacheInterceptor extends Interceptor {
 
       if (cachedResponse != null) {
         // Serve stale cache immediately
-        final response = cachedResponse.toResponse(options);
+        final response = cachedResponse.toResponse(options)..statusCode = 200;
         // Important: Update status code to 200, as it might be stored differently
-        response.statusCode = 200;
 
         // Add metadata
         _addCacheMetadata(response);
@@ -223,7 +223,7 @@ class AcdcCacheInterceptor extends Interceptor {
           Future.microtask(() => refreshFuture).catchError((e) {
             // Ignore background refresh errors
             // Optionally log if we had a logger reference
-          });
+          }).ignore();
         }
         return;
       }
