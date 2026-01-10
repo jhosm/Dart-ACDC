@@ -52,8 +52,8 @@ void main() {
 
       final options = RequestOptions(
         path: '/test',
-        extra: {'force_network': true},
-      );
+      )..forceNetwork = true;
+
       await interceptor.onRequest(options, mockHandler);
 
       verify(mockHandler.next(options)).called(1);

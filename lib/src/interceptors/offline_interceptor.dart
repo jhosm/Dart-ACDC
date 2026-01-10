@@ -35,14 +35,16 @@ class OfflineInterceptor extends Interceptor {
   /// Whether to throw an exception immediately when offline (if no cache available).
   final bool failFast;
 
+  /// Key used in [RequestOptions.extra] to bypass offline checks.
+  static const String forceNetworkKey = 'force_network';
+
   @override
   Future<void> onRequest(
     RequestOptions options,
     RequestInterceptorHandler handler,
   ) async {
     // 1. Check if forced network
-    final forceNetwork = options.extra['force_network'] as bool? ?? false;
-    if (forceNetwork) {
+    if (options.forceNetwork) {
       handler.next(options);
       return;
     }
@@ -120,5 +122,15 @@ class OfflineInterceptor extends Interceptor {
       // Ignore cache errors, proceed to fail fast
     }
     return null;
+  }
+}
+
+/// Extension to easily set/get force_network option.
+extension OfflineRequestOptions on RequestOptions {
+  /// Whether to bypass offline detection and attempt the request anyway.
+  bool get forceNetwork => extra[OfflineInterceptor.forceNetworkKey] == true;
+
+  set forceNetwork(bool value) {
+    extra[OfflineInterceptor.forceNetworkKey] = value;
   }
 }
