@@ -8,6 +8,8 @@ import 'package:dart_acdc/src/cache/cache_config.dart';
 import 'package:dart_acdc/src/interceptors/auth_interceptor.dart';
 import 'package:dart_acdc/src/interceptors/cache_interceptor.dart';
 import 'package:dart_acdc/src/interceptors/error_interceptor.dart';
+import 'package:dart_acdc/src/interceptors/logging_interceptor.dart';
+import 'package:dart_acdc/src/interceptors/offline_interceptor.dart';
 import 'package:dart_acdc/src/logging/acdc_log_delegate.dart';
 import 'package:dart_acdc/src/logging/log_level.dart';
 import 'package:dio/dio.dart';
@@ -710,6 +712,31 @@ void main() {
       );
 
       expect(config.userIdProvider, isNotNull);
+    });
+    test('withOfflineDetection configures OfflineInterceptor', () async {
+      const builder = AcdcClientBuilder();
+      final dio = await builder
+          .withOfflineDetection(failFast: false)
+          // Mock NetworkInfo to avoid real connectivity check in test
+          .withNetworkInfo(MockNetworkInfo())
+          .build();
+
+      final interceptor =
+          dio.interceptors.whereType<OfflineInterceptor>().firstOrNull;
+
+      expect(interceptor, isNotNull);
+      expect(interceptor!.failFast, isFalse);
+    });
+
+    test('OfflineInterceptor is added by default with failFast=true', () async {
+      const builder = AcdcClientBuilder();
+      final dio = await builder.withNetworkInfo(MockNetworkInfo()).build();
+
+      final interceptor =
+          dio.interceptors.whereType<OfflineInterceptor>().firstOrNull;
+
+      expect(interceptor, isNotNull);
+      expect(interceptor!.failFast, isTrue);
     });
   });
 }

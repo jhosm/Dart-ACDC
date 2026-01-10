@@ -9,6 +9,7 @@ import 'package:dart_acdc/src/interceptors/auth_interceptor.dart';
 import 'package:dart_acdc/src/interceptors/cache_interceptor.dart';
 import 'package:dart_acdc/src/interceptors/error_interceptor.dart';
 import 'package:dart_acdc/src/interceptors/logging_interceptor.dart';
+import 'package:dart_acdc/src/interceptors/offline_interceptor.dart';
 import 'package:dart_acdc/src/logging/acdc_log_delegate.dart';
 import 'package:dart_acdc/src/logging/log_level.dart';
 import 'package:dart_acdc/src/network_info/network_info.dart';
@@ -52,6 +53,7 @@ class AcdcClientBuilder {
     DateTime? initialAccessExpiry,
     DateTime? initialRefreshExpiry,
     NetworkInfo? networkInfo,
+    bool? offlineFailFast,
   })  : _baseUrl = baseUrl,
         _timeout = timeout,
         _tokenProvider = tokenProvider,
@@ -73,7 +75,8 @@ class AcdcClientBuilder {
         _initialRefreshToken = initialRefreshToken,
         _initialAccessExpiry = initialAccessExpiry,
         _initialRefreshExpiry = initialRefreshExpiry,
-        _networkInfo = networkInfo;
+        _networkInfo = networkInfo,
+        _offlineFailFast = offlineFailFast ?? true;
 
   final String? _baseUrl;
   final Duration? _timeout;
@@ -97,6 +100,7 @@ class AcdcClientBuilder {
   final DateTime? _initialAccessExpiry;
   final DateTime? _initialRefreshExpiry;
   final NetworkInfo? _networkInfo;
+  final bool _offlineFailFast;
 
   /// Configures the base URL for all requests.
   ///
@@ -323,6 +327,13 @@ class AcdcClientBuilder {
   AcdcClientBuilder withNetworkInfo(NetworkInfo info) =>
       _copyWith(networkInfo: info);
 
+  /// Configures offline detection behavior.
+  ///
+  /// [failFast]: Whether to fail fast (throw exception) when offline if no
+  /// cache is available. Defaults to true.
+  AcdcClientBuilder withOfflineDetection({bool failFast = true}) =>
+      _copyWith(offlineFailFast: failFast);
+
   AcdcClientBuilder _copyWith({
     String? baseUrl,
     Duration? timeout,
@@ -346,6 +357,7 @@ class AcdcClientBuilder {
     DateTime? initialAccessExpiry,
     DateTime? initialRefreshExpiry,
     NetworkInfo? networkInfo,
+    bool? offlineFailFast,
   }) =>
       AcdcClientBuilder(
         baseUrl: baseUrl ?? _baseUrl,
@@ -372,6 +384,7 @@ class AcdcClientBuilder {
         initialAccessExpiry: initialAccessExpiry ?? _initialAccessExpiry,
         initialRefreshExpiry: initialRefreshExpiry ?? _initialRefreshExpiry,
         networkInfo: networkInfo ?? _networkInfo,
+        offlineFailFast: offlineFailFast ?? _offlineFailFast,
       );
 
   /// Builds and returns a configured Dio instance.
@@ -475,6 +488,21 @@ class AcdcClientBuilder {
     // Store auth manager in Dio options for extension access
     dio.options.extra['_acdc_auth_manager'] = authManager;
 
+    // Initialize NetworkInfo early as it's needed for OfflineInterceptor
+    // Use injected instance or create default implementation
+    final networkInfo = _networkInfo ?? NetworkInfoImpl();
+    dio.options.extra['_acdc_network_info'] = networkInfo;
+
+    // Create OfflineInterceptor
+    // Pass cache components if available so it can try to fallback to cache
+    final offlineInterceptor = OfflineInterceptor(
+      networkInfo: networkInfo,
+      failFast: _offlineFailFast,
+      cacheConfig:
+          _cacheDisabled ? null : (_cacheConfig ?? const CacheConfig()),
+      cacheStore: cacheInterceptor?.store,
+    );
+
     // Set up interceptor chain in correct order
     // Request phase: Logging → Error → Auth → Cache
     // Response phase: Cache → Auth → Error → Logging
@@ -494,25 +522,23 @@ class AcdcClientBuilder {
     // 2. Add error interceptor
     dio.interceptors.add(const ErrorInterceptor());
 
-    // 3. Add auth interceptor if enabled
+    // 3. Add offline interceptor (before auth/cache to fail fast or return from cache)
+    dio.interceptors.add(offlineInterceptor);
+
+    // 4. Add auth interceptor if enabled
     if (authInterceptor != null) {
       dio.interceptors.add(authInterceptor);
     }
 
-    // 4. Add cache interceptor if caching is enabled
+    // 5. Add cache interceptor if caching is enabled
     if (cacheInterceptor != null) {
       dio.interceptors.add(cacheInterceptor);
     }
 
-    // 5. Add custom interceptors at the end
+    // 6. Add custom interceptors at the end
     if (_customInterceptors != null) {
       dio.interceptors.addAll(_customInterceptors!);
     }
-
-    // Initialize NetworkInfo
-    // Use injected instance or create default implementation
-    final networkInfo = _networkInfo ?? NetworkInfoImpl();
-    dio.options.extra['_acdc_network_info'] = networkInfo;
 
     return dio;
   }

@@ -109,6 +109,9 @@ class AcdcCacheInterceptor extends Interceptor {
   late final CacheOptions _cacheOptions;
   late final DioCacheInterceptor _dioCacheInterceptor;
 
+  /// Returns the underlying cache store.
+  CacheStore? get store => _cacheOptions.store;
+
   /// Builds a cache key with user isolation.
   ///
   /// Returns:
