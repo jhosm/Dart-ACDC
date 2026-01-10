@@ -608,8 +608,6 @@ void main() {
         expect(hasCacheInterceptor, true);
       });
       test('build adds cache interceptor with custom config', () {
-        // ... (existing test)
-      });
 
       /*
       // Skipping due to platform channel mocking issues with connectivity_plus
