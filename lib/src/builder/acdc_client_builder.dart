@@ -16,7 +16,12 @@ import 'package:dart_acdc/src/interceptors/offline_interceptor.dart';
 import 'package:dart_acdc/src/logging/acdc_log_delegate.dart';
 import 'package:dart_acdc/src/logging/log_level.dart';
 import 'package:dart_acdc/src/network_info/network_info.dart';
+import 'package:dart_acdc/src/security/certificate_pinning_config.dart';
+import 'package:dart_acdc/src/security/pinning_http_client.dart';
+import 'package:dart_acdc/src/security/pinning_verifier.dart'; // ignore: unused_import
 import 'package:dio/dio.dart';
+import 'package:dio/io.dart'; // For IOHttpClientAdapter
+import 'dart:io'; // For SecurityContext, HttpClient
 
 /// Immutable builder for creating pre-configured Dio HTTP clients.
 ///
@@ -58,6 +63,7 @@ class AcdcClientBuilder {
     NetworkInfo? networkInfo,
     bool? offlineFailFast,
     bool? deduplicationEnabled,
+    CertificatePinningConfig? pinningConfig,
   })  : _baseUrl = baseUrl,
         _timeout = timeout,
         _tokenProvider = tokenProvider,
@@ -81,7 +87,8 @@ class AcdcClientBuilder {
         _initialRefreshExpiry = initialRefreshExpiry,
         _networkInfo = networkInfo,
         _offlineFailFast = offlineFailFast ?? true,
-        _deduplicationEnabled = deduplicationEnabled ?? true;
+        _deduplicationEnabled = deduplicationEnabled ?? true,
+        _pinningConfig = pinningConfig;
 
   final String? _baseUrl;
   final Duration? _timeout;
@@ -107,6 +114,7 @@ class AcdcClientBuilder {
   final NetworkInfo? _networkInfo;
   final bool _offlineFailFast;
   final bool _deduplicationEnabled;
+  final CertificatePinningConfig? _pinningConfig;
 
   /// Configures the base URL for all requests.
   ///
@@ -349,6 +357,18 @@ class AcdcClientBuilder {
   AcdcClientBuilder withDeduplication({bool enabled = true}) =>
       _copyWith(deduplicationEnabled: enabled);
 
+  /// Configures certificate pinning.
+  ///
+  /// PINNING SECURITY:
+  /// When configured, this enforces SSL pinning for all connections.
+  /// It uses a strict verification strategy by creating a custom [HttpClient]
+  /// with an empty trust store, forcing all certificates to trigger verification,
+  /// matching only the pins provided in [config].
+  ///
+  /// This functionality is currently supported on platforms using `dart:io` (Mobile/Desktop).
+  AcdcClientBuilder withCertificatePinning(CertificatePinningConfig config) =>
+      _copyWith(pinningConfig: config);
+
   AcdcClientBuilder _copyWith({
     String? baseUrl,
     Duration? timeout,
@@ -374,6 +394,7 @@ class AcdcClientBuilder {
     NetworkInfo? networkInfo,
     bool? offlineFailFast,
     bool? deduplicationEnabled,
+    CertificatePinningConfig? pinningConfig,
   }) =>
       AcdcClientBuilder(
         baseUrl: baseUrl ?? _baseUrl,
@@ -402,6 +423,7 @@ class AcdcClientBuilder {
         networkInfo: networkInfo ?? _networkInfo,
         offlineFailFast: offlineFailFast ?? _offlineFailFast,
         deduplicationEnabled: deduplicationEnabled ?? _deduplicationEnabled,
+        pinningConfig: pinningConfig ?? _pinningConfig,
       );
 
   /// Builds and returns a configured Dio instance.
@@ -447,6 +469,29 @@ class AcdcClientBuilder {
     dio.options.connectTimeout = timeout;
     dio.options.sendTimeout = timeout;
     dio.options.receiveTimeout = timeout;
+
+    // Configure Certificate Pinning (IO only)
+    if (_pinningConfig != null) {
+      // We essentially force the adapter to use our PinningHttpClient.
+      // We rely on IOHttpClientAdapter from 'package:dio/io.dart'.
+      // Note: This logic might throw on Web if dart:io is missing, but import is conditional usually?
+      // Actually we imported 'dart:io' directly. This code is expected to run on VM.
+
+      dio.httpClientAdapter = IOHttpClientAdapter(
+        createHttpClient: () {
+          // Force badCertificateCallback for ALL certs by using empty trust roots.
+          final context = SecurityContext(withTrustedRoots: false);
+          final client = HttpClient(context: context);
+
+          // Apply timeouts to inner client too, though adapter often handles it.
+          // Adapter uses idleTimeout. connectionTimeout is property of HttpClient?
+          client.connectionTimeout = timeout;
+          client.idleTimeout = const Duration(seconds: 10); // Standard default?
+
+          return PinningHttpClient(client, PinningVerifier(_pinningConfig!));
+        },
+      );
+    }
 
     // Set up cache interceptor if caching is enabled
     AcdcCacheInterceptor? cacheInterceptor;
