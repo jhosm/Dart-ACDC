@@ -1,5 +1,6 @@
 ---
-trigger: always_on
+trigger: model_decision
+description: Use when working on beads (bd) issues or epics.
 ---
 
 ## Issue Tracking

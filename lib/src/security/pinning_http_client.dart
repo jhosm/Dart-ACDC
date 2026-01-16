@@ -2,12 +2,14 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:dart_acdc/src/exceptions/acdc_security_exception.dart';
+import 'package:dart_acdc/src/logging/acdc_log_delegate.dart';
+import 'package:dart_acdc/src/logging/log_level.dart';
 import 'package:dart_acdc/src/security/pinning_verifier.dart';
 
 /// A wrapper around [HttpClient] that enforces certificate pinning.
 class PinningHttpClient implements HttpClient {
   /// Creates a [PinningHttpClient] that wraps an inner client and uses a verifier.
-  PinningHttpClient(this._inner, this._verifier) {
+  PinningHttpClient(this._inner, this._verifier, {this.logDelegate}) {
     // We must set the badCertificateCallback on the inner client immediately
     // to catch untrusted certificates (e.g., self-signed or invalid hostname).
     // Note: If the user provides their own callback via properties, we need to handle that.
@@ -16,6 +18,9 @@ class PinningHttpClient implements HttpClient {
   }
   final HttpClient _inner;
   final PinningVerifier _verifier;
+
+  /// Delegate for handling log events.
+  final AcdcLogDelegate? logDelegate;
 
   bool _handleBadCertificate(X509Certificate cert, String host, int port) {
     // This callback is invoked for "bad" certificates (untrusted root, mismatch, expired).
@@ -108,7 +113,14 @@ class PinningHttpClient implements HttpClient {
     // For now, we ignore external overrides because pinning must be authoritative.
     // Or we could chain, but that complicates "I allow this" vs "Pinning allows this".
     // Pinning is stricter.
-    // TODO(security): Log warning?
+    logDelegate?.log(
+      'External badCertificateCallback ignored by PinningHttpClient.',
+      LogLevel.warning,
+      {
+        'reason':
+            'Certificate pinning is active and requires control over certificate verification.',
+      },
+    );
   }
 
   @override

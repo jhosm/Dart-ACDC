@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'package:dart_acdc/src/auth/backoff_manager.dart';
 import 'package:dart_acdc/src/auth/custom_token_refresh_strategy.dart';
 import 'package:dart_acdc/src/auth/oauth_token_refresh_strategy.dart';
@@ -9,6 +10,8 @@ import 'package:dart_acdc/src/exceptions/acdc_auth_exception.dart';
 import 'package:dart_acdc/src/exceptions/acdc_network_exception.dart';
 import 'package:dart_acdc/src/exceptions/acdc_server_exception.dart';
 import 'package:dart_acdc/src/interceptors/auth_request_helper.dart';
+import 'package:dart_acdc/src/logging/acdc_log_delegate.dart';
+import 'package:dart_acdc/src/logging/log_level.dart';
 import 'package:dio/dio.dart';
 
 /// Interceptor that handles authentication token injection and automatic refresh.
@@ -46,6 +49,7 @@ class AuthInterceptor extends Interceptor {
     Duration refreshThreshold = const Duration(seconds: 60),
     Duration refreshQueueTimeout = const Duration(seconds: 10),
     Dio? httpClient,
+    this.logDelegate,
   })  : _tokenProvider = tokenProvider,
         _refreshThreshold = refreshThreshold,
         _refreshQueueTimeout = refreshQueueTimeout {
@@ -75,6 +79,9 @@ class AuthInterceptor extends Interceptor {
   TokenRefreshStrategy? _refreshStrategy;
   final Duration _refreshThreshold;
   final Duration _refreshQueueTimeout;
+
+  /// Delegate for handling log events.
+  final AcdcLogDelegate? logDelegate;
 
   // Refresh state management
   // Refresh state management
@@ -128,10 +135,14 @@ class AuthInterceptor extends Interceptor {
       AuthRequestHelper.injectBearerToken(options, accessToken);
 
       handler.next(options);
-    } on Exception {
+    } on Exception catch (e) {
       // TokenProvider.getAccessToken() threw exception
       // Log error and proceed without auth
-      // TODO(auth): Add logging when logging interceptor is implemented
+      logDelegate?.log(
+        'Failed to retrieve access token during request interception',
+        LogLevel.error,
+        {'error': e.toString()},
+      );
       handler.next(options);
     }
   }
@@ -347,9 +358,13 @@ class AuthInterceptor extends Interceptor {
   Future<void> _clearTokensSafely() async {
     try {
       await _tokenProvider.clearTokens();
-    } on Exception {
+    } on Exception catch (e) {
       // Log warning and continue
-      // TODO(auth): Add logging when logging interceptor is implemented
+      logDelegate?.log(
+        'Failed to clear tokens',
+        LogLevel.warning,
+        {'error': e.toString()},
+      );
     }
   }
 

@@ -4,7 +4,10 @@ import 'package:dart_acdc/src/auth/custom_token_refresh_strategy.dart';
 import 'package:dart_acdc/src/auth/token_provider.dart';
 import 'package:dart_acdc/src/auth/token_refresh_result.dart';
 import 'package:dart_acdc/src/exceptions/acdc_auth_exception.dart';
+
 import 'package:dart_acdc/src/interceptors/auth_interceptor.dart';
+import 'package:dart_acdc/src/logging/acdc_log_delegate.dart';
+import 'package:dart_acdc/src/logging/log_level.dart';
 import 'package:dio/dio.dart';
 
 import 'package:test/test.dart';
@@ -68,6 +71,15 @@ class MockTokenProvider implements TokenProvider {
     _refreshToken = null;
     _accessExpiry = null;
     _refreshExpiry = null;
+  }
+}
+
+class MockLogDelegate implements AcdcLogDelegate {
+  final List<String> logs = [];
+
+  @override
+  void log(String message, LogLevel level, Map<String, dynamic> metadata) {
+    logs.add(message);
   }
 }
 
@@ -140,6 +152,62 @@ void main() {
             refreshStrategy: strategy,
           ),
           returnsNormally,
+        );
+      });
+    });
+
+    group('Logging', () {
+      late MockLogDelegate logDelegate;
+
+      setUp(() {
+        logDelegate = MockLogDelegate();
+        interceptor = AuthInterceptor(
+          tokenProvider: tokenProvider,
+          refreshEndpointUrl: 'https://example.com/refresh',
+          clientId: 'test-client',
+          logDelegate: logDelegate,
+        );
+      });
+
+      test('logs error when TokenProvider.getAccessToken throws', () async {
+        tokenProvider.throwOnGetAccessToken = true;
+        final options = RequestOptions(path: '/test');
+        final handler = _MockRequestHandler();
+
+        await interceptor.onRequest(options, handler);
+
+        expect(logDelegate.logs, hasLength(1));
+        expect(
+          logDelegate.logs.first,
+          contains(
+            'Failed to retrieve access token during request interception',
+          ),
+        );
+      });
+
+      test('logs error when TokenProvider.clearTokens throws during cleanup',
+          () async {
+        tokenProvider.throwOnClearTokens = true;
+
+        // Force cleanup by simulating a second 401 after retry
+        final err = DioException(
+          requestOptions: RequestOptions(
+            path: '/api/data',
+            extra: {'_acdc_retry_after_refresh': true},
+          ),
+          response: Response(
+            requestOptions: RequestOptions(path: '/api/data'),
+            statusCode: 401,
+          ),
+        );
+
+        final handler = _MockErrorHandler();
+        await interceptor.onError(err, handler);
+
+        expect(logDelegate.logs, hasLength(1));
+        expect(
+          logDelegate.logs.first,
+          contains('Failed to clear tokens'),
         );
       });
     });

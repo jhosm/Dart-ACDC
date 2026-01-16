@@ -76,8 +76,10 @@ void main() {
         // OR a lower level connection error if the badCertificateCallback rejected it.
         // Since we are using IOHttpClientAdapter's validateCertificate/badCertificateCallback,
         // it fails at the handshake level.
-        expect(e.type,
-            anyOf(DioExceptionType.connectionError, DioExceptionType.unknown),);
+        expect(
+          e.type,
+          anyOf(DioExceptionType.connectionError, DioExceptionType.unknown),
+        );
         expect(e.error.toString(), contains('HandshakeException'));
       }
     });
@@ -86,17 +88,18 @@ void main() {
       var callbackInvoked = false;
 
       final config = CertificatePinningConfig(
-          allowedPins: const {
-            'localhost': [
-              'SHA256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=',
-            ],
-          },
-          reportOnly: true,
-          onPinningFailure: (host, certs) {
-            callbackInvoked = true;
-            expect(host, 'localhost');
-            expect(certs, isNotEmpty);
-          },);
+        allowedPins: const {
+          'localhost': [
+            'SHA256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=',
+          ],
+        },
+        reportOnly: true,
+        onPinningFailure: (host, certs) {
+          callbackInvoked = true;
+          expect(host, 'localhost');
+          expect(certs, isNotEmpty);
+        },
+      );
 
       final dio = await const AcdcClientBuilder()
           .withBaseUrl(server.baseUrl)
@@ -108,8 +111,11 @@ void main() {
 
       final response = await dio.get<Map<String, dynamic>>('/');
       expect(response.statusCode, 200);
-      expect(callbackInvoked, isTrue,
-          reason: 'Callback should be invoked in reportOnly mode',);
+      expect(
+        callbackInvoked,
+        isTrue,
+        reason: 'Callback should be invoked in reportOnly mode',
+      );
     });
   });
 }

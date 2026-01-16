@@ -66,11 +66,14 @@ void main() {
     });
 
     test('Pinning config is preserved through copyWith operations', () async {
-      final config = CertificatePinningConfig(allowedPins: const {
-        'a': ['SHA256:dummyhashbase64'],
-      },);
-      var builder =
-          const AcdcClientBuilder().disableAuth().withCertificatePinning(config);
+      final config = CertificatePinningConfig(
+        allowedPins: const {
+          'a': ['SHA256:dummyhashbase64'],
+        },
+      );
+      var builder = const AcdcClientBuilder()
+          .disableAuth()
+          .withCertificatePinning(config);
 
       // Modify another field
       builder = builder.withTimeout(const Duration(seconds: 1));

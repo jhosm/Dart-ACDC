@@ -2,6 +2,8 @@ import 'package:dart_acdc/src/auth/token_provider.dart';
 import 'package:dart_acdc/src/cache/acdc_cache_manager.dart';
 import 'package:dart_acdc/src/cache/jwt_utils.dart';
 import 'package:dart_acdc/src/interceptors/auth_interceptor.dart';
+import 'package:dart_acdc/src/logging/acdc_log_delegate.dart';
+import 'package:dart_acdc/src/logging/log_level.dart';
 import 'package:dio/dio.dart';
 
 /// Manager for authentication operations.
@@ -25,6 +27,7 @@ class AcdcAuthManager {
     String? clientId,
     AcdcCacheManager? cacheManager,
     Dio? httpClient,
+    this.logDelegate,
   })  : _tokenProvider = tokenProvider,
         _authInterceptor = authInterceptor,
         _revocationEndpointUrl = revocationEndpointUrl,
@@ -43,6 +46,12 @@ class AcdcAuthManager {
   final String? _clientId;
   final AcdcCacheManager? _cacheManager;
   final Dio? _httpClient;
+
+  /// Delegate for handling log events.
+  ///
+  /// Used to log warnings and errors during authentication operations,
+  /// such as token revocation failures or storage clearing issues.
+  final AcdcLogDelegate? logDelegate;
 
   /// Returns true if authentication is configured (TokenProvider is present).
   bool get isConfigured => _tokenProvider != null;
@@ -121,9 +130,13 @@ class AcdcAuthManager {
     if (_tokenProvider != null) {
       try {
         await _tokenProvider!.clearTokens();
-      } on Exception {
+      } on Exception catch (e) {
         // Log warning but continue - storage might have failed but logout succeeds
-        // TODO(auth): Add logging when logging interceptor is implemented
+        logDelegate?.log(
+          'Failed to clear tokens during logout',
+          LogLevel.warning,
+          {'error': e.toString(), 'action': 'logout_clear_storage'},
+        );
       }
     }
 
@@ -242,9 +255,17 @@ class AcdcAuthManager {
           headers: {'Accept': 'application/json'},
         ),
       );
-    } on DioException {
+    } on DioException catch (e) {
       // Best-effort revocation - log warning but don't fail logout
-      // TODO(auth): Add logging when logging interceptor is implemented
+      logDelegate?.log(
+        'Failed to revoke token',
+        LogLevel.warning,
+        {
+          'error': e.toString(),
+          'token_type': tokenTypeHint,
+          'action': 'token_revocation',
+        },
+      );
     }
   }
 }

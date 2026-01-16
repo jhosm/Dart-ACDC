@@ -9,7 +9,6 @@ import 'package:shelf/shelf_io.dart' as shelf_io;
 /// Starts a secure HTTPS server using the self-signed certificates
 /// generated in `test/security/certs`.
 class PinningTestServer {
-
   PinningTestServer({
     this.certPath = 'test/security/certs/server.crt',
     this.keyPath = 'test/security/certs/server.key',
@@ -48,7 +47,7 @@ class PinningTestServer {
   String get baseUrl => 'https://localhost:$_port';
 
   Future<Response> _handleRequest(Request request) async => Response.ok(
-      jsonEncode({'data': 'secure_data'}),
-      headers: {'content-type': 'application/json'},
-    );
+        jsonEncode({'data': 'secure_data'}),
+        headers: {'content-type': 'application/json'},
+      );
 }

@@ -486,7 +486,11 @@ class AcdcClientBuilder {
             ..connectionTimeout = timeout
             ..idleTimeout = const Duration(seconds: 10); // Standard default?
 
-          return PinningHttpClient(client, PinningVerifier(_pinningConfig!));
+          return PinningHttpClient(
+            client,
+            PinningVerifier(_pinningConfig!),
+            logDelegate: _logDelegate,
+          );
         },
       );
     }
@@ -525,6 +529,7 @@ class AcdcClientBuilder {
         clientId: _tokenRefreshClientId,
         customRefreshFn: _customTokenRefresh,
         refreshThreshold: _tokenRefreshThreshold ?? const Duration(seconds: 60),
+        logDelegate: _logDelegate,
       );
     }
 
@@ -544,6 +549,7 @@ class AcdcClientBuilder {
       revocationEndpointUrl: _tokenRevocationEndpoint,
       clientId: _tokenRefreshClientId,
       cacheManager: cacheManager,
+      logDelegate: _logDelegate,
     );
 
     // Store auth manager in Dio options for extension access
