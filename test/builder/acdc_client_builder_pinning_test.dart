@@ -1,7 +1,4 @@
 import 'package:dart_acdc/dart_acdc.dart';
-import 'package:dart_acdc/src/security/certificate_pinning_config.dart';
-import 'package:dart_acdc/src/network_info/network_info.dart';
-import 'package:dio/dio.dart';
 import 'package:dio/io.dart';
 import 'package:test/test.dart';
 
@@ -21,12 +18,12 @@ void main() {
   group('AcdcClientBuilder - Certificate Pinning', () {
     test('withCertificatePinning stores configuration locally', () async {
       final config = CertificatePinningConfig(
-        allowedPins: {
-          'example.com': ['SHA256:abc']
+        allowedPins: const {
+          'example.com': ['SHA256:abc'],
         },
       );
 
-      final builder = AcdcClientBuilder()
+      final builder = const AcdcClientBuilder()
           .disableAuth()
           .withCertificatePinning(config)
           .withNetworkInfo(FakeNetworkInfo());
@@ -45,13 +42,13 @@ void main() {
         () async {
       // This test ensures no exceptions during build and correct adapter type.
       final config = CertificatePinningConfig(
-        allowedPins: {
-          'pinned.com': ['SHA256:hash']
+        allowedPins: const {
+          'pinned.com': ['SHA256:hash'],
         },
         reportOnly: true,
       );
 
-      final dio = await AcdcClientBuilder()
+      final dio = await const AcdcClientBuilder()
           .disableAuth()
           .withCertificatePinning(config)
           .withNetworkInfo(FakeNetworkInfo())
@@ -69,14 +66,14 @@ void main() {
     });
 
     test('Pinning config is preserved through copyWith operations', () async {
-      final config = CertificatePinningConfig(allowedPins: {
-        'a': ['SHA256:dummyhashbase64']
-      });
+      final config = CertificatePinningConfig(allowedPins: const {
+        'a': ['SHA256:dummyhashbase64'],
+      },);
       var builder =
-          AcdcClientBuilder().disableAuth().withCertificatePinning(config);
+          const AcdcClientBuilder().disableAuth().withCertificatePinning(config);
 
       // Modify another field
-      builder = builder.withTimeout(Duration(seconds: 1));
+      builder = builder.withTimeout(const Duration(seconds: 1));
 
       final dio = await builder.withNetworkInfo(FakeNetworkInfo()).build();
       // If config was lost, adapter setup might differ or not matter.

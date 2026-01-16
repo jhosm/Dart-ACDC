@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:io';
 
 import 'package:dart_acdc/src/exceptions/acdc_security_exception.dart';
@@ -6,24 +5,23 @@ import 'package:dart_acdc/src/security/pinning_http_client.dart';
 import 'package:dart_acdc/src/security/pinning_verifier.dart';
 import 'package:dio/dio.dart';
 import 'package:mockito/annotations.dart';
-import 'package:mockito/mockito.dart';
 import 'package:test/test.dart';
 
 import 'pinning_http_client_test.mocks.dart';
 
 @GenerateMocks(
-    [HttpClientRequest, HttpConnectionInfo, X509Certificate, RequestOptions])
+  [HttpClientRequest, HttpConnectionInfo, X509Certificate, RequestOptions],
+)
 void main() {
   group('PinningHttpClient', () {
     late FakeHttpClient fakeInner;
     late FakePinningVerifier fakeVerifier;
-    late PinningHttpClient client;
     late MockX509Certificate mockCert;
 
     setUp(() {
       fakeInner = FakeHttpClient();
       fakeVerifier = FakePinningVerifier();
-      client = PinningHttpClient(fakeInner, fakeVerifier);
+      PinningHttpClient(fakeInner, fakeVerifier);
 
       mockCert = MockX509Certificate();
     });
@@ -85,7 +83,9 @@ class FakePinningVerifier implements PinningVerifier {
     verifyCalled = true;
     if (shouldThrow) {
       throw AcdcSecurityException(
-          requestOptions: MockRequestOptions(), hostname: hostname);
+        requestOptions: MockRequestOptions(),
+        hostname: hostname,
+      );
     }
   }
 

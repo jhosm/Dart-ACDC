@@ -1,6 +1,7 @@
+import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
-import 'dart:convert';
+
 import 'package:crypto/crypto.dart';
 import 'package:dart_acdc/src/security/spki_util.dart';
 import 'package:mockito/annotations.dart';
@@ -85,6 +86,6 @@ Uint8List _encodeSequence(List<int> content) {
   return Uint8List.fromList([
     0x30, // Tag Sequence
     len,
-    ...content
+    ...content,
   ]);
 }

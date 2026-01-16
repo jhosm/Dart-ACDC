@@ -1,16 +1,18 @@
+import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
-import 'dart:convert';
+
 import 'package:crypto/crypto.dart';
 
 /// Utilities for handling X.509 Certificates and SPKI extraction.
 class SpkiUtil {
+  SpkiUtil._();
+
   /// Extracts the SHA-256 hash of the Subject Public Key Info (SPKI) from an X.509 certificate.
   ///
-  /// Returns the hash formatted as 'SHA256:<base64-string>'.
-  static String extractSpkiHash(X509Certificate certificate) {
-    return extractSpkiHashFromBytes(certificate.der);
-  }
+  /// Returns the hash formatted as `'SHA256:<base64-string>'`.
+  static String extractSpkiHash(X509Certificate certificate) =>
+      extractSpkiHashFromBytes(certificate.der);
 
   /// Extracts the SHA-256 hash of the SPKI from the DER-encoded certificate bytes.
   static String extractSpkiHashFromBytes(Uint8List der) {
@@ -21,7 +23,7 @@ class SpkiUtil {
       }
       final digest = sha256.convert(spkiBytes);
       return 'SHA256:${base64.encode(digest.bytes)}';
-    } catch (e) {
+    } on Object {
       throw const FormatException('Failed to calculate SPKI hash');
     }
   }
@@ -46,7 +48,7 @@ class SpkiUtil {
   /// }
   static Uint8List? _extractSpki(Uint8List der) {
     // Minimal ASN.1 parser to walk the structure
-    var parser = _DerParser(der);
+    final parser = _DerParser(der);
 
     // 1. Unwrap outer Certificate SEQUENCE
     if (!parser.enterSequence()) return null; // Enter Certificate
@@ -90,10 +92,9 @@ class SpkiUtil {
 }
 
 class _DerParser {
+  _DerParser(this._data);
   final Uint8List _data;
   int _offset = 0;
-
-  _DerParser(this._data);
 
   bool get isDone => _offset >= _data.length;
 
@@ -105,9 +106,7 @@ class _DerParser {
   /// Tries to enter a constructed sequence/tag.
   /// Updates offset to point to the *contents* of the sequence.
   /// Returns true if successful (and matches tag 0x30 by default).
-  bool enterSequence() {
-    return _enterConstructed(0x30);
-  }
+  bool enterSequence() => _enterConstructed(0x30);
 
   bool _enterConstructed(int tag) {
     if (isDone || _data[_offset] != tag) return false;
@@ -142,12 +141,12 @@ class _DerParser {
   /// Reads ASN.1 length.
   int _readLength() {
     if (isDone) return 0;
-    int length = _data[_offset++];
+    var length = _data[_offset++];
     if ((length & 0x80) != 0) {
       // Long form
-      int numOctets = length & 0x7F;
+      final numOctets = length & 0x7F;
       length = 0;
-      for (int i = 0; i < numOctets; i++) {
+      for (var i = 0; i < numOctets; i++) {
         if (isDone) break; // Error
         length = (length << 8) | _data[_offset++];
       }

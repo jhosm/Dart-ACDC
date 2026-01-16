@@ -11,6 +11,7 @@ environment:
 
 dependencies:
   connectivity_plus: ^7.0.0
+  crypto: any
   dio: ^5.4.0
   dio_cache_interceptor: ^4.0.5
   encrypt: ^5.0.3

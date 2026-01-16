@@ -5,7 +5,7 @@ void main() {
   group('CertificatePinningConfig', () {
     test('creates valid config', () {
       final config = CertificatePinningConfig(
-        allowedPins: {
+        allowedPins: const {
           'example.com': ['SHA256:abc1234567'],
           'api.example.com': ['SHA256:def4567890'],
         },
@@ -18,7 +18,7 @@ void main() {
 
     test('creates valid config with custom flags', () {
       final config = CertificatePinningConfig(
-        allowedPins: {
+        allowedPins: const {
           'example.com': ['SHA256:abc1234567'],
         },
         reportOnly: true,
@@ -32,7 +32,7 @@ void main() {
     test('throws ArgumentError when pin list is empty', () {
       expect(
         () => CertificatePinningConfig(
-          allowedPins: {
+          allowedPins: const {
             'example.com': [],
           },
         ),
@@ -44,7 +44,7 @@ void main() {
         () {
       expect(
         () => CertificatePinningConfig(
-          allowedPins: {
+          allowedPins: const {
             'example.com': ['abc1234567'],
           },
         ),
@@ -55,7 +55,7 @@ void main() {
     test('throws ArgumentError when pin is too short', () {
       expect(
         () => CertificatePinningConfig(
-          allowedPins: {
+          allowedPins: const {
             'example.com': ['SHA256:a'],
           },
         ),
@@ -65,17 +65,17 @@ void main() {
 
     test('equality checks work', () {
       final config1 = CertificatePinningConfig(
-        allowedPins: {
+        allowedPins: const {
           'example.com': ['SHA256:abc'],
         },
       );
       final config2 = CertificatePinningConfig(
-        allowedPins: {
+        allowedPins: const {
           'example.com': ['SHA256:abc'],
         },
       );
       final config3 = CertificatePinningConfig(
-        allowedPins: {
+        allowedPins: const {
           'other.com': ['SHA256:abc'],
         },
       );
@@ -87,7 +87,7 @@ void main() {
 
     test('toString returns meaningful string', () {
       final config = CertificatePinningConfig(
-        allowedPins: {
+        allowedPins: const {
           'example.com': ['SHA256:abc'],
         },
       );

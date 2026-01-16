@@ -6,9 +6,7 @@ import 'package:dart_acdc/src/security/pinning_verifier.dart';
 
 /// A wrapper around [HttpClient] that enforces certificate pinning.
 class PinningHttpClient implements HttpClient {
-  final HttpClient _inner;
-  final PinningVerifier _verifier;
-
+  /// Creates a [PinningHttpClient] that wraps an inner client and uses a verifier.
   PinningHttpClient(this._inner, this._verifier) {
     // We must set the badCertificateCallback on the inner client immediately
     // to catch untrusted certificates (e.g., self-signed or invalid hostname).
@@ -16,6 +14,8 @@ class PinningHttpClient implements HttpClient {
     // But since this is a specific security client, we take control.
     _inner.badCertificateCallback = _handleBadCertificate;
   }
+  final HttpClient _inner;
+  final PinningVerifier _verifier;
 
   bool _handleBadCertificate(X509Certificate cert, String host, int port) {
     // This callback is invoked for "bad" certificates (untrusted root, mismatch, expired).
@@ -34,7 +34,7 @@ class PinningHttpClient implements HttpClient {
       // So we return true! This allows the "bad" cert to proceed if reportOnly is on.
       // Correct.
       return false; // Not pinned, so it remains "bad".
-    } catch (e) {
+    } on Object {
       return false;
     }
   }
@@ -68,34 +68,47 @@ class PinningHttpClient implements HttpClient {
 
   @override
   void addCredentials(
-          Uri url, String realm, HttpClientCredentials credentials) =>
+    Uri url,
+    String realm,
+    HttpClientCredentials credentials,
+  ) =>
       _inner.addCredentials(url, realm, credentials);
 
   @override
-  void addProxyCredentials(String host, int port, String realm,
-          HttpClientCredentials credentials) =>
+  void addProxyCredentials(
+    String host,
+    int port,
+    String realm,
+    HttpClientCredentials credentials,
+  ) =>
       _inner.addProxyCredentials(host, port, realm, credentials);
 
   @override
   set authenticate(
-          Future<bool> Function(Uri url, String scheme, String? realm)? f) =>
+    Future<bool> Function(Uri url, String scheme, String? realm)? f,
+  ) =>
       _inner.authenticate = f;
 
   @override
   set authenticateProxy(
-          Future<bool> Function(
-                  String host, int port, String scheme, String? realm)?
-              f) =>
+    Future<bool> Function(
+      String host,
+      int port,
+      String scheme,
+      String? realm,
+    )? f,
+  ) =>
       _inner.authenticateProxy = f;
 
   @override
   set badCertificateCallback(
-      bool Function(X509Certificate cert, String host, int port)? callback) {
+    bool Function(X509Certificate cert, String host, int port)? callback,
+  ) {
     // If the USER tries to set a callback, we should wrap it or error?
     // For now, we ignore external overrides because pinning must be authoritative.
     // Or we could chain, but that complicates "I allow this" vs "Pinning allows this".
     // Pinning is stricter.
-    // TODO: Log warning?
+    // TODO(security): Log warning?
   }
 
   @override
@@ -103,29 +116,34 @@ class PinningHttpClient implements HttpClient {
 
   @override
   set connectionFactory(
-          Future<ConnectionTask<Socket>> Function(
-                  Uri url, String? proxyHost, int? proxyPort)?
-              f) =>
+    Future<ConnectionTask<Socket>> Function(
+      Uri url,
+      String? proxyHost,
+      int? proxyPort,
+    )? f,
+  ) =>
       _inner.connectionFactory = f;
 
   @override
   set findProxy(String Function(Uri url)? f) => _inner.findProxy = f;
 
   @override
-  set keyLog(Function(String line)? callback) => _inner.keyLog = callback;
+  set keyLog(void Function(String line)? callback) => _inner.keyLog = callback;
 
   // --- Methods just proxy to inner ---
 
   @override
   Future<HttpClientRequest> open(
-      String method, String host, int port, String path) {
-    return _inner.open(method, host, port, path);
-  }
+    String method,
+    String host,
+    int port,
+    String path,
+  ) =>
+      _inner.open(method, host, port, path);
 
   @override
-  Future<HttpClientRequest> openUrl(String method, Uri url) {
-    return _inner.openUrl(method, url);
-  }
+  Future<HttpClientRequest> openUrl(String method, Uri url) =>
+      _inner.openUrl(method, url);
 
   @override
   Future<HttpClientRequest> get(String host, int port, String path) =>

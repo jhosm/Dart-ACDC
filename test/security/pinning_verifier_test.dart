@@ -27,69 +27,77 @@ void main() {
     });
 
     test('allows unpinned domain', () {
-      final config = CertificatePinningConfig(allowedPins: {});
-      final verifier = PinningVerifier(config, spkiExtractor: tempExtractor);
-
-      // Should not throw
-      verifier.verify('google.com', [mockCert1]);
+      final config = CertificatePinningConfig(allowedPins: const {});
+      PinningVerifier(config, spkiExtractor: tempExtractor)
+          // Should not throw
+          .verify('google.com', [mockCert1]);
     });
 
     test('verifies exact match success', () {
-      final config = CertificatePinningConfig(allowedPins: {
-        'example.com': ['SHA256:CERT1'],
-      });
+      final config = CertificatePinningConfig(
+        allowedPins: const {
+          'example.com': ['SHA256:CERT1'],
+        },
+      );
 
-      final verifier = PinningVerifier(config, spkiExtractor: tempExtractor);
-      verifier.verify(
-          'example.com', [mockCert2, mockCert1]); // Chain contains matched cert
+      PinningVerifier(config, spkiExtractor: tempExtractor).verify(
+        'example.com',
+        [mockCert2, mockCert1],
+      ); // Chain contains matched cert
     });
 
     test('fails when no match found in chain', () {
-      final config = CertificatePinningConfig(allowedPins: {
-        'example.com': ['SHA256:OTHER'],
-      });
+      final config = CertificatePinningConfig(
+        allowedPins: const {
+          'example.com': ['SHA256:OTHER'],
+        },
+      );
 
       final verifier = PinningVerifier(config, spkiExtractor: tempExtractor);
 
       expect(
         () => verifier.verify('example.com', [mockCert1, mockCert2]),
-        throwsA(isA<AcdcSecurityException>().having(
-          (e) => e.hostname,
-          'hostname',
-          'example.com',
-        )),
+        throwsA(
+          isA<AcdcSecurityException>().having(
+            (e) => e.hostname,
+            'hostname',
+            'example.com',
+          ),
+        ),
       );
     });
 
     test('verifies wildcard match success', () {
-      final config = CertificatePinningConfig(allowedPins: {
-        '*.example.com': ['SHA256:CERT1'],
-      });
+      final config = CertificatePinningConfig(
+        allowedPins: const {
+          '*.example.com': ['SHA256:CERT1'],
+        },
+      );
 
-      final verifier = PinningVerifier(config, spkiExtractor: tempExtractor);
-
-      // api.example.com matches *.example.com
-      verifier.verify('api.example.com', [mockCert1]);
+      PinningVerifier(config, spkiExtractor: tempExtractor)
+          // api.example.com matches *.example.com
+          .verify('api.example.com', [mockCert1]);
     });
 
     test('wildcard does not match root or deep subdomains', () {
-      final config = CertificatePinningConfig(allowedPins: {
-        '*.example.com': ['SHA256:CERT1'],
-      });
+      final config = CertificatePinningConfig(
+        allowedPins: const {
+          '*.example.com': ['SHA256:CERT1'],
+        },
+      );
 
-      final verifier = PinningVerifier(config, spkiExtractor: tempExtractor);
-
-      // example.com should NOT match *.example.com -> passes as unpinned
-      verifier.verify('example.com', [mockCert1]);
-
-      // deep.api.example.com should NOT match *.example.com -> passes as unpinned
-      verifier.verify('deep.api.example.com', [mockCert1]);
+      PinningVerifier(config, spkiExtractor: tempExtractor)
+        // example.com should NOT match *.example.com -> passes as unpinned
+        ..verify('example.com', [mockCert1])
+        // deep.api.example.com should NOT match *.example.com -> passes as unpinned
+        ..verify('deep.api.example.com', [mockCert1]);
     });
 
     test('reportOnly mode does not throw but calls callback on failure', () {
+      var callbackCalled = false;
       final config = CertificatePinningConfig(
-        allowedPins: {
-          'example.com': ['SHA256:MISSING']
+        allowedPins: const {
+          'example.com': ['SHA256:MISSING'],
         },
         reportOnly: true,
         onPinningFailure: (host, certs) {
@@ -98,30 +106,25 @@ void main() {
           expect(certs, contains('SHA256:CERT1'));
         },
       );
-
-      bool callbackCalled = false;
-      final verifier = PinningVerifier(
+      PinningVerifier(
         config,
         spkiExtractor: tempExtractor,
-      );
-
-      verifier.verify('example.com', [mockCert1]);
+      ).verify('example.com', [mockCert1]);
       expect(callbackCalled, isTrue);
     });
 
     test('debug bypass skips verification', () {
       // Assuming assertions are enabled in test environment
       final config = CertificatePinningConfig(
-        allowedPins: {
-          'example.com': ['SHA256:MISSING']
+        allowedPins: const {
+          'example.com': ['SHA256:MISSING'],
         },
         enablePinningInDebug: false,
       );
 
-      final verifier = PinningVerifier(config, spkiExtractor: tempExtractor);
-
-      // Should succeed despite mismatch because debug bypass is active
-      verifier.verify('example.com', [mockCert1]);
+      PinningVerifier(config, spkiExtractor: tempExtractor)
+          // Should succeed despite mismatch because debug bypass is active
+          .verify('example.com', [mockCert1]);
     });
   });
 }

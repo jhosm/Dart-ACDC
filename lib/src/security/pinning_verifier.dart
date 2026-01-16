@@ -7,16 +7,18 @@ import 'package:dio/dio.dart';
 
 /// Verifies server certificates against a trusted set of pins.
 class PinningVerifier {
+  /// Creates a [PinningVerifier] with the given configuration.
+  ///
+  /// [spkiExtractor] can be provided for testing purposes.
+  PinningVerifier(
+    this._config, {
+    String Function(X509Certificate)? spkiExtractor,
+  }) : spkiExtractor = spkiExtractor ?? SpkiUtil.extractSpkiHash;
   final CertificatePinningConfig _config;
 
   /// Function to extract SPKI hash from a certificate. Check [SpkiUtil.extractSpkiHash].
   /// Exposed for testing.
   final String Function(X509Certificate) spkiExtractor;
-
-  PinningVerifier(
-    this._config, {
-    String Function(X509Certificate)? spkiExtractor,
-  }) : spkiExtractor = spkiExtractor ?? SpkiUtil.extractSpkiHash;
 
   /// Verifies the [hostname] and [chain] against the configuration.
   ///
@@ -27,11 +29,14 @@ class PinningVerifier {
     // Note: We need a way to detect debug mode.
     // Ideally, we consistently use `kDebugMode` or `assert`.
     // Here we will use `assert` trick since we are in pure Dart mostly.
-    bool splitDebug = false;
-    assert(() {
-      splitDebug = true;
-      return true;
-    }());
+    var splitDebug = false;
+    assert(
+      () {
+        splitDebug = true;
+        return true;
+      }(),
+      'Debug check',
+    );
 
     if (splitDebug && !_config.enablePinningInDebug) {
       return;
@@ -57,7 +62,7 @@ class PinningVerifier {
           // Success! A cert in the chain is trusted.
           return;
         }
-      } catch (e) {
+      } on Object {
         // If we can't extract hash, we can't verify this cert. Continue to next.
         // If all fail, we will reject.
         continue;

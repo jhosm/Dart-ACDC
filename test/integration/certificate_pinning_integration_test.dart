@@ -1,7 +1,6 @@
 import 'dart:io';
 
 import 'package:dart_acdc/dart_acdc.dart';
-import 'package:dart_acdc/src/security/certificate_pinning_config.dart';
 import 'package:dio/dio.dart';
 import 'package:test/test.dart';
 
@@ -39,7 +38,7 @@ void main() {
         },
       );
 
-      final dio = await AcdcClientBuilder()
+      final dio = await const AcdcClientBuilder()
           .withBaseUrl(server.baseUrl)
           .withCertificatePinning(config)
           .withNetworkInfo(MockNetworkInfo())
@@ -54,12 +53,12 @@ void main() {
 
     test('invalid pin aborts connection', () async {
       final config = CertificatePinningConfig(
-        allowedPins: {
+        allowedPins: const {
           'localhost': ['SHA256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA='],
         },
       );
 
-      final dio = await AcdcClientBuilder()
+      final dio = await const AcdcClientBuilder()
           .withBaseUrl(server.baseUrl)
           .withCertificatePinning(config)
           .withNetworkInfo(MockNetworkInfo())
@@ -78,18 +77,18 @@ void main() {
         // Since we are using IOHttpClientAdapter's validateCertificate/badCertificateCallback,
         // it fails at the handshake level.
         expect(e.type,
-            anyOf(DioExceptionType.connectionError, DioExceptionType.unknown));
+            anyOf(DioExceptionType.connectionError, DioExceptionType.unknown),);
         expect(e.error.toString(), contains('HandshakeException'));
       }
     });
 
     test('reportOnly mode allows connection despite mismatch', () async {
-      bool callbackInvoked = false;
+      var callbackInvoked = false;
 
       final config = CertificatePinningConfig(
-          allowedPins: {
+          allowedPins: const {
             'localhost': [
-              'SHA256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA='
+              'SHA256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=',
             ],
           },
           reportOnly: true,
@@ -97,9 +96,9 @@ void main() {
             callbackInvoked = true;
             expect(host, 'localhost');
             expect(certs, isNotEmpty);
-          });
+          },);
 
-      final dio = await AcdcClientBuilder()
+      final dio = await const AcdcClientBuilder()
           .withBaseUrl(server.baseUrl)
           .withCertificatePinning(config)
           .withNetworkInfo(MockNetworkInfo())
@@ -110,7 +109,7 @@ void main() {
       final response = await dio.get<Map<String, dynamic>>('/');
       expect(response.statusCode, 200);
       expect(callbackInvoked, isTrue,
-          reason: 'Callback should be invoked in reportOnly mode');
+          reason: 'Callback should be invoked in reportOnly mode',);
     });
   });
 }

@@ -6,6 +6,20 @@ import 'package:meta/meta.dart';
 /// Subject Public Key Info (SPKI) SHA-256 hashes.
 @immutable
 class CertificatePinningConfig {
+  /// Creates a [CertificatePinningConfig].
+  ///
+  /// Throws [ArgumentError] if:
+  /// - Any pin format is invalid (must start with 'SHA256:').
+  /// - Any domain has an empty list of pins.
+  CertificatePinningConfig({
+    required this.allowedPins,
+    this.reportOnly = false,
+    this.enablePinningInDebug = true,
+    this.onPinningFailure,
+  }) {
+    _validateConfig();
+  }
+
   /// Map of domain names to their allowed SPKI SHA-256 hashes.
   ///
   /// Keys are domain names (e.g., 'api.example.com', '*.example.com').
@@ -28,24 +42,10 @@ class CertificatePinningConfig {
   /// Callback invoked when pinning fails.
   ///
   /// Useful for logging or analytics when [reportOnly] is true.
-  /// [host] is the domain checking against.
-  /// [certificateChainHashes] is the list of SPKI SHA-256 hashes of the received certificate chain.
+  /// `host` is the domain checking against.
+  /// `certificateChainHashes` is the list of SPKI SHA-256 hashes of the received certificate chain.
   final void Function(String host, List<String> certificateChainHashes)?
       onPinningFailure;
-
-  /// Creates a [CertificatePinningConfig].
-  ///
-  /// Throws [ArgumentError] if:
-  /// - Any pin format is invalid (must start with 'SHA256:').
-  /// - Any domain has an empty list of pins.
-  CertificatePinningConfig({
-    required this.allowedPins,
-    this.reportOnly = false,
-    this.enablePinningInDebug = true,
-    this.onPinningFailure,
-  }) {
-    _validateConfig();
-  }
 
   void _validateConfig() {
     allowedPins.forEach((domain, pins) {
@@ -105,14 +105,13 @@ class CertificatePinningConfig {
 
   bool _listEquals(List<String> a, List<String> b) {
     if (a.length != b.length) return false;
-    for (int i = 0; i < a.length; i++) {
+    for (var i = 0; i < a.length; i++) {
       if (a[i] != b[i]) return false;
     }
     return true;
   }
 
   @override
-  String toString() {
-    return 'CertificatePinningConfig(reportOnly: $reportOnly, enablePinning: $enablePinningInDebug, onPinningFailure: ${onPinningFailure != null}, domains: ${allowedPins.keys.join(", ")})';
-  }
+  String toString() =>
+      'CertificatePinningConfig(reportOnly: $reportOnly, enablePinning: $enablePinningInDebug, onPinningFailure: ${onPinningFailure != null}, domains: ${allowedPins.keys.join(", ")})';
 }

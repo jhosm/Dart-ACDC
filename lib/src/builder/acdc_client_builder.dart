@@ -1,3 +1,5 @@
+import 'dart:io'; // For SecurityContext, HttpClient
+
 import 'package:dart_acdc/src/auth/acdc_auth_manager.dart';
 import 'package:dart_acdc/src/auth/secure_token_provider.dart';
 import 'package:dart_acdc/src/auth/token_provider.dart';
@@ -21,7 +23,6 @@ import 'package:dart_acdc/src/security/pinning_http_client.dart';
 import 'package:dart_acdc/src/security/pinning_verifier.dart'; // ignore: unused_import
 import 'package:dio/dio.dart';
 import 'package:dio/io.dart'; // For IOHttpClientAdapter
-import 'dart:io'; // For SecurityContext, HttpClient
 
 /// Immutable builder for creating pre-configured Dio HTTP clients.
 ///
@@ -480,13 +481,10 @@ class AcdcClientBuilder {
       dio.httpClientAdapter = IOHttpClientAdapter(
         createHttpClient: () {
           // Force badCertificateCallback for ALL certs by using empty trust roots.
-          final context = SecurityContext(withTrustedRoots: false);
-          final client = HttpClient(context: context);
-
-          // Apply timeouts to inner client too, though adapter often handles it.
-          // Adapter uses idleTimeout. connectionTimeout is property of HttpClient?
-          client.connectionTimeout = timeout;
-          client.idleTimeout = const Duration(seconds: 10); // Standard default?
+          final context = SecurityContext();
+          final client = HttpClient(context: context)
+            ..connectionTimeout = timeout
+            ..idleTimeout = const Duration(seconds: 10); // Standard default?
 
           return PinningHttpClient(client, PinningVerifier(_pinningConfig!));
         },
