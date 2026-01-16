@@ -117,6 +117,8 @@ class DeduplicationInterceptor extends Interceptor {
     RequestOptions options,
     RequestInterceptorHandler handler,
   ) {
+    var handlerCompleted = false;
+
     // Handle secondary cancellation
     // If this specific duplicate request is cancelled, we should stop waiting
     // but NOT cancel the primary request (which is driving the network call)
@@ -125,16 +127,16 @@ class DeduplicationInterceptor extends Interceptor {
         // If the future hasn't completed yet, we just ignore it from now on
         // for this listener.
         // However, standard handler.resolve/reject logic applies.
-        // If we want to simulate "cancellation error" for this secondary request:
-        if (!activeRequest.completer.isCompleted) {
-          handler.reject(
-            DioException(
-              requestOptions: options,
-              type: DioExceptionType.cancel,
-              message: 'Request cancelled',
-            ),
-          );
-        }
+        if (handlerCompleted) return;
+        handlerCompleted = true;
+
+        handler.reject(
+          DioException(
+            requestOptions: options,
+            type: DioExceptionType.cancel,
+            message: 'Request cancelled',
+          ),
+        );
       });
     }
 
@@ -147,9 +149,10 @@ class DeduplicationInterceptor extends Interceptor {
       // Note: We must clone the response for the secondary request to have correct requestOptions
       // matching the secondary request, NOT the primary one.
 
-      if (options.cancelToken?.isCancelled ?? false) {
+      if (handlerCompleted || (options.cancelToken?.isCancelled ?? false)) {
         return;
       }
+      handlerCompleted = true;
 
       final secondaryResponse = Response(
         requestOptions: options,
@@ -164,9 +167,10 @@ class DeduplicationInterceptor extends Interceptor {
 
       handler.resolve(secondaryResponse);
     }).catchError((Object e) {
-      if (options.cancelToken?.isCancelled ?? false) {
+      if (handlerCompleted || (options.cancelToken?.isCancelled ?? false)) {
         return;
       }
+      handlerCompleted = true;
 
       if (e is DioException) {
         handler.reject(e);
