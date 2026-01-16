@@ -228,7 +228,7 @@ Dart-ACDC is built with security as a priority:
 ## Documentation
 
 - [API Documentation](https://pub.dev/documentation/dart_acdc/latest/)
-- [Examples](https://github.com/yourusername/dart-acdc/tree/main/example)
+- [Examples](https://github.com/jhosm/dart-acdc-examples)
 - [Changelog](CHANGELOG.md)
 
 ## License
@@ -241,5 +241,5 @@ Contributions are welcome! Please read our contributing guidelines before submit
 
 ## Support
 
-- [Issue Tracker](https://github.com/yourusername/dart-acdc/issues)
-- [Discussions](https://github.com/yourusername/dart-acdc/discussions)
+- [Issue Tracker](https://github.com/jhosm/dart-acdc/issues)
+- [Discussions](https://github.com/jhosm/dart-acdc/discussions)

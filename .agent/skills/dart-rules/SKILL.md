@@ -1,5 +1,6 @@
 ---
-trigger: always_on
+name: dart-rules
+description: Apply when writing or reviewing Flutter or Dart code.
 ---
 
 # AI rules for Flutter

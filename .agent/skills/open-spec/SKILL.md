@@ -1,5 +1,5 @@
 ---
-trigger: always_on
+description: Use when working on project specifications and new proposals.
 ---
 
 <!-- OPENSPEC:START -->

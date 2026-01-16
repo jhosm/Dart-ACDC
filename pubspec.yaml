@@ -33,8 +33,7 @@ dev_dependencies:
     sdk: flutter
   http_mock_adapter: ^0.6.1
   mockito: ^5.4.4
-  openapi:
-    path: example/lib/api_client
+
   path: ^1.9.1
   shelf: ^1.4.0
   test: ^1.26.3
