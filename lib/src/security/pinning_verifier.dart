@@ -9,16 +9,12 @@ import 'package:dio/dio.dart';
 class PinningVerifier {
   final CertificatePinningConfig _config;
 
-  /// Callback for report-only mode failures.
-  final void Function(AcdcSecurityException exception)? onPinningFailure;
-
   /// Function to extract SPKI hash from a certificate. Check [SpkiUtil.extractSpkiHash].
   /// Exposed for testing.
   final String Function(X509Certificate) spkiExtractor;
 
   PinningVerifier(
     this._config, {
-    this.onPinningFailure,
     String Function(X509Certificate)? spkiExtractor,
   }) : spkiExtractor = spkiExtractor ?? SpkiUtil.extractSpkiHash;
 
@@ -78,7 +74,7 @@ class PinningVerifier {
     );
 
     if (_config.reportOnly) {
-      onPinningFailure?.call(exception);
+      _config.onPinningFailure?.call(hostname, peerSpkiHashes);
     } else {
       throw exception;
     }

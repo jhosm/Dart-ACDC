@@ -92,17 +92,17 @@ void main() {
           'example.com': ['SHA256:MISSING']
         },
         reportOnly: true,
+        onPinningFailure: (host, certs) {
+          callbackCalled = true;
+          expect(host, 'example.com');
+          expect(certs, contains('SHA256:CERT1'));
+        },
       );
 
       bool callbackCalled = false;
       final verifier = PinningVerifier(
         config,
         spkiExtractor: tempExtractor,
-        onPinningFailure: (e) {
-          callbackCalled = true;
-          expect(e.hostname, 'example.com');
-          expect(e.peerCertificates, contains('SHA256:CERT1'));
-        },
       );
 
       verifier.verify('example.com', [mockCert1]);

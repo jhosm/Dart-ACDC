@@ -25,6 +25,14 @@ class CertificatePinningConfig {
   /// Default: true (pinning enabled in debug).
   final bool enablePinningInDebug;
 
+  /// Callback invoked when pinning fails.
+  ///
+  /// Useful for logging or analytics when [reportOnly] is true.
+  /// [host] is the domain checking against.
+  /// [certificateChainHashes] is the list of SPKI SHA-256 hashes of the received certificate chain.
+  final void Function(String host, List<String> certificateChainHashes)?
+      onPinningFailure;
+
   /// Creates a [CertificatePinningConfig].
   ///
   /// Throws [ArgumentError] if:
@@ -34,6 +42,7 @@ class CertificatePinningConfig {
     required this.allowedPins,
     this.reportOnly = false,
     this.enablePinningInDebug = true,
+    this.onPinningFailure,
   }) {
     _validateConfig();
   }
@@ -68,12 +77,14 @@ class CertificatePinningConfig {
           runtimeType == other.runtimeType &&
           reportOnly == other.reportOnly &&
           enablePinningInDebug == other.enablePinningInDebug &&
+          onPinningFailure == other.onPinningFailure &&
           _mapEquals(allowedPins, other.allowedPins);
 
   @override
   int get hashCode => Object.hash(
         reportOnly,
         enablePinningInDebug,
+        onPinningFailure,
         // Simple hash strategy for the map: hash the keys and values.
         // This is not order-independent for keys if we iterate, but Map iteration order is defined in Dart (insertion).
         // For config objects, this is usually acceptable.
@@ -102,6 +113,6 @@ class CertificatePinningConfig {
 
   @override
   String toString() {
-    return 'CertificatePinningConfig(reportOnly: $reportOnly, enablePinning: $enablePinningInDebug, domains: ${allowedPins.keys.join(", ")})';
+    return 'CertificatePinningConfig(reportOnly: $reportOnly, enablePinning: $enablePinningInDebug, onPinningFailure: ${onPinningFailure != null}, domains: ${allowedPins.keys.join(", ")})';
   }
 }

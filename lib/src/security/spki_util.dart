@@ -9,18 +9,19 @@ class SpkiUtil {
   ///
   /// Returns the hash formatted as 'SHA256:<base64-string>'.
   static String extractSpkiHash(X509Certificate certificate) {
+    return extractSpkiHashFromBytes(certificate.der);
+  }
+
+  /// Extracts the SHA-256 hash of the SPKI from the DER-encoded certificate bytes.
+  static String extractSpkiHashFromBytes(Uint8List der) {
     try {
-      final spkiBytes = _extractSpki(certificate.der);
+      final spkiBytes = _extractSpki(der);
       if (spkiBytes == null) {
-        // Fallback or error? If we can't extract, we can't pin.
-        // For now, let's assume if parsing fails we return a placeholder or throw.
         throw const FormatException('Failed to extract SPKI from certificate');
       }
       final digest = sha256.convert(spkiBytes);
       return 'SHA256:${base64.encode(digest.bytes)}';
     } catch (e) {
-      // If parsing fails, we cannot verify against SPKI pins.
-      // We explicitly rethrow so the verification logic knows it failed to process.
       throw const FormatException('Failed to calculate SPKI hash');
     }
   }
