@@ -23,6 +23,8 @@ import 'package:dart_acdc/src/security/pinning_http_client.dart';
 import 'package:dart_acdc/src/security/pinning_verifier.dart'; // ignore: unused_import
 import 'package:dio/dio.dart';
 import 'package:dio/io.dart'; // For IOHttpClientAdapter
+import 'package:dio_cache_interceptor/dio_cache_interceptor.dart'
+    show CacheStore;
 
 /// Immutable builder for creating pre-configured Dio HTTP clients.
 ///
@@ -54,6 +56,7 @@ class AcdcClientBuilder {
     Duration? slowRequestThreshold,
     int? largePayloadThreshold,
     CacheConfig? cacheConfig,
+    CacheStore? cacheStore,
     bool? cacheDisabled,
     bool? authDisabled,
     List<Interceptor>? customInterceptors,
@@ -79,6 +82,7 @@ class AcdcClientBuilder {
         _slowRequestThreshold = slowRequestThreshold,
         _largePayloadThreshold = largePayloadThreshold,
         _cacheConfig = cacheConfig,
+        _cacheStore = cacheStore,
         _cacheDisabled = cacheDisabled ?? false,
         _authDisabled = authDisabled ?? false,
         _customInterceptors = customInterceptors,
@@ -105,6 +109,7 @@ class AcdcClientBuilder {
   final Duration? _slowRequestThreshold;
   final int? _largePayloadThreshold;
   final CacheConfig? _cacheConfig;
+  final CacheStore? _cacheStore;
   final bool _cacheDisabled;
   final bool _authDisabled;
   final List<Interceptor>? _customInterceptors;
@@ -274,6 +279,27 @@ class AcdcClientBuilder {
         cacheDisabled: false,
       );
 
+  /// Configures a custom cache store.
+  ///
+  /// Allows injecting a cache store that persists across client rebuilds,
+  /// useful for web platforms or dynamic configurations where the default
+  /// factory-created store would be replaced on each build.
+  ///
+  /// When used together with [withCache], the injected store takes precedence
+  /// over the store that would be created by [CacheStoreFactory].
+  ///
+  /// Example:
+  /// ```dart
+  /// final sharedStore = MemCacheStore(maxSize: 5 * 1024 * 1024);
+  ///
+  /// final client = await AcdcClientBuilder()
+  ///   .withCache(CacheConfig(ttl: Duration(minutes: 5)))
+  ///   .withCacheStore(sharedStore)
+  ///   .build();
+  /// ```
+  AcdcClientBuilder withCacheStore(CacheStore store) =>
+      _copyWith(cacheStore: store);
+
   /// Disables HTTP caching.
   ///
   /// All requests bypass the cache and hit the network.
@@ -385,6 +411,7 @@ class AcdcClientBuilder {
     Duration? slowRequestThreshold,
     int? largePayloadThreshold,
     CacheConfig? cacheConfig,
+    CacheStore? cacheStore,
     bool? cacheDisabled,
     bool? authDisabled,
     List<Interceptor>? customInterceptors,
@@ -414,6 +441,7 @@ class AcdcClientBuilder {
         slowRequestThreshold: slowRequestThreshold ?? _slowRequestThreshold,
         largePayloadThreshold: largePayloadThreshold ?? _largePayloadThreshold,
         cacheConfig: cacheConfig ?? _cacheConfig,
+        cacheStore: cacheStore ?? _cacheStore,
         cacheDisabled: cacheDisabled ?? _cacheDisabled,
         authDisabled: authDisabled ?? _authDisabled,
         customInterceptors: customInterceptors ?? _customInterceptors,
@@ -499,7 +527,7 @@ class AcdcClientBuilder {
     AcdcCacheInterceptor? cacheInterceptor;
     if (!_cacheDisabled) {
       final cacheConfig = _cacheConfig ?? const CacheConfig();
-      final store = CacheStoreFactory.build(cacheConfig);
+      final store = _cacheStore ?? CacheStoreFactory.build(cacheConfig);
       cacheInterceptor = AcdcCacheInterceptor(
         config: cacheConfig,
         store: store,
