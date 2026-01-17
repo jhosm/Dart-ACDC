@@ -73,17 +73,20 @@ class MockNetworkInfo implements NetworkInfo {
   void dispose() {}
 }
 
+import 'dart:typed_data';
+
 class MockAdapter implements HttpClientAdapter {
   MockAdapter(this.handler);
   final Future<ResponseBody> Function(RequestOptions) handler;
 
-  @override
+  `@override`
   Future<ResponseBody> fetch(
     RequestOptions options,
-    Stream<List<int>>? requestStream,
+    Stream<Uint8List>? requestStream,
     Future<dynamic>? cancelFuture,
   ) async =>
       handler(options);
+}
 
   @override
   void close({bool force = false}) {}
