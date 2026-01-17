@@ -209,6 +209,7 @@ class AcdcCacheInterceptor extends Interceptor {
         // Serve stale cache immediately
         final response = cachedResponse.toResponse(options)..statusCode = 200;
         // Important: Update status code to 200, as it might be stored differently
+        response.extra['acdc_source'] = 'cache_stale';
 
         // Add metadata
         _addCacheMetadata(response);
@@ -331,6 +332,18 @@ class AcdcCacheInterceptor extends Interceptor {
     // Delegate to dio_cache_interceptor
     _dioCacheInterceptor.onResponse(response, handler);
 
+    // Determine and set acdc_source for network responses
+    // We only set this if it wasn't already set (e.g. by cache logic)
+    if (response.extra['acdc_source'] == null) {
+      final fromCache = response.extra['from_cache'] as bool? ?? false;
+      if (!fromCache) {
+        final isSwrRefresh =
+            response.requestOptions.extra['swr_refresh'] == true;
+        response.extra['acdc_source'] =
+            isSwrRefresh ? 'network_fresh' : 'network';
+      }
+    }
+
     // If response was not from cache, it is likely being written to cache
     // (dio_cache_interceptor handles logic, but if we got here, we are passing it down)
     final fromCache = response.extra['from_cache'] as bool? ?? false;
@@ -415,6 +428,7 @@ class AcdcCacheInterceptor extends Interceptor {
         final response = cachedResponse.toResponse(requestOptions)
           ..statusCode = 200;
 
+        response.extra['acdc_source'] = 'cache';
         _addCacheMetadata(response);
         return response;
       }
@@ -487,6 +501,7 @@ class _CacheAwareRequestHandler extends RequestInterceptorHandler {
     // This is called when dio_cache_interceptor finds a valid cache entry.
     // Mark the response as being from cache.
     response.extra['from_cache'] = true;
+    response.extra['acdc_source'] = 'cache';
     response.headers.add('X-ACDC-From-Cache', 'true');
 
     logDelegate?.log(
@@ -558,6 +573,7 @@ class _CacheAwareErrorHandler extends ErrorInterceptorHandler {
     // Add offline cache metadata
     response.extra['fromOfflineCache'] = true;
     response.extra['from_cache'] = true;
+    response.extra['acdc_source'] = 'cache';
     response.headers.add('X-ACDC-From-Cache', 'true');
 
     originalHandler.resolve(response);

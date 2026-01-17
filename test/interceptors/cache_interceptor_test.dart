@@ -688,6 +688,132 @@ void main() {
         );
       });
     });
+    group('ACDC Source Metadata', () {
+      test('sets acdc_source to "network" for network responses', () async {
+        final interceptor = AcdcCacheInterceptor(
+          config: const CacheConfig(),
+          store: MemCacheStore(),
+        );
+
+        final dio = Dio();
+        dio.interceptors.add(interceptor);
+        dio.httpClientAdapter = MockAdapter((options) async {
+          return ResponseBody.fromString(
+            '{}',
+            200,
+            headers: {
+              Headers.contentTypeHeader: [Headers.jsonContentType],
+            },
+          );
+        });
+
+        final response = await dio.get<dynamic>('/network-only');
+        expect(response.extra['acdc_source'], 'network');
+      });
+
+      test('sets acdc_source to "cache" for standard cache hits', () async {
+        final store = MemCacheStore();
+        final interceptor = AcdcCacheInterceptor(
+          config: const CacheConfig(),
+          store: store,
+        );
+        final dio = Dio();
+        dio.interceptors.add(interceptor);
+
+        final headers = {
+          Headers.contentTypeHeader: [Headers.jsonContentType],
+          'cache-control': ['max-age=3600'],
+          'etag': ['123'],
+        };
+
+        dio.httpClientAdapter = MockAdapter((options) async {
+          return ResponseBody.fromString(
+            '{}',
+            200,
+            headers: headers,
+          );
+        });
+
+        // Seed cache
+        await dio.get<dynamic>('/cached-std');
+
+        // Hit cache
+        final response = await dio.get<dynamic>('/cached-std');
+        expect(response.extra['acdc_source'], 'cache');
+      });
+
+      test('integration: sets acdc_source for SWR flow (stale then fresh)',
+          () async {
+        final dio = Dio();
+        final store = MemCacheStore();
+
+        // We need the refresh to actually go through the interceptor to get tagged 'network_fresh'.
+        final interceptor = AcdcCacheInterceptor(
+          config: const CacheConfig(staleWhileRevalidate: true),
+          store: store,
+          onRefresh: (options) => dio.fetch<dynamic>(options),
+        );
+        dio.interceptors.add(interceptor);
+
+        final headers = {
+          Headers.contentTypeHeader: [Headers.jsonContentType],
+          'cache-control': ['max-age=3600'],
+          'etag': ['123'],
+        };
+
+        dio.httpClientAdapter = MockAdapter((options) async {
+          // If refreshing, return distinct fresh data
+          if (options.extra['swr_refresh'] == true) {
+            return ResponseBody.fromString(
+              '{"val": "fresh"}',
+              200,
+              headers: headers,
+            );
+          }
+          return ResponseBody.fromString(
+            '{"val": "stale"}',
+            200,
+            headers: headers,
+          );
+        });
+
+        const path = 'https://api.example.com/swr-test';
+
+        // 1. Seed (Network Miss -> 'network')
+        var response = await dio.get<dynamic>(path);
+        expect(response.data['val'], 'stale');
+        expect(response.extra['acdc_source'], 'network');
+
+        // 2. SWR Hit (Stale -> 'cache_stale') + Background Refresh -> 'network_fresh'
+        Future<dynamic>? bgFuture;
+        final responseSWR = await dio.get<dynamic>(
+          path,
+          options: Options(
+            extra: {
+              'swr_callback': (Future<dynamic> f) => bgFuture = f,
+            },
+          ),
+        );
+
+        // Check immediate response (Stale)
+        expect(responseSWR.data['val'], 'stale');
+        expect(responseSWR.extra['acdc_source'], 'cache_stale');
+
+        // Wait for background refresh
+        await Future<void>.delayed(const Duration(milliseconds: 100));
+        expect(
+          bgFuture,
+          isNotNull,
+          reason: 'Background refresh should have been triggered',
+        );
+
+        final refreshResponse = await bgFuture;
+        expect(refreshResponse, isA<Response>());
+        // Check refresh response (Fresh)
+        expect((refreshResponse as Response).data['val'], 'fresh');
+        expect(refreshResponse.extra['acdc_source'], 'network_fresh');
+      });
+    });
   });
 }
 
