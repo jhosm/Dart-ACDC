@@ -329,44 +329,16 @@ class AcdcCacheInterceptor extends Interceptor {
     // Add cache metadata to response
     _addCacheMetadata(response);
 
-    // Delegate to dio_cache_interceptor
-    _dioCacheInterceptor.onResponse(response, handler);
-
-    // Determine and set acdc_source for network responses
-    // We only set this if it wasn't already set (e.g. by cache logic)
-    if (response.extra['acdc_source'] == null) {
-      final fromCache = response.extra['from_cache'] as bool? ?? false;
-      if (!fromCache) {
-        final isSwrRefresh =
-            response.requestOptions.extra['swr_refresh'] == true;
-        response.extra['acdc_source'] =
-            isSwrRefresh ? 'network_fresh' : 'network';
-      }
-    }
-
-    // If response was not from cache, it is likely being written to cache
-    // (dio_cache_interceptor handles logic, but if we got here, we are passing it down)
-    final fromCache = response.extra['from_cache'] as bool? ?? false;
-    if (!fromCache &&
-        (response.requestOptions.method == 'GET' ||
-            response.requestOptions.method == 'HEAD')) {
-      logDelegate?.log(
-        'Cache Write: ${response.requestOptions.uri}',
-        LogLevel.info,
-        {
-          'type': 'cache_write',
-          'url': response.requestOptions.uri.toString(),
-          'method': response.requestOptions.method,
-          'status': response.statusCode,
-          'key': _cacheOptions.keyBuilder(
-            url: response.requestOptions.uri,
-            headers: response.requestOptions.headers
-                .map((key, value) => MapEntry(key, value.toString())),
-            body: response.requestOptions.data,
-          ),
-        },
-      );
-    }
+    // Delegate to dio_cache_interceptor with custom handler to add acdc_source
+    // after dio_cache_interceptor completes but before passing to original handler
+    _dioCacheInterceptor.onResponse(
+      response,
+      _ResponseMetadataHandler(
+        handler: handler,
+        logDelegate: logDelegate,
+        cacheOptions: _cacheOptions,
+      ),
+    );
   }
 
   /// Adds cache metadata to response.
@@ -577,5 +549,83 @@ class _CacheAwareErrorHandler extends ErrorInterceptorHandler {
     response.headers.add('X-ACDC-From-Cache', 'true');
 
     originalHandler.resolve(response);
+  }
+}
+
+/// Handler to add acdc_source metadata after dio_cache_interceptor completes.
+///
+/// Wraps the original response handler to ensure metadata is set after
+/// dio_cache_interceptor finishes its work but before passing to the next
+/// interceptor in the chain. This follows the standard interceptor pattern.
+class _ResponseMetadataHandler extends ResponseInterceptorHandler {
+  _ResponseMetadataHandler({
+    required this.handler,
+    required this.cacheOptions,
+    this.logDelegate,
+  });
+
+  final ResponseInterceptorHandler handler;
+  final CacheOptions cacheOptions;
+  final AcdcLogDelegate? logDelegate;
+
+  @override
+  void next(Response<dynamic> response) {
+    // dio_cache_interceptor called next() - add metadata before passing through
+    _addAcdcSourceMetadata(response);
+    _logCacheWriteIfNeeded(response);
+    handler.next(response);
+  }
+
+  @override
+  void resolve(Response<dynamic> response) {
+    // dio_cache_interceptor resolved - add metadata before passing through
+    _addAcdcSourceMetadata(response);
+    _logCacheWriteIfNeeded(response);
+    handler.resolve(response);
+  }
+
+  @override
+  void reject(DioException err) {
+    // Pass through rejections unchanged
+    handler.reject(err);
+  }
+
+  /// Adds acdc_source metadata to response if not already set.
+  void _addAcdcSourceMetadata(Response<dynamic> response) {
+    // Only set acdc_source if it wasn't already set (e.g. by cache logic)
+    if (response.extra['acdc_source'] == null) {
+      final fromCache = response.extra['from_cache'] as bool? ?? false;
+      if (!fromCache) {
+        final isSwrRefresh =
+            response.requestOptions.extra['swr_refresh'] == true;
+        response.extra['acdc_source'] =
+            isSwrRefresh ? 'network_fresh' : 'network';
+      }
+    }
+  }
+
+  /// Logs cache write operations if response is being cached.
+  void _logCacheWriteIfNeeded(Response<dynamic> response) {
+    final fromCache = response.extra['from_cache'] as bool? ?? false;
+    if (!fromCache &&
+        (response.requestOptions.method == 'GET' ||
+            response.requestOptions.method == 'HEAD')) {
+      logDelegate?.log(
+        'Cache Write: ${response.requestOptions.uri}',
+        LogLevel.info,
+        {
+          'type': 'cache_write',
+          'url': response.requestOptions.uri.toString(),
+          'method': response.requestOptions.method,
+          'status': response.statusCode,
+          'key': cacheOptions.keyBuilder(
+            url: response.requestOptions.uri,
+            headers: response.requestOptions.headers
+                .map((key, value) => MapEntry(key, value.toString())),
+            body: response.requestOptions.data,
+          ),
+        },
+      );
+    }
   }
 }
