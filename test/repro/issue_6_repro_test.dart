@@ -5,6 +5,7 @@ import 'package:dart_acdc/src/network_info/network_info.dart';
 import 'package:dio/dio.dart';
 import 'package:dio_cache_interceptor/dio_cache_interceptor.dart';
 import 'package:test/test.dart';
+import 'dart:typed_data';
 
 void main() {
   group('Issue #6 Repro: Cache Logging in Builder', () {
@@ -73,20 +74,17 @@ class MockNetworkInfo implements NetworkInfo {
   void dispose() {}
 }
 
-import 'dart:typed_data';
-
 class MockAdapter implements HttpClientAdapter {
   MockAdapter(this.handler);
   final Future<ResponseBody> Function(RequestOptions) handler;
 
-  `@override`
+  @override
   Future<ResponseBody> fetch(
     RequestOptions options,
     Stream<Uint8List>? requestStream,
     Future<dynamic>? cancelFuture,
   ) async =>
       handler(options);
-}
 
   @override
   void close({bool force = false}) {}
