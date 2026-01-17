@@ -813,6 +813,98 @@ void main() {
         expect((refreshResponse as Response).data['val'], 'fresh');
         expect(refreshResponse.extra['acdc_source'], 'network_fresh');
       });
+
+      test('sets acdc_source to "cache" for 304 Not Modified responses',
+          () async {
+        final store = MemCacheStore();
+        final interceptor = AcdcCacheInterceptor(
+          config: const CacheConfig(),
+          store: store,
+        );
+        final dio = Dio();
+        dio.interceptors.add(interceptor);
+
+        final headers = {
+          Headers.contentTypeHeader: [Headers.jsonContentType],
+          'cache-control': ['max-age=3600'],
+          'etag': ['"abc123"'],
+        };
+
+        var requestCount = 0;
+        dio.httpClientAdapter = MockAdapter((options) async {
+          requestCount++;
+          if (requestCount == 1) {
+            // First request: return 200 with ETag
+            return ResponseBody.fromString(
+              '{"data": "original"}',
+              200,
+              headers: headers,
+            );
+          } else {
+            // Second request: return 304 Not Modified
+            return ResponseBody.fromString(
+              '',
+              304,
+              headers: {
+                'etag': ['"abc123"'],
+              },
+            );
+          }
+        });
+
+        // First request: seed cache
+        await dio.get<dynamic>('/etag-test');
+
+        // Second request: should get 304, then return cached response
+        final response = await dio.get<dynamic>('/etag-test');
+        expect(response.statusCode, 200);
+        expect(response.extra['acdc_source'], 'cache');
+        expect(response.data['data'], 'original');
+      });
+
+      test('sets acdc_source to "cache" for offline cache responses', () async {
+        final store = MemCacheStore();
+        final interceptor = AcdcCacheInterceptor(
+          config: const CacheConfig(),
+          store: store,
+        );
+        final dio = Dio();
+        dio.interceptors.add(interceptor);
+
+        final headers = {
+          Headers.contentTypeHeader: [Headers.jsonContentType],
+          'cache-control': ['max-age=3600'],
+        };
+
+        var shouldFail = false;
+        dio.httpClientAdapter = MockAdapter((options) async {
+          if (shouldFail) {
+            throw DioException(
+              requestOptions: options,
+              type: DioExceptionType.connectionError,
+              error: 'Network is unreachable',
+            );
+          }
+          return ResponseBody.fromString(
+            '{"data": "cached"}',
+            200,
+            headers: headers,
+          );
+        });
+
+        // First request: seed cache
+        await dio.get<dynamic>('/offline-test');
+
+        // Second request: simulate network failure
+        shouldFail = true;
+        final response = await dio.get<dynamic>('/offline-test');
+
+        // Should serve from cache
+        expect(response.statusCode, 200);
+        expect(response.extra['acdc_source'], 'cache');
+        expect(response.extra['fromOfflineCache'], true);
+        expect(response.data['data'], 'cached');
+      });
     });
   });
 }
