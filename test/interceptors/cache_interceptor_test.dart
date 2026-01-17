@@ -604,10 +604,6 @@ void main() {
 
         await dio.get<dynamic>('/fresh');
 
-        // Should have Cache Miss (from request) and Cache Write (from response)
-        // Wait, Cache Write happens only if cacheable (GET/HEAD and cache headers usually)
-        // But our logic for Cache Write log is simply "not from cache" and "GET/HEAD".
-
         // Verify logs
         final logs = logDelegate.logs;
         expect(logs.length, greaterThanOrEqualTo(2));
