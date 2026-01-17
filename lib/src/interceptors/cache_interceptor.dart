@@ -334,9 +334,18 @@ class AcdcCacheInterceptor extends Interceptor {
 
     // Determine and set acdc_source for network responses
     // We only set this if it wasn't already set (e.g. by cache logic)
+    // Determine and set acdc_source for network responses
+    // We only set this if it wasn't already set (e.g. by cache logic)
     if (response.extra['acdc_source'] == null) {
       final fromCache = response.extra['from_cache'] as bool? ?? false;
-      if (!fromCache) {
+      // Check if response came from cache via dio_cache_interceptor logic
+      final isDioCacheHit = response.extra[extraCacheKey] != null;
+
+      if (fromCache || isDioCacheHit) {
+        response.extra['acdc_source'] = 'cache';
+        // Ensure consistency
+        response.extra['from_cache'] = true;
+      } else {
         final isSwrRefresh =
             response.requestOptions.extra['swr_refresh'] == true;
         response.extra['acdc_source'] =
@@ -380,8 +389,10 @@ class AcdcCacheInterceptor extends Interceptor {
     final fromCache = response.extra[extraCacheKey] != null;
 
     if (fromCache) {
-      // Add X-ACDC-From-Cache header
-      response.headers.add('X-ACDC-From-Cache', 'true');
+      // Add X-ACDC-From-Cache header if not already present
+      if (response.headers.value('X-ACDC-From-Cache') == null) {
+        response.headers.add('X-ACDC-From-Cache', 'true');
+      }
 
       // Note: fromOfflineCache flag is set in onError when serving
       // stale cache during network failures
