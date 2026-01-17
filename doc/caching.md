@@ -95,7 +95,7 @@ You can inspect `response.extra['acdc_source']` to determine the exact source of
 | :--- | :--- |
 | `'cache'` | Standard cache hit. |
 | `'network'` | Standard network response (cache miss, skip, or refresh). |
-| `'cache_stale'` | **SWR**: The initial stale response emitted primarily from cache. |
+| `'cache_stale'` | **SWR**: The initial stale response emitted from cache. |
 | `'network_fresh'` | **SWR**: The subsequent fresh response emitted from a background network refresh. |
 
 ```dart
