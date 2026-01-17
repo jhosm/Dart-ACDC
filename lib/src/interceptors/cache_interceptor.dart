@@ -4,6 +4,8 @@ import 'package:dart_acdc/src/cache/cache_config.dart';
 import 'package:dart_acdc/src/cache/cache_store_factory.dart'
     show CacheStoreFactory;
 import 'package:dart_acdc/src/exceptions/acdc_network_exception.dart';
+import 'package:dart_acdc/src/logging/acdc_log_delegate.dart';
+import 'package:dart_acdc/src/logging/log_level.dart';
 import 'package:dart_acdc/src/security/user_id_extractor.dart';
 import 'package:dio/dio.dart';
 import 'package:dio_cache_interceptor/dio_cache_interceptor.dart';
@@ -41,6 +43,7 @@ class AcdcCacheInterceptor extends Interceptor {
     required CacheConfig config,
     required CacheStore store,
     this.onRefresh,
+    this.logDelegate,
   }) : _config = config {
     _cacheOptions = CacheOptions(
       store: store,
@@ -112,6 +115,9 @@ class AcdcCacheInterceptor extends Interceptor {
 
   /// Callback to trigger background refresh (SWR).
   final Future<dynamic> Function(RequestOptions)? onRefresh;
+
+  /// Optional delegate for detailed cache logging.
+  final AcdcLogDelegate? logDelegate;
 
   final CacheConfig _config;
   late final CacheOptions _cacheOptions;
@@ -189,6 +195,17 @@ class AcdcCacheInterceptor extends Interceptor {
       final cachedResponse = await _cacheOptions.store?.get(key);
 
       if (cachedResponse != null) {
+        logDelegate?.log(
+          'Cache Hit (SWR): ${options.uri}',
+          LogLevel.info,
+          {
+            'type': 'cache_hit',
+            'subtype': 'swr_initial',
+            'key': key,
+            'url': options.uri.toString(),
+            'method': options.method,
+          },
+        );
         // Serve stale cache immediately
         final response = cachedResponse.toResponse(options)..statusCode = 200;
         // Important: Update status code to 200, as it might be stored differently
@@ -232,7 +249,10 @@ class AcdcCacheInterceptor extends Interceptor {
     // Delegate to dio_cache_interceptor with custom handler to intercept cache hits
     _dioCacheInterceptor.onRequest(
       options,
-      _CacheAwareRequestHandler(handler: handler),
+      _CacheAwareRequestHandler(
+        handler: handler,
+        logDelegate: logDelegate,
+      ),
     );
   }
 
@@ -310,6 +330,30 @@ class AcdcCacheInterceptor extends Interceptor {
 
     // Delegate to dio_cache_interceptor
     _dioCacheInterceptor.onResponse(response, handler);
+
+    // If response was not from cache, it is likely being written to cache
+    // (dio_cache_interceptor handles logic, but if we got here, we are passing it down)
+    final fromCache = response.extra['from_cache'] as bool? ?? false;
+    if (!fromCache &&
+        (response.requestOptions.method == 'GET' ||
+            response.requestOptions.method == 'HEAD')) {
+      logDelegate?.log(
+        'Cache Write: ${response.requestOptions.uri}',
+        LogLevel.info,
+        {
+          'type': 'cache_write',
+          'url': response.requestOptions.uri.toString(),
+          'method': response.requestOptions.method,
+          'status': response.statusCode,
+          'key': _cacheOptions.keyBuilder(
+            url: response.requestOptions.uri,
+            headers: response.requestOptions.headers
+                .map((key, value) => MapEntry(key, value.toString())),
+            body: response.requestOptions.data,
+          ),
+        },
+      );
+    }
   }
 
   /// Adds cache metadata to response.
@@ -412,12 +456,26 @@ class AcdcCacheInterceptor extends Interceptor {
 
 /// Handler to intercept cache hits from dio_cache_interceptor.onRequest.
 class _CacheAwareRequestHandler extends RequestInterceptorHandler {
-  _CacheAwareRequestHandler({required this.handler});
+  _CacheAwareRequestHandler({
+    required this.handler,
+    this.logDelegate,
+  });
 
   final RequestInterceptorHandler handler;
+  final AcdcLogDelegate? logDelegate;
 
   @override
   void next(RequestOptions options) {
+    // dio_cache_interceptor called next() - implies cache miss or cache skip
+    logDelegate?.log(
+      'Cache Miss: ${options.uri}',
+      LogLevel.info,
+      {
+        'type': 'cache_miss',
+        'url': options.uri.toString(),
+        'method': options.method,
+      },
+    );
     handler.next(options);
   }
 
@@ -430,6 +488,18 @@ class _CacheAwareRequestHandler extends RequestInterceptorHandler {
     // Mark the response as being from cache.
     response.extra['from_cache'] = true;
     response.headers.add('X-ACDC-From-Cache', 'true');
+
+    logDelegate?.log(
+      'Cache Hit (Intercepted): ${response.requestOptions.uri}',
+      LogLevel.info,
+      {
+        'type': 'cache_hit',
+        'subtype': 'intercepted',
+        'url': response.requestOptions.uri.toString(),
+        'method': response.requestOptions.method,
+      },
+    );
+
     handler.resolve(response, callFollowingResponseInterceptor);
   }
 
