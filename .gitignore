@@ -56,3 +56,10 @@ test/.test_coverage.dart
 # Generated files
 *.g.dart
 *.freezed.dart
+
+# Temporary files
+*.bak
+*_temp.yaml
+*_minimal.yaml
+*_noflutter.yaml
+.pub_cache/
