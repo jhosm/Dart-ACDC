@@ -257,11 +257,6 @@ void main() {
         // 2. Refresh Success
         // 3. Token Injected (Post-Refresh)
 
-        // Note: MockLogDelegate in auth_interceptor_test.dart stores strings in `logs` list.
-        // My implementation adds detailed logs, but MockLogDelegate might just store the message.
-        // Let's check MockLogDelegate implementation in Step 33 view.
-        // It says: logs.add(message);
-
         expect(logDelegate.logs, contains('Token Refresh Started'));
         expect(logDelegate.logs, contains('Token Refresh Success'));
         expect(
