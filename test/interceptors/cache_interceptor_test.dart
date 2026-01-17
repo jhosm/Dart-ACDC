@@ -1,6 +1,8 @@
 import 'dart:typed_data';
 import 'package:dart_acdc/src/cache/cache_config.dart';
 import 'package:dart_acdc/src/interceptors/cache_interceptor.dart';
+import 'package:dart_acdc/src/logging/acdc_log_delegate.dart';
+import 'package:dart_acdc/src/logging/log_level.dart';
 import 'package:dio/dio.dart';
 import 'package:dio_cache_interceptor/dio_cache_interceptor.dart';
 import 'package:test/test.dart';
@@ -573,6 +575,123 @@ void main() {
         expect(options.extra['_acdc_has_auth'], isFalse);
       });
     });
+
+    group('Logging', () {
+      late MockLogDelegate logDelegate;
+      late AcdcCacheInterceptor interceptor;
+
+      setUp(() {
+        logDelegate = MockLogDelegate();
+        interceptor = AcdcCacheInterceptor(
+          config: const CacheConfig(),
+          store: MemCacheStore(),
+          logDelegate: logDelegate,
+        );
+      });
+
+      test('logs Cache Miss and Cache Write for fresh request', () async {
+        final dio = Dio();
+        dio.interceptors.add(interceptor);
+        dio.httpClientAdapter = MockAdapter((options) async {
+          return ResponseBody.fromString(
+            '{}',
+            200,
+            headers: {
+              Headers.contentTypeHeader: [Headers.jsonContentType],
+            },
+          );
+        });
+
+        await dio.get<dynamic>('/fresh');
+
+        // Should have Cache Miss (from request) and Cache Write (from response)
+        // Wait, Cache Write happens only if cacheable (GET/HEAD and cache headers usually)
+        // But our logic for Cache Write log is simply "not from cache" and "GET/HEAD".
+
+        // Verify logs
+        final logs = logDelegate.logs;
+        expect(logs.length, greaterThanOrEqualTo(2));
+
+        // Check for Miss
+        expect(
+          logs.any(
+            (l) =>
+                l['message'].toString().contains('Cache Miss') &&
+                l['metadata']['type'] == 'cache_miss',
+          ),
+          isTrue,
+        );
+
+        // Check for Write
+        expect(
+          logs.any(
+            (l) =>
+                l['message'].toString().contains('Cache Write') &&
+                l['metadata']['type'] == 'cache_write',
+          ),
+          isTrue,
+        );
+      });
+
+      test('logs Cache Hit (Intercepted) when served from cache', () async {
+        final store = MemCacheStore();
+        interceptor = AcdcCacheInterceptor(
+          config: const CacheConfig(),
+          store: store,
+          logDelegate: logDelegate,
+        );
+        final dio = Dio();
+        dio.interceptors.add(interceptor);
+
+        // Define headers that enable caching
+        final headers = {
+          Headers.contentTypeHeader: [Headers.jsonContentType],
+          'cache-control': ['max-age=3600'],
+          'etag': ['123'],
+        };
+
+        // Use MockAdapter to serve a cacheable response initially
+        dio.httpClientAdapter = MockAdapter((options) async {
+          return ResponseBody.fromString(
+            '{}',
+            200,
+            headers: headers,
+          );
+        });
+
+        // 1. Seed Cache (First Request)
+        await dio.get<dynamic>('https://api.example.com/cached');
+
+        // Should log "Cache Miss" and "Cache Write"
+        expect(
+          logDelegate.logs.any((l) => l['metadata']['type'] == 'cache_miss'),
+          isTrue,
+        );
+        expect(
+          logDelegate.logs.any((l) => l['metadata']['type'] == 'cache_write'),
+          isTrue,
+        );
+
+        // Clear logs for next assertion
+        logDelegate.logs.clear();
+
+        // 2. Trigger Cache Hit (Second Request)
+        // Ensure store is ready (MemCacheStore is synchronous but let's be safe)
+        // dio_cache_interceptor should serve from cache now
+        await dio.get<dynamic>('https://api.example.com/cached');
+
+        // Verify logs for Cache Hit
+        final logs = logDelegate.logs;
+        expect(
+          logs.any(
+            (l) =>
+                l['message'].toString().contains('Cache Hit (Intercepted)') &&
+                l['metadata']['type'] == 'cache_hit',
+          ),
+          isTrue,
+        );
+      });
+    });
   });
 }
 
@@ -590,4 +709,17 @@ class MockAdapter implements HttpClientAdapter {
 
   @override
   void close({bool force = false}) {}
+}
+
+class MockLogDelegate implements AcdcLogDelegate {
+  final List<Map<String, dynamic>> logs = [];
+
+  @override
+  void log(String message, LogLevel level, Map<String, dynamic> metadata) {
+    logs.add({
+      'message': message,
+      'level': level,
+      'metadata': metadata,
+    });
+  }
 }

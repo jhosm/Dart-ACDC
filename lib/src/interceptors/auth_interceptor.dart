@@ -125,6 +125,15 @@ class AuthInterceptor extends Interceptor {
           final newToken = await _tokenProvider.getAccessToken();
           if (newToken != null) {
             AuthRequestHelper.injectBearerToken(options, newToken);
+            logDelegate?.log(
+              'Token Injected (Post-Refresh): ${options.uri}',
+              LogLevel.info,
+              {
+                'type': 'auth_token_injected',
+                'subtype': 'post_refresh',
+                'url': options.uri.toString(),
+              },
+            );
           }
           handler.next(options);
           return;
@@ -133,6 +142,15 @@ class AuthInterceptor extends Interceptor {
 
       // Token is valid (or we can't refresh), inject it
       AuthRequestHelper.injectBearerToken(options, accessToken);
+      logDelegate?.log(
+        'Token Injected: ${options.uri}',
+        LogLevel.info,
+        {
+          'type': 'auth_token_injected',
+          'subtype': 'standard',
+          'url': options.uri.toString(),
+        },
+      );
 
       handler.next(options);
     } on Exception catch (e) {
@@ -274,6 +292,12 @@ class AuthInterceptor extends Interceptor {
   /// Performs the actual token refresh operation.
   Future<void> _performTokenRefresh() async {
     try {
+      logDelegate?.log(
+        'Token Refresh Started',
+        LogLevel.info,
+        {'type': 'auth_refresh_started'},
+      );
+
       // Wait for exponential backoff if needed
       await _backoffManager.waitIfNeeded();
 
@@ -294,6 +318,12 @@ class AuthInterceptor extends Interceptor {
 
       // Reset backoff on success
       _backoffManager.reset();
+
+      logDelegate?.log(
+        'Token Refresh Success',
+        LogLevel.info,
+        {'type': 'auth_refresh_success'},
+      );
     } on AcdcAuthException {
       // Auth errors - clear tokens
       await _clearTokensSafely();

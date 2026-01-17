@@ -210,6 +210,66 @@ void main() {
           contains('Failed to clear tokens'),
         );
       });
+
+      test('logs token injection', () async {
+        tokenProvider
+          .._accessToken = 'test-token'
+          .._accessExpiry =
+              DateTime.now().toUtc().add(const Duration(hours: 1));
+
+        final options = RequestOptions(path: '/test');
+        final handler = _MockRequestHandler();
+
+        await interceptor.onRequest(options, handler);
+
+        expect(logDelegate.logs, hasLength(1));
+        expect(
+          logDelegate.logs.first,
+          contains('Token Injected: /test'),
+        );
+      });
+
+      test('logs token refresh lifecycle', () async {
+        // Configure for refresh
+        interceptor = AuthInterceptor(
+          tokenProvider: tokenProvider,
+          customRefreshFn: (token) async => const TokenRefreshResult(
+            accessToken: 'new-token',
+          ),
+          refreshThreshold: const Duration(minutes: 5),
+          logDelegate: logDelegate,
+        );
+
+        // Expiring token
+        tokenProvider
+          .._accessToken = 'old-token'
+          .._refreshToken = 'refresh-token'
+          .._accessExpiry =
+              DateTime.now().toUtc().add(const Duration(minutes: 4));
+
+        final options = RequestOptions(path: '/test');
+        final handler = _MockRequestHandler();
+
+        await interceptor.onRequest(options, handler);
+
+        // Should log:
+        // 1. Refresh Started
+        // 2. Refresh Success
+        // 3. Token Injected (Post-Refresh)
+
+        // Note: MockLogDelegate in auth_interceptor_test.dart stores strings in `logs` list.
+        // My implementation adds detailed logs, but MockLogDelegate might just store the message.
+        // Let's check MockLogDelegate implementation in Step 33 view.
+        // It says: logs.add(message);
+
+        expect(logDelegate.logs, contains('Token Refresh Started'));
+        expect(logDelegate.logs, contains('Token Refresh Success'));
+        expect(
+          logDelegate.logs
+              .any((l) => l.contains('Token Injected (Post-Refresh)')),
+          isTrue,
+        );
+      });
     });
 
     group('Token injection', () {
