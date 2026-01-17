@@ -532,6 +532,7 @@ class AcdcClientBuilder {
         config: cacheConfig,
         store: store,
         onRefresh: (options) => dio.fetch<dynamic>(options),
+        logDelegate: _logDelegate,
       );
     }
 
