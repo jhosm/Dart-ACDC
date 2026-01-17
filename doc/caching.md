@@ -86,3 +86,22 @@ dio.streamRequest<Map<String, dynamic>>(
 ```
 
 **Note**: `streamRequest` automatically handles caching headers and logic. If the cache is missing or expired beyond the "stale" limit, it will only emit the network response.
+
+### Identifying Response Source
+
+You can inspect `response.extra['acdc_source']` to determine the exact source of a response:
+
+| Value | Description |
+| :--- | :--- |
+| `'cache'` | Standard cache hit. |
+| `'network'` | Standard network response (cache miss, skip, or refresh). |
+| `'cache_stale'` | **SWR**: The initial stale response emitted primarily from cache. |
+| `'network_fresh'` | **SWR**: The subsequent fresh response emitted from a background network refresh. |
+
+```dart
+if (response.extra['acdc_source'] == 'cache_stale') {
+  showBadge('STALE');
+} else if (response.extra['acdc_source'] == 'network_fresh') {
+  showBadge('FRESH');
+}
+```
