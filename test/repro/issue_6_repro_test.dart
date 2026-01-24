@@ -28,14 +28,16 @@ void main() {
           .build();
 
       // Mock Adapter to serve response
-      dio.httpClientAdapter = MockAdapter((options) async => ResponseBody.fromString(
+      dio.httpClientAdapter = MockAdapter(
+        (options) async => ResponseBody.fromString(
           '{}',
           200,
           headers: {
             Headers.contentTypeHeader: [Headers.jsonContentType],
             'cache-control': ['max-age=3600'],
           },
-        ),);
+        ),
+      );
 
       // 2. Make a request (Should invoke Cache Miss / Write)
       await dio.get<dynamic>('/test');
