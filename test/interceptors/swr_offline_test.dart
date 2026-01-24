@@ -17,7 +17,6 @@ void main() {
       final interceptor = AcdcCacheInterceptor(
         config: const CacheConfig(
           staleWhileRevalidate: true,
-          staleIfError: true, // Allow serving stale content on error
         ),
         store: store,
       );
@@ -27,7 +26,7 @@ void main() {
       final headers = {
         Headers.contentTypeHeader: [Headers.jsonContentType],
         'cache-control': [
-          'max-age=1'
+          'max-age=1',
         ], // Short max-age to ensure it becomes stale quickly
         'etag': ['12345'],
       };
@@ -56,9 +55,9 @@ void main() {
 
       // Verify it's in cache
       final key = CacheOptions.defaultCacheKeyBuilder(
-          url: Uri.parse(path), headers: {});
+          url: Uri.parse(path), headers: {},);
       expect(await store.exists(key), isTrue,
-          reason: 'Response should be cached');
+          reason: 'Response should be cached',);
 
       // 2. Wait for cache to become stale (if max-age is respected directly)
 
@@ -72,16 +71,15 @@ void main() {
 
         // This is where we verify the bug.
         // User says it returns success (from cache) but acdc_source is wrong.
-        print('Response Source: ${response.extra['acdc_source']}');
 
         expect(response.headers.value('X-ACDC-From-Cache'), 'true',
-            reason: 'Should come from cache');
+            reason: 'Should come from cache',);
         expect(response.extra['acdc_source'], isNotNull,
-            reason: 'acdc_source should not be null');
+            reason: 'acdc_source should not be null',);
         expect(response.extra['acdc_source'], isNot('unknown'),
-            reason: 'acdc_source should not be unknown');
+            reason: 'acdc_source should not be unknown',);
         expect(response.extra['acdc_source'], anyOf('cache', 'cache_stale'),
-            reason: 'acdc_source should be a valid cache type');
+            reason: 'acdc_source should be a valid cache type',);
       } on DioException catch (e) {
         fail('Should have served from cache, but got error: $e');
       }

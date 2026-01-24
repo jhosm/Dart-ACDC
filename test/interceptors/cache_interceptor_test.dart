@@ -592,15 +592,13 @@ void main() {
       test('logs Cache Miss and Cache Write for fresh request', () async {
         final dio = Dio();
         dio.interceptors.add(interceptor);
-        dio.httpClientAdapter = MockAdapter((options) async {
-          return ResponseBody.fromString(
+        dio.httpClientAdapter = MockAdapter((options) async => ResponseBody.fromString(
             '{}',
             200,
             headers: {
               Headers.contentTypeHeader: [Headers.jsonContentType],
             },
-          );
-        });
+          ),);
 
         await dio.get<dynamic>('/fresh');
 
@@ -647,13 +645,11 @@ void main() {
         };
 
         // Use MockAdapter to serve a cacheable response initially
-        dio.httpClientAdapter = MockAdapter((options) async {
-          return ResponseBody.fromString(
+        dio.httpClientAdapter = MockAdapter((options) async => ResponseBody.fromString(
             '{}',
             200,
             headers: headers,
-          );
-        });
+          ),);
 
         // 1. Seed Cache (First Request)
         await dio.get<dynamic>('https://api.example.com/cached');
@@ -697,15 +693,13 @@ void main() {
 
         final dio = Dio();
         dio.interceptors.add(interceptor);
-        dio.httpClientAdapter = MockAdapter((options) async {
-          return ResponseBody.fromString(
+        dio.httpClientAdapter = MockAdapter((options) async => ResponseBody.fromString(
             '{}',
             200,
             headers: {
               Headers.contentTypeHeader: [Headers.jsonContentType],
             },
-          );
-        });
+          ),);
 
         final response = await dio.get<dynamic>('/network-only');
         expect(response.extra['acdc_source'], 'network');
@@ -726,13 +720,11 @@ void main() {
           'etag': ['123'],
         };
 
-        dio.httpClientAdapter = MockAdapter((options) async {
-          return ResponseBody.fromString(
+        dio.httpClientAdapter = MockAdapter((options) async => ResponseBody.fromString(
             '{}',
             200,
             headers: headers,
-          );
-        });
+          ),);
 
         // Seed cache
         await dio.get<dynamic>('/cached-std');
@@ -780,7 +772,7 @@ void main() {
         const path = 'https://api.example.com/swr-test';
 
         // 1. Seed (Network Miss -> 'network')
-        var response = await dio.get<dynamic>(path);
+        final response = await dio.get<dynamic>(path);
         expect(response.data['val'], 'stale');
         expect(response.extra['acdc_source'], 'network');
 
@@ -808,7 +800,7 @@ void main() {
         );
 
         final refreshResponse = await bgFuture;
-        expect(refreshResponse, isA<Response>());
+        expect(refreshResponse, isA<Response<dynamic>>());
         // Check refresh response (Fresh)
         expect((refreshResponse as Response).data['val'], 'fresh');
         expect(refreshResponse.extra['acdc_source'], 'network_fresh');

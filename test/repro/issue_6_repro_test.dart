@@ -1,11 +1,9 @@
+import 'dart:typed_data';
+
 import 'package:dart_acdc/dart_acdc.dart';
-import 'package:dart_acdc/src/builder/acdc_client_builder.dart';
-import 'package:dart_acdc/src/logging/acdc_log_delegate.dart';
-import 'package:dart_acdc/src/network_info/network_info.dart';
 import 'package:dio/dio.dart';
 import 'package:dio_cache_interceptor/dio_cache_interceptor.dart';
 import 'package:test/test.dart';
-import 'dart:typed_data';
 
 void main() {
   group('Issue #6 Repro: Cache Logging in Builder', () {
@@ -19,7 +17,7 @@ void main() {
         () async {
       // 1. Build client with cache and log delegate
       // Disable auth to avoid Flutter Secure Storage platform channel issues
-      final dio = await AcdcClientBuilder()
+      final dio = await const AcdcClientBuilder()
           .withBaseUrl('https://api.example.com')
           .withCache(const CacheConfig())
           .withCacheStore(MemCacheStore())
@@ -30,16 +28,14 @@ void main() {
           .build();
 
       // Mock Adapter to serve response
-      dio.httpClientAdapter = MockAdapter((options) async {
-        return ResponseBody.fromString(
+      dio.httpClientAdapter = MockAdapter((options) async => ResponseBody.fromString(
           '{}',
           200,
           headers: {
             Headers.contentTypeHeader: [Headers.jsonContentType],
             'cache-control': ['max-age=3600'],
           },
-        );
-      });
+        ),);
 
       // 2. Make a request (Should invoke Cache Miss / Write)
       await dio.get<dynamic>('/test');

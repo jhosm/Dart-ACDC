@@ -473,8 +473,8 @@ class AcdcClientBuilder {
   /// ```
   Future<Dio> build() async {
     // Validate base URL format if provided
-    if (_baseUrl != null && _baseUrl!.isNotEmpty) {
-      final uri = Uri.tryParse(_baseUrl!);
+    if (_baseUrl != null && _baseUrl.isNotEmpty) {
+      final uri = Uri.tryParse(_baseUrl);
       if (uri == null ||
           (!uri.hasScheme ||
               (!uri.isScheme('http') && !uri.isScheme('https')))) {
@@ -490,7 +490,7 @@ class AcdcClientBuilder {
 
     // Configure base URL if provided
     if (_baseUrl != null) {
-      dio.options.baseUrl = _baseUrl!;
+      dio.options.baseUrl = _baseUrl;
     }
 
     // Set default or custom timeouts (5s default for connect, send, receive)
@@ -516,7 +516,7 @@ class AcdcClientBuilder {
 
           return PinningHttpClient(
             client,
-            PinningVerifier(_pinningConfig!),
+            PinningVerifier(_pinningConfig),
             logDelegate: _logDelegate,
           );
         },
@@ -542,7 +542,7 @@ class AcdcClientBuilder {
     // Handle initial tokens if provided (only if auth is enabled)
     if (!_authDisabled && _initialAccessToken != null) {
       await tokenProvider.setTokens(
-        accessToken: _initialAccessToken!,
+        accessToken: _initialAccessToken,
         refreshToken: _initialRefreshToken,
         accessExpiry: _initialAccessExpiry,
         refreshExpiry: _initialRefreshExpiry,
@@ -644,7 +644,7 @@ class AcdcClientBuilder {
 
     // 7. Add custom interceptors at the end
     if (_customInterceptors != null) {
-      dio.interceptors.addAll(_customInterceptors!);
+      dio.interceptors.addAll(_customInterceptors);
     }
 
     // 8. Add deduplication interceptor (Last, to allow custom interceptors to affect identity)
