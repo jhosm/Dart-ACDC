@@ -41,8 +41,7 @@ jobs:
       matrix:
         os: [ubuntu-latest]
         flutter-version:
-          - '3.10.x'  # Minimum supported version
-          - '3.24.x'  # Current stable
+          - '3.38.x'  # Minimum supported version
           - 'any'     # Latest stable
 
     steps:
@@ -63,7 +62,7 @@ jobs:
         run: flutter test --coverage --reporter expanded
 
       - name: Upload coverage to Codecov
-        if: matrix.flutter-version == '3.24.x' && matrix.os == 'ubuntu-latest'
+        if: matrix.flutter-version == '3.38.x' && matrix.os == 'ubuntu-latest'
         uses: codecov/codecov-action@v4
         with:
           files: ./coverage/lcov.info
@@ -86,7 +85,7 @@ jobs:
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.24.x'
+          flutter-version: '3.38.x'
           channel: 'stable'
           cache: true
 
@@ -107,7 +106,7 @@ jobs:
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.24.x'
+          flutter-version: '3.38.x'
           channel: 'stable'
           cache: true
 

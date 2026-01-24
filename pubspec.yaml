@@ -6,8 +6,8 @@ homepage: https://github.com/jhosm/Dart-ACDC
 issue_tracker: https://github.com/jhosm/Dart-ACDC/issues
 
 environment:
-  sdk: ">=3.0.0 <4.0.0"
-  flutter: ">=3.10.0"
+  sdk: ">=3.6.0 <4.0.0"
+  flutter: ">=3.38.0"
 
 dependencies:
   connectivity_plus: ^7.0.0
