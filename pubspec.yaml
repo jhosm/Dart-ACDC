@@ -1,5 +1,5 @@
 name: dart_acdc
-description: A zero-config, opinionated HTTP client for Flutter mobile apps with built-in authentication, caching, logging, and error handling. Integrates seamlessly with OpenAPI-generated code.
+description: Zero-config HTTP client for Flutter with built-in auth, caching, logging, and error handling. Integrates with OpenAPI-generated code.
 version: 0.2.0
 repository: https://github.com/jhosm/Dart-ACDC
 homepage: https://github.com/jhosm/Dart-ACDC
