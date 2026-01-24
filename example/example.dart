@@ -1,103 +1,155 @@
 import 'package:dart_acdc/dart_acdc.dart';
-import 'package:dio/dio.dart';
 
-/// Simple example demonstrating basic usage of dart_acdc
-void main() async {
+/// Basic example demonstrating dart_acdc usage
+Future<void> main() async {
+  // Example 1: Zero-config client
+  await basicExample();
+
+  // Example 2: With authentication
+  await authExample();
+
+  // Example 3: With caching
+  await cachingExample();
+
+  // Example 4: With custom logging
+  await loggingExample();
+
+  // Example 5: With custom token provider
+  await customTokenProviderExample();
+}
+
+/// Example 1: Basic HTTP client
+Future<void> basicExample() async {
   // Create a zero-config HTTP client
-  final dio = AcdcClientBuilder().build();
+  final dio = await const AcdcClientBuilder().build();
 
   try {
     // Make a GET request
     final response = await dio.get<Map<String, dynamic>>(
       'https://api.example.com/data',
     );
-    print('Response: ${response.data}');
+    // Response data available in response.data
+    final data = response.data;
+    assert(data != null, 'Response data should not be null');
   } on AcdcException catch (e) {
-    print('Error: ${e.message}');
+    // Handle errors
+    final message = e.message;
+    assert(message.isNotEmpty, 'Error message should not be empty');
   }
 }
 
-/// Example with authentication
-void authExample() async {
-  // Configure client with authentication
-  final dio = AcdcClientBuilder()
-      .withAuth(
-        tokenProvider: MyTokenProvider(),
-        refreshUrl: 'https://api.example.com/auth/refresh',
+/// Example 2: Client with authentication
+Future<void> authExample() async {
+  // Configure client with automatic token refresh
+  final dio = await const AcdcClientBuilder()
+      .withBaseUrl('https://api.example.com')
+      .withTokenRefreshEndpoint(
+        url: 'https://api.example.com/oauth/token',
+        clientId: 'your-client-id',
+      )
+      .withInitialTokens(
+        accessToken: 'initial-access-token',
+        refreshToken: 'initial-refresh-token',
       )
       .build();
 
   try {
-    final response = await dio.get<Map<String, dynamic>>(
-      'https://api.example.com/protected',
-    );
-    print('Protected data: ${response.data}');
+    // Tokens are automatically injected and refreshed
+    final response = await dio.get<Map<String, dynamic>>('/protected');
+    final data = response.data;
+    assert(data != null, 'Response data should not be null');
+
+    // Logout when done
+    await dio.auth.logout();
   } on AcdcAuthException catch (e) {
-    print('Auth error: ${e.message}');
+    // Handle auth errors
+    final message = e.message;
+    assert(message.isNotEmpty, 'Error message should not be empty');
   }
 }
 
-/// Example with caching
-void cachingExample() async {
-  // Configure client with caching
-  final dio = AcdcClientBuilder()
-      .withCache(
-        enabled: true,
-        maxAge: const Duration(hours: 1),
-      )
-      .build();
+/// Example 3: Client with caching
+Future<void> cachingExample() async {
+  // Configure client with caching (1 hour default TTL)
+  final dio =
+      await const AcdcClientBuilder().withCache(const CacheConfig()).build();
 
   // First request - fetches from network
   final response1 = await dio.get<Map<String, dynamic>>(
     'https://api.example.com/data',
   );
-  print('Source: ${response1.extra['acdc_source']}'); // 'network'
+  final source1 = response1.extra['acdc_source']; // 'network'
+  assert(source1 != null, 'Source should not be null');
 
   // Second request - served from cache
   final response2 = await dio.get<Map<String, dynamic>>(
     'https://api.example.com/data',
   );
-  print('Source: ${response2.extra['acdc_source']}'); // 'cache'
+  final source2 = response2.extra['acdc_source']; // 'cache'
+  assert(source2 != null, 'Source should not be null');
 }
 
-/// Example with custom logging
-void loggingExample() async {
-  // Configure client with custom logging
-  final dio = AcdcClientBuilder()
-      .withLogging(
-        logDelegate: MyLogDelegate(),
-        enableInProduction: false,
-      )
+/// Example 4: Client with custom logging
+Future<void> loggingExample() async {
+  // Configure client with custom log delegate
+  final dio = await const AcdcClientBuilder()
+      .withLogLevel(LogLevel.debug)
+      .withLogDelegate(MyLogDelegate())
       .build();
 
   await dio.get<Map<String, dynamic>>('https://api.example.com/data');
+  // Logs will be sent to MyLogDelegate
+}
+
+/// Example 5: Client with custom token provider
+Future<void> customTokenProviderExample() async {
+  // Use custom token storage
+  final dio = await const AcdcClientBuilder()
+      .withTokenProvider(MyTokenProvider())
+      .withTokenRefreshEndpoint(
+        url: 'https://api.example.com/oauth/token',
+        clientId: 'your-client-id',
+      )
+      .build();
+
+  await dio.get<Map<String, dynamic>>('https://api.example.com/protected');
 }
 
 /// Example token provider implementation
-class MyTokenProvider implements AcdcTokenProvider {
+class MyTokenProvider implements TokenProvider {
   @override
-  Future<String?> getAccessToken() async {
-    // Retrieve access token from secure storage
-    return 'your-access-token';
-  }
+  Future<String?> getAccessToken() async =>
+      // Retrieve access token from your storage
+      'your-access-token';
 
   @override
-  Future<String?> getRefreshToken() async {
-    // Retrieve refresh token from secure storage
-    return 'your-refresh-token';
-  }
+  Future<String?> getRefreshToken() async =>
+      // Retrieve refresh token from your storage
+      'your-refresh-token';
 
   @override
-  Future<void> saveTokens({
-    required String? accessToken,
-    required String? refreshToken,
+  Future<DateTime?> getAccessTokenExpiry() async =>
+      // Retrieve access token expiry from your storage
+      DateTime.now().add(const Duration(hours: 1));
+
+  @override
+  Future<DateTime?> getRefreshTokenExpiry() async =>
+      // Retrieve refresh token expiry from your storage
+      DateTime.now().add(const Duration(days: 30));
+
+  @override
+  Future<void> setTokens({
+    required String accessToken,
+    String? refreshToken,
+    DateTime? accessExpiry,
+    DateTime? refreshExpiry,
   }) async {
-    // Save tokens to secure storage
+    // Save tokens to your storage
   }
 
   @override
   Future<void> clearTokens() async {
-    // Clear tokens from secure storage
+    // Clear tokens from your storage
   }
 }
 
@@ -105,9 +157,7 @@ class MyTokenProvider implements AcdcTokenProvider {
 class MyLogDelegate implements AcdcLogDelegate {
   @override
   void log(String message, LogLevel level, [Map<String, dynamic>? metadata]) {
-    print('[$level] $message');
-    if (metadata != null) {
-      print('Metadata: $metadata');
-    }
+    // Send logs to your logging system
+    // In production, use a proper logging framework
   }
 }
