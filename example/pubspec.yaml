@@ -1,0 +1,15 @@
+name: dart_acdc_example
+description: Example app demonstrating dart_acdc usage
+version: 1.0.0
+publish_to: none
+
+environment:
+  sdk: ">=3.6.0 <4.0.0"
+  flutter: ">=3.38.0"
+
+dependencies:
+  dart_acdc:
+    path: ../
+  dio: ^5.4.0
+  flutter:
+    sdk: flutter
