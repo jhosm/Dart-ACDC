@@ -69,7 +69,7 @@ class AcdcAuthManager {
   Future<void> _updateCurrentUserId() async {
     try {
       if (_tokenProvider != null) {
-        final accessToken = await _tokenProvider!.getAccessToken();
+        final accessToken = await _tokenProvider.getAccessToken();
         if (accessToken != null) {
           _currentUserId = JwtUtils.extractUserId(accessToken);
         }
@@ -115,7 +115,7 @@ class AcdcAuthManager {
   Future<void> logout() async {
     // Cancel any in-progress refresh
     if (_authInterceptor != null) {
-      _authInterceptor!.cancelRefresh();
+      _authInterceptor.cancelRefresh();
     }
 
     // Clear cache before clearing tokens (cache needs user ID)
@@ -129,7 +129,7 @@ class AcdcAuthManager {
     // Clear tokens from local storage
     if (_tokenProvider != null) {
       try {
-        await _tokenProvider!.clearTokens();
+        await _tokenProvider.clearTokens();
       } on Exception catch (e) {
         // Log warning but continue - storage might have failed but logout succeeds
         logDelegate?.log(
@@ -171,7 +171,7 @@ class AcdcAuthManager {
     // Trigger refresh through the auth interceptor
     // This reuses the same refresh logic and queuing mechanism
     final options = RequestOptions(path: '/refresh-trigger');
-    await _authInterceptor!.onRequest(
+    await _authInterceptor.onRequest(
       options,
       RequestInterceptorHandler(),
     );
@@ -180,7 +180,7 @@ class AcdcAuthManager {
   /// Internal helper to clear cache using the manager
   Future<void> _clearCache() async {
     if (_cacheManager != null) {
-      await _cacheManager!.clearCache();
+      await _cacheManager.clearCache();
     }
   }
 
@@ -204,8 +204,8 @@ class AcdcAuthManager {
     String? accessToken;
     try {
       if (_tokenProvider != null) {
-        refreshToken = await _tokenProvider!.getRefreshToken();
-        accessToken = await _tokenProvider!.getAccessToken();
+        refreshToken = await _tokenProvider.getRefreshToken();
+        accessToken = await _tokenProvider.getAccessToken();
       }
     } on Exception {
       // If we can't get tokens, skip revocation (best-effort)

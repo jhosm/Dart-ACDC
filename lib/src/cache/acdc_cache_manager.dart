@@ -24,7 +24,7 @@ class AcdcCacheManager {
   /// ```
   Future<void> clearCache() async {
     if (_cacheInterceptor != null) {
-      await _cacheInterceptor!.clearCache();
+      await _cacheInterceptor.clearCache();
     }
   }
 
@@ -36,7 +36,7 @@ class AcdcCacheManager {
   /// ```
   Future<void> clearCacheForUrl(String url) async {
     if (_cacheInterceptor != null) {
-      await _cacheInterceptor!.clearCacheForUrl(url);
+      await _cacheInterceptor.clearCacheForUrl(url);
     }
   }
 }
