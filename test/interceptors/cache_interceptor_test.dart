@@ -592,13 +592,15 @@ void main() {
       test('logs Cache Miss and Cache Write for fresh request', () async {
         final dio = Dio();
         dio.interceptors.add(interceptor);
-        dio.httpClientAdapter = MockAdapter((options) async => ResponseBody.fromString(
+        dio.httpClientAdapter = MockAdapter(
+          (options) async => ResponseBody.fromString(
             '{}',
             200,
             headers: {
               Headers.contentTypeHeader: [Headers.jsonContentType],
             },
-          ),);
+          ),
+        );
 
         await dio.get<dynamic>('/fresh');
 
@@ -645,11 +647,13 @@ void main() {
         };
 
         // Use MockAdapter to serve a cacheable response initially
-        dio.httpClientAdapter = MockAdapter((options) async => ResponseBody.fromString(
+        dio.httpClientAdapter = MockAdapter(
+          (options) async => ResponseBody.fromString(
             '{}',
             200,
             headers: headers,
-          ),);
+          ),
+        );
 
         // 1. Seed Cache (First Request)
         await dio.get<dynamic>('https://api.example.com/cached');
@@ -693,13 +697,15 @@ void main() {
 
         final dio = Dio();
         dio.interceptors.add(interceptor);
-        dio.httpClientAdapter = MockAdapter((options) async => ResponseBody.fromString(
+        dio.httpClientAdapter = MockAdapter(
+          (options) async => ResponseBody.fromString(
             '{}',
             200,
             headers: {
               Headers.contentTypeHeader: [Headers.jsonContentType],
             },
-          ),);
+          ),
+        );
 
         final response = await dio.get<dynamic>('/network-only');
         expect(response.extra['acdc_source'], 'network');
@@ -720,11 +726,13 @@ void main() {
           'etag': ['123'],
         };
 
-        dio.httpClientAdapter = MockAdapter((options) async => ResponseBody.fromString(
+        dio.httpClientAdapter = MockAdapter(
+          (options) async => ResponseBody.fromString(
             '{}',
             200,
             headers: headers,
-          ),);
+          ),
+        );
 
         // Seed cache
         await dio.get<dynamic>('/cached-std');

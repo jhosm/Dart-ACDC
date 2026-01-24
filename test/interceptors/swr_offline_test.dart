@@ -55,9 +55,14 @@ void main() {
 
       // Verify it's in cache
       final key = CacheOptions.defaultCacheKeyBuilder(
-          url: Uri.parse(path), headers: {},);
-      expect(await store.exists(key), isTrue,
-          reason: 'Response should be cached',);
+        url: Uri.parse(path),
+        headers: {},
+      );
+      expect(
+        await store.exists(key),
+        isTrue,
+        reason: 'Response should be cached',
+      );
 
       // 2. Wait for cache to become stale (if max-age is respected directly)
 
@@ -72,14 +77,26 @@ void main() {
         // This is where we verify the bug.
         // User says it returns success (from cache) but acdc_source is wrong.
 
-        expect(response.headers.value('X-ACDC-From-Cache'), 'true',
-            reason: 'Should come from cache',);
-        expect(response.extra['acdc_source'], isNotNull,
-            reason: 'acdc_source should not be null',);
-        expect(response.extra['acdc_source'], isNot('unknown'),
-            reason: 'acdc_source should not be unknown',);
-        expect(response.extra['acdc_source'], anyOf('cache', 'cache_stale'),
-            reason: 'acdc_source should be a valid cache type',);
+        expect(
+          response.headers.value('X-ACDC-From-Cache'),
+          'true',
+          reason: 'Should come from cache',
+        );
+        expect(
+          response.extra['acdc_source'],
+          isNotNull,
+          reason: 'acdc_source should not be null',
+        );
+        expect(
+          response.extra['acdc_source'],
+          isNot('unknown'),
+          reason: 'acdc_source should not be unknown',
+        );
+        expect(
+          response.extra['acdc_source'],
+          anyOf('cache', 'cache_stale'),
+          reason: 'acdc_source should be a valid cache type',
+        );
       } on DioException catch (e) {
         fail('Should have served from cache, but got error: $e');
       }
