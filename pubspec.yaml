@@ -5,6 +5,9 @@ repository: https://github.com/jhosm/Dart-ACDC
 homepage: https://github.com/jhosm/Dart-ACDC
 issue_tracker: https://github.com/jhosm/Dart-ACDC/issues
 
+false_secrets:
+  - /test/security/certs/**
+
 environment:
   sdk: ">=3.6.0 <4.0.0"
   flutter: ">=3.38.0"
