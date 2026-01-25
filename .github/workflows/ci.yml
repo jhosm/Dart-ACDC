@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [main, develop]
   pull_request:
-    branches: [ main, develop ]
+    branches: [main, develop]
   workflow_dispatch:
 
 jobs:
@@ -19,8 +19,8 @@ jobs:
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.38.x'
-          channel: 'stable'
+          flutter-version: "3.38.x"
+          channel: "stable"
           cache: true
 
       - name: Install dependencies
@@ -41,8 +41,8 @@ jobs:
       matrix:
         os: [ubuntu-latest]
         flutter-version:
-          - '3.38.x'  # Minimum supported version
-          - 'any'     # Latest stable
+          - "3.38.x" # Minimum supported version
+          - "3.x" # Latest stable
 
     steps:
       - name: Checkout code
@@ -52,7 +52,7 @@ jobs:
         uses: subosito/flutter-action@v2
         with:
           flutter-version: ${{ matrix.flutter-version }}
-          channel: 'stable'
+          channel: "stable"
           cache: true
 
       - name: Install dependencies
@@ -85,8 +85,8 @@ jobs:
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.38.x'
-          channel: 'stable'
+          flutter-version: "3.38.x"
+          channel: "stable"
           cache: true
 
       - name: Install dependencies
@@ -106,8 +106,8 @@ jobs:
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.38.x'
-          channel: 'stable'
+          flutter-version: "3.38.x"
+          channel: "stable"
           cache: true
 
       - name: Install dependencies
@@ -116,7 +116,28 @@ jobs:
       - name: Check package score
         run: |
           dart pub global activate pana
-          dart pub global run pana --no-warning --exit-code-threshold 0
+          dart pub global run pana --no-warnings --exit-code-threshold 0
 
       - name: Dry run package publish
         run: dart pub publish --dry-run
+
+  completion-check:
+    name: CI completion check
+    runs-on: ubuntu-latest
+    needs:
+      - analyze
+      - test
+      - test-multiplatform
+      - package
+    if: always()
+    steps:
+      - name: Check all jobs passed
+        run: |
+          if [[ "${{ needs.analyze.result }}" != "success" ]] || \
+             [[ "${{ needs.test.result }}" != "success" ]] || \
+             [[ "${{ needs.test-multiplatform.result }}" != "success" ]] || \
+             [[ "${{ needs.package.result }}" != "success" ]]; then
+            echo "One or more jobs failed"
+            exit 1
+          fi
+          echo "All CI checks passed!"
