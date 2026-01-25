@@ -24,12 +24,8 @@ class PinningTestServer {
       ..useCertificateChain(certPath)
       ..usePrivateKey(keyPath);
 
-    final handler = const Pipeline()
-        .addMiddleware(logRequests())
-        .addHandler(_handleRequest);
-
     _server = await shelf_io.serve(
-      handler,
+      _handleRequest,
       'localhost',
       0,
       securityContext: securityContext,

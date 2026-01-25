@@ -385,11 +385,7 @@ class FakeApiServer {
   Map<String, dynamic> _responseData = {};
 
   Future<void> start() async {
-    final handler = const shelf.Pipeline()
-        .addMiddleware(shelf.logRequests())
-        .addHandler(_handleRequest);
-
-    _server = await shelf_io.serve(handler, 'localhost', 0);
+    _server = await shelf_io.serve(_handleRequest, 'localhost', 0);
     _port = _server!.port;
   }
 
