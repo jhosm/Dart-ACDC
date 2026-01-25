@@ -6,9 +6,12 @@ To ensure your changes pass CI checks before pushing, run validation locally usi
 
 ### Option 1: Automatic (Git Hook) - Recommended
 
-The pre-push hook automatically runs checks before each `git push`.
+**Setup**: Install the pre-push hook by running:
+```bash
+make install-hooks
+```
 
-**Already installed!** The hook runs:
+The hook then automatically runs before each `git push`:
 - ✅ Code formatting check
 - ✅ Static analysis
 - ✅ Tests

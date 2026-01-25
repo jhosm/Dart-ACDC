@@ -1,0 +1,40 @@
+#!/bin/bash
+
+# Pre-push hook to run local validation before pushing
+# This mirrors the CI checks to catch issues early
+
+echo "🔍 Running pre-push validation..."
+echo ""
+
+# 1. Check formatting
+echo "📝 Checking code formatting..."
+if ! dart format --output=none --set-exit-if-changed .; then
+    echo "❌ Code formatting check failed!"
+    echo "Run: dart format ."
+    exit 1
+fi
+echo "✅ Formatting check passed"
+echo ""
+
+# 2. Run analyzer
+echo "🔬 Running static analysis..."
+if ! dart analyze --fatal-warnings; then
+    echo "❌ Static analysis failed!"
+    echo "Fix the warnings above before pushing."
+    exit 1
+fi
+echo "✅ Static analysis passed"
+echo ""
+
+# 3. Run tests (optional - comment out if too slow)
+echo "🧪 Running tests..."
+if ! flutter test; then
+    echo "❌ Tests failed!"
+    echo "Fix the failing tests before pushing."
+    exit 1
+fi
+echo "✅ Tests passed"
+echo ""
+
+echo "✨ All checks passed! Proceeding with push..."
+exit 0

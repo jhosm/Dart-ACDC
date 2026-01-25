@@ -37,6 +37,6 @@ ci: ## Run all CI checks locally (without fixing formatting)
 
 install-hooks: ## Install git hooks
 	@echo "Installing git hooks..."
-	@cp -f .git/hooks/pre-push.sample .git/hooks/pre-push 2>/dev/null || true
+	@cp -f hooks/pre-push .git/hooks/pre-push
 	@chmod +x .git/hooks/pre-push
 	@echo "✅ Git hooks installed!"
