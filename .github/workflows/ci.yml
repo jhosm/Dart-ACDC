@@ -116,7 +116,7 @@ jobs:
       - name: Check package score
         run: |
           dart pub global activate pana
-          dart pub global run pana --no-warnings --exit-code-threshold 0
+          dart pub global run pana --no-warning --exit-code-threshold 0
 
       - name: Dry run package publish
         run: dart pub publish --dry-run
