@@ -245,11 +245,11 @@ export 'src/exceptions/acdc_exception.dart' show AcdcException;
 export 'src/exceptions/acdc_network_exception.dart'
     show AcdcNetworkException, NetworkErrorType;
 
-/// Server errors (5xx status codes).
-export 'src/exceptions/acdc_server_exception.dart' show AcdcServerException;
-
 /// Security errors (certificate pinning failures, etc).
 export 'src/exceptions/acdc_security_exception.dart' show AcdcSecurityException;
+
+/// Server errors (5xx status codes).
+export 'src/exceptions/acdc_server_exception.dart' show AcdcServerException;
 
 /// Interface for custom logging implementations.
 ///
