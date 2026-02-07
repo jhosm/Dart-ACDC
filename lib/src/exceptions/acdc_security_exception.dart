@@ -9,6 +9,7 @@ class AcdcSecurityException extends AcdcException {
     super.message = 'Security check failed',
     this.peerCertificates,
     super.originalException,
+    super.requestUrl,
     super.stackTrace,
   });
 
