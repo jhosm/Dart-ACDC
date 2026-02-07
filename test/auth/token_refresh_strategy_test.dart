@@ -85,6 +85,32 @@ void main() {
       expect(result.accessExpiry, serverTime.add(const Duration(hours: 1)));
     });
 
+    test('falls back to local time when Date header is invalid', () async {
+      final mockDio = _createSuccessfulOAuthDio(
+        accessToken: 'new-access-token',
+        expiresIn: 3600,
+        serverTime: 'invalid-date-format',
+      );
+
+      final strategy = OAuthTokenRefreshStrategy(
+        refreshEndpointUrl: 'https://auth.example.com/token',
+        clientId: 'test-client',
+        httpClient: mockDio,
+      );
+
+      final result = await strategy.refresh('refresh-token');
+
+      expect(result.accessToken, 'new-access-token');
+      expect(result.accessExpiry, isNotNull);
+      // Expiry should be roughly now + 1 hour since it falls back to local time
+      final now = DateTime.now().toUtc();
+      final expectedExpiry = now.add(const Duration(hours: 1));
+      expect(
+        result.accessExpiry!.difference(expectedExpiry).inSeconds.abs(),
+        lessThan(5), // Allow 5 second tolerance for test execution time
+      );
+    });
+
     test('throws AcdcAuthException when access_token is missing', () async {
       final mockDio = _createInvalidOAuthDio();
 
