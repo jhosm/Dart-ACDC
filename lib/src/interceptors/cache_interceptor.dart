@@ -457,11 +457,25 @@ class AcdcCacheInterceptor extends Interceptor {
   }
 
   /// Clears cached entries for a specific URL.
+  ///
+  /// This method clears both the shared cache entry and all user-isolated
+  /// cache entries for the given URL. User-isolated entries have keys in the
+  /// format `baseKey:userId`.
   Future<void> clearCacheForUrl(String url) async {
-    final key = CacheOptions.defaultCacheKeyBuilder(
+    final baseKey = CacheOptions.defaultCacheKeyBuilder(
       url: Uri.parse(url),
     );
-    await _cacheOptions.store?.delete(key);
+    
+    // Escape special regex characters in the base key
+    final escapedKey = RegExp.escape(baseKey);
+    
+    // Create a pattern that matches:
+    // 1. The exact base key (shared cache)
+    // 2. Base key followed by :userId (user-isolated cache)
+    final pattern = RegExp('^$escapedKey(?::.+)?\$');
+    
+    // Use deleteFromPath to clear all matching entries
+    await _cacheOptions.store?.deleteFromPath(pattern);
   }
 
   /// Checks if the HTTP method is a mutation (POST/PUT/DELETE/PATCH).
