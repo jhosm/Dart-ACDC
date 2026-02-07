@@ -47,10 +47,10 @@ class AcdcCacheInterceptor extends Interceptor {
   }) : _config = config {
     _cacheOptions = CacheOptions(
       store: store,
-      // Always use request policy if SWR is enabled, as we handle SWR manually
-      policy: config.staleWhileRevalidate
-          ? CachePolicy.request
-          : CachePolicy.request,
+      // Always use request policy regardless of SWR configuration.
+      // SWR is handled manually in onRequest() to serve stale cache immediately
+      // and trigger background refresh, not delegated to dio_cache_interceptor.
+      policy: CachePolicy.request,
       maxStale: (config.staleIfError || config.staleWhileRevalidate)
           ? const Duration(days: 7)
           : null,
@@ -82,9 +82,10 @@ class AcdcCacheInterceptor extends Interceptor {
     _dioCacheInterceptor = DioCacheInterceptor(
       options: CacheOptions(
         store: store,
-        policy: config.staleWhileRevalidate
-            ? CachePolicy.request
-            : CachePolicy.request,
+        // Always use request policy regardless of SWR configuration.
+        // SWR is handled manually in onRequest() to serve stale cache immediately
+        // and trigger background refresh, not delegated to dio_cache_interceptor.
+        policy: CachePolicy.request,
         maxStale: (config.staleIfError || config.staleWhileRevalidate)
             ? const Duration(days: 7)
             : null,
@@ -457,11 +458,23 @@ class AcdcCacheInterceptor extends Interceptor {
   }
 
   /// Clears cached entries for a specific URL.
+  ///
+  /// This method clears both the shared cache entry and all user-isolated
+  /// cache entries for the given URL. User-isolated entries have keys in the
+  /// format `baseKey:userId` but share the same URL.
+  ///
+  /// Uses pattern-based deletion to remove all cache entries with matching URLs.
   Future<void> clearCacheForUrl(String url) async {
-    final key = CacheOptions.defaultCacheKeyBuilder(
-      url: Uri.parse(url),
-    );
-    await _cacheOptions.store?.delete(key);
+    // Escape special regex characters in the URL
+    final escapedUrl = RegExp.escape(url);
+
+    // Create a pattern that matches the exact URL
+    // deleteFromPath matches against the URL field in cache entries,
+    // so this will match both shared and user-isolated entries
+    final pattern = RegExp('^$escapedUrl\$');
+
+    // Use deleteFromPath to clear all matching entries
+    await _cacheOptions.store?.deleteFromPath(pattern);
   }
 
   /// Checks if the HTTP method is a mutation (POST/PUT/DELETE/PATCH).
