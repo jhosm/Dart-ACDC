@@ -182,7 +182,7 @@ void main() {
           store: store,
         );
 
-        final url = 'https://api.example.com/users';
+        const url = 'https://api.example.com/users';
         final baseKey = CacheOptions.defaultCacheKeyBuilder(
           url: Uri.parse(url),
         );
@@ -195,11 +195,15 @@ void main() {
             eTag: null,
             lastModified: null,
             maxStale: null,
+            date: null,
+            expires: null,
+            requestDate: DateTime.now(),
+            statusCode: 200,
             content: Uint8List.fromList([1, 2, 3]),
             headers: null,
             priority: CachePriority.normal,
             responseDate: DateTime.now(),
-            cacheControl: null,
+            cacheControl: CacheControl(),
           ),
         );
 
@@ -220,7 +224,7 @@ void main() {
           store: store,
         );
 
-        final url = 'https://api.example.com/users';
+        const url = 'https://api.example.com/users';
         final baseKey = CacheOptions.defaultCacheKeyBuilder(
           url: Uri.parse(url),
         );
@@ -236,11 +240,15 @@ void main() {
             eTag: null,
             lastModified: null,
             maxStale: null,
+            date: null,
+            expires: null,
+            requestDate: DateTime.now(),
+            statusCode: 200,
             content: Uint8List.fromList([1, 2, 3]),
             headers: null,
             priority: CachePriority.normal,
             responseDate: DateTime.now(),
-            cacheControl: null,
+            cacheControl: CacheControl(),
           ),
         );
 
@@ -251,11 +259,15 @@ void main() {
             eTag: null,
             lastModified: null,
             maxStale: null,
+            date: null,
+            expires: null,
+            requestDate: DateTime.now(),
+            statusCode: 200,
             content: Uint8List.fromList([4, 5, 6]),
             headers: null,
             priority: CachePriority.normal,
             responseDate: DateTime.now(),
-            cacheControl: null,
+            cacheControl: CacheControl(),
           ),
         );
 
@@ -279,7 +291,7 @@ void main() {
           store: store,
         );
 
-        final url = 'https://api.example.com/users';
+        const url = 'https://api.example.com/users';
         final baseKey = CacheOptions.defaultCacheKeyBuilder(
           url: Uri.parse(url),
         );
@@ -297,11 +309,15 @@ void main() {
               eTag: null,
               lastModified: null,
               maxStale: null,
+              date: null,
+              expires: null,
+              requestDate: DateTime.now(),
+              statusCode: 200,
               content: Uint8List.fromList([1, 2, 3]),
               headers: null,
               priority: CachePriority.normal,
               responseDate: DateTime.now(),
-              cacheControl: null,
+              cacheControl: CacheControl(),
             ),
           );
         }
@@ -327,8 +343,8 @@ void main() {
           store: store,
         );
 
-        final url1 = 'https://api.example.com/users';
-        final url2 = 'https://api.example.com/posts';
+        const url1 = 'https://api.example.com/users';
+        const url2 = 'https://api.example.com/posts';
 
         final key1 = CacheOptions.defaultCacheKeyBuilder(
           url: Uri.parse(url1),
@@ -346,11 +362,15 @@ void main() {
               eTag: null,
               lastModified: null,
               maxStale: null,
+              date: null,
+              expires: null,
+              requestDate: DateTime.now(),
+              statusCode: 200,
               content: Uint8List.fromList([1, 2, 3]),
               headers: null,
               priority: CachePriority.normal,
               responseDate: DateTime.now(),
-              cacheControl: null,
+              cacheControl: CacheControl(),
             ),
           );
         }
