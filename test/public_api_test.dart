@@ -61,6 +61,7 @@ void main() {
       expect(AcdcServerException, isNotNull);
       expect(AcdcClientException, isNotNull);
       expect(AcdcCacheException, isNotNull);
+      expect(AcdcSecurityException, isNotNull);
     });
 
     test('NetworkErrorType enum is exported', () {

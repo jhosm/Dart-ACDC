@@ -248,6 +248,9 @@ export 'src/exceptions/acdc_network_exception.dart'
 /// Server errors (5xx status codes).
 export 'src/exceptions/acdc_server_exception.dart' show AcdcServerException;
 
+/// Security errors (certificate pinning failures, etc).
+export 'src/exceptions/acdc_security_exception.dart' show AcdcSecurityException;
+
 /// Interface for custom logging implementations.
 ///
 /// Implement this to bridge logs to external libraries like Talker or Logger.
