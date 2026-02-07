@@ -174,6 +174,214 @@ void main() {
           completes,
         );
       });
+
+      test('clearCacheForUrl clears shared cache entry', () async {
+        final store = MemCacheStore();
+        final interceptor = AcdcCacheInterceptor(
+          config: const CacheConfig(),
+          store: store,
+        );
+
+        const url = 'https://api.example.com/users';
+        final baseKey = CacheOptions.defaultCacheKeyBuilder(
+          url: Uri.parse(url),
+        );
+
+        // Add a shared cache entry
+        await store.set(
+          CacheResponse(
+            key: baseKey,
+            url: url,
+            eTag: null,
+            lastModified: null,
+            maxStale: null,
+            date: null,
+            expires: null,
+            requestDate: DateTime.now(),
+            statusCode: 200,
+            content: Uint8List.fromList([1, 2, 3]),
+            headers: null,
+            priority: CachePriority.normal,
+            responseDate: DateTime.now(),
+            cacheControl: CacheControl(),
+          ),
+        );
+
+        // Verify entry exists
+        expect(await store.exists(baseKey), true);
+
+        // Clear cache for URL
+        await interceptor.clearCacheForUrl(url);
+
+        // Verify entry is deleted
+        expect(await store.exists(baseKey), false);
+      });
+
+      test('clearCacheForUrl clears user-isolated cache entries', () async {
+        final store = MemCacheStore();
+        final interceptor = AcdcCacheInterceptor(
+          config: const CacheConfig(),
+          store: store,
+        );
+
+        const url = 'https://api.example.com/users';
+        final baseKey = CacheOptions.defaultCacheKeyBuilder(
+          url: Uri.parse(url),
+        );
+
+        // Add user-isolated cache entries
+        final user1Key = '$baseKey:user123';
+        final user2Key = '$baseKey:user456';
+
+        await store.set(
+          CacheResponse(
+            key: user1Key,
+            url: url,
+            eTag: null,
+            lastModified: null,
+            maxStale: null,
+            date: null,
+            expires: null,
+            requestDate: DateTime.now(),
+            statusCode: 200,
+            content: Uint8List.fromList([1, 2, 3]),
+            headers: null,
+            priority: CachePriority.normal,
+            responseDate: DateTime.now(),
+            cacheControl: CacheControl(),
+          ),
+        );
+
+        await store.set(
+          CacheResponse(
+            key: user2Key,
+            url: url,
+            eTag: null,
+            lastModified: null,
+            maxStale: null,
+            date: null,
+            expires: null,
+            requestDate: DateTime.now(),
+            statusCode: 200,
+            content: Uint8List.fromList([4, 5, 6]),
+            headers: null,
+            priority: CachePriority.normal,
+            responseDate: DateTime.now(),
+            cacheControl: CacheControl(),
+          ),
+        );
+
+        // Verify entries exist
+        expect(await store.exists(user1Key), true);
+        expect(await store.exists(user2Key), true);
+
+        // Clear cache for URL
+        await interceptor.clearCacheForUrl(url);
+
+        // Verify all user-isolated entries are deleted
+        expect(await store.exists(user1Key), false);
+        expect(await store.exists(user2Key), false);
+      });
+
+      test('clearCacheForUrl clears both shared and user-isolated entries',
+          () async {
+        final store = MemCacheStore();
+        final interceptor = AcdcCacheInterceptor(
+          config: const CacheConfig(),
+          store: store,
+        );
+
+        const url = 'https://api.example.com/users';
+        final baseKey = CacheOptions.defaultCacheKeyBuilder(
+          url: Uri.parse(url),
+        );
+
+        // Add both shared and user-isolated cache entries
+        final sharedKey = baseKey;
+        final user1Key = '$baseKey:user123';
+        final user2Key = '$baseKey:user456';
+
+        for (final key in [sharedKey, user1Key, user2Key]) {
+          await store.set(
+            CacheResponse(
+              key: key,
+              url: url,
+              eTag: null,
+              lastModified: null,
+              maxStale: null,
+              date: null,
+              expires: null,
+              requestDate: DateTime.now(),
+              statusCode: 200,
+              content: Uint8List.fromList([1, 2, 3]),
+              headers: null,
+              priority: CachePriority.normal,
+              responseDate: DateTime.now(),
+              cacheControl: CacheControl(),
+            ),
+          );
+        }
+
+        // Verify all entries exist
+        expect(await store.exists(sharedKey), true);
+        expect(await store.exists(user1Key), true);
+        expect(await store.exists(user2Key), true);
+
+        // Clear cache for URL
+        await interceptor.clearCacheForUrl(url);
+
+        // Verify all entries are deleted
+        expect(await store.exists(sharedKey), false);
+        expect(await store.exists(user1Key), false);
+        expect(await store.exists(user2Key), false);
+      });
+
+      test('clearCacheForUrl does not affect other URLs', () async {
+        final store = MemCacheStore();
+        final interceptor = AcdcCacheInterceptor(
+          config: const CacheConfig(),
+          store: store,
+        );
+
+        const url1 = 'https://api.example.com/users';
+        const url2 = 'https://api.example.com/posts';
+
+        final key1 = CacheOptions.defaultCacheKeyBuilder(
+          url: Uri.parse(url1),
+        );
+        final key2 = CacheOptions.defaultCacheKeyBuilder(
+          url: Uri.parse(url2),
+        );
+
+        // Add cache entries for both URLs
+        for (final key in [key1, key2]) {
+          await store.set(
+            CacheResponse(
+              key: key,
+              url: key == key1 ? url1 : url2,
+              eTag: null,
+              lastModified: null,
+              maxStale: null,
+              date: null,
+              expires: null,
+              requestDate: DateTime.now(),
+              statusCode: 200,
+              content: Uint8List.fromList([1, 2, 3]),
+              headers: null,
+              priority: CachePriority.normal,
+              responseDate: DateTime.now(),
+              cacheControl: CacheControl(),
+            ),
+          );
+        }
+
+        // Clear cache for url1 only
+        await interceptor.clearCacheForUrl(url1);
+
+        // Verify only url1 entry is deleted
+        expect(await store.exists(key1), false);
+        expect(await store.exists(key2), true);
+      });
     });
 
     group('Configuration', () {
