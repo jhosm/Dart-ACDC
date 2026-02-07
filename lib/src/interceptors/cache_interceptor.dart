@@ -47,10 +47,10 @@ class AcdcCacheInterceptor extends Interceptor {
   }) : _config = config {
     _cacheOptions = CacheOptions(
       store: store,
-      // Always use request policy if SWR is enabled, as we handle SWR manually
-      policy: config.staleWhileRevalidate
-          ? CachePolicy.request
-          : CachePolicy.request,
+      // Always use request policy regardless of SWR configuration.
+      // SWR is handled manually in onRequest() to serve stale cache immediately
+      // and trigger background refresh, not delegated to dio_cache_interceptor.
+      policy: CachePolicy.request,
       maxStale: (config.staleIfError || config.staleWhileRevalidate)
           ? const Duration(days: 7)
           : null,
@@ -82,9 +82,10 @@ class AcdcCacheInterceptor extends Interceptor {
     _dioCacheInterceptor = DioCacheInterceptor(
       options: CacheOptions(
         store: store,
-        policy: config.staleWhileRevalidate
-            ? CachePolicy.request
-            : CachePolicy.request,
+        // Always use request policy regardless of SWR configuration.
+        // SWR is handled manually in onRequest() to serve stale cache immediately
+        // and trigger background refresh, not delegated to dio_cache_interceptor.
+        policy: CachePolicy.request,
         maxStale: (config.staleIfError || config.staleWhileRevalidate)
             ? const Duration(days: 7)
             : null,
