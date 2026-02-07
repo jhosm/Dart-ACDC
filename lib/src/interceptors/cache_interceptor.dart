@@ -467,12 +467,12 @@ class AcdcCacheInterceptor extends Interceptor {
   Future<void> clearCacheForUrl(String url) async {
     // Escape special regex characters in the URL
     final escapedUrl = RegExp.escape(url);
-    
+
     // Create a pattern that matches the exact URL
     // deleteFromPath matches against the URL field in cache entries,
     // so this will match both shared and user-isolated entries
     final pattern = RegExp('^$escapedUrl\$');
-    
+
     // Use deleteFromPath to clear all matching entries
     await _cacheOptions.store?.deleteFromPath(pattern);
   }
