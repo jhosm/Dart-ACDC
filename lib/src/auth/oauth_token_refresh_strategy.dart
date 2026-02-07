@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:dart_acdc/src/auth/token_refresh_result.dart';
 import 'package:dart_acdc/src/auth/token_refresh_strategy.dart';
 import 'package:dart_acdc/src/exceptions/acdc_auth_exception.dart';
@@ -83,7 +85,7 @@ class OAuthTokenRefreshStrategy implements TokenRefreshStrategy {
         if (dateHeader != null) {
           try {
             // Parse HTTP date format (RFC 1123)
-            final serverTime = DateTime.parse(dateHeader);
+            final serverTime = HttpDate.parse(dateHeader);
             accessExpiry = serverTime.add(Duration(seconds: expiresIn));
           } on FormatException {
             // Fall back to local time if parsing fails

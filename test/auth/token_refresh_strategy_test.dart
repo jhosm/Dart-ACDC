@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:dart_acdc/src/auth/custom_token_refresh_strategy.dart';
 import 'package:dart_acdc/src/auth/oauth_token_refresh_strategy.dart';
 import 'package:dart_acdc/src/auth/token_refresh_result.dart';
@@ -68,7 +70,7 @@ void main() {
       final mockDio = _createSuccessfulOAuthDio(
         accessToken: 'new-access-token',
         expiresIn: 3600,
-        serverTime: serverTime.toIso8601String(),
+        serverTime: HttpDate.format(serverTime),
       );
 
       final strategy = OAuthTokenRefreshStrategy(
