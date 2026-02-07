@@ -61,7 +61,10 @@ void main() {
 
       final str = exception.toString();
       expect(str, contains('Peer Certificates'));
-      expect(str, contains('sha256/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA='));
+      expect(
+        str,
+        contains('sha256/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA='),
+      );
     });
 
     test('toString includes URL when available', () {
@@ -71,6 +74,7 @@ void main() {
           baseUrl: 'https://example.com',
         ),
         hostname: 'example.com',
+        requestUrl: 'https://example.com/test',
       );
 
       final str = exception.toString();
