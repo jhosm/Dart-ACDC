@@ -98,16 +98,19 @@ void main() {
         httpClient: mockDio,
       );
 
+      final start = DateTime.now().toUtc();
       final result = await strategy.refresh('refresh-token');
+      final end = DateTime.now().toUtc();
 
       expect(result.accessToken, 'new-access-token');
       expect(result.accessExpiry, isNotNull);
-      // Expiry should be roughly now + 1 hour since it falls back to local time
-      final now = DateTime.now().toUtc();
-      final expectedExpiry = now.add(const Duration(hours: 1));
+      // Expiry should be between (start + 1 hour) and (end + 1 hour)
+      final earliestExpiry = start.add(const Duration(hours: 1));
+      final latestExpiry = end.add(const Duration(hours: 1));
       expect(
-        result.accessExpiry!.difference(expectedExpiry).inSeconds.abs(),
-        lessThan(5), // Allow 5 second tolerance for test execution time
+        !result.accessExpiry!.isBefore(earliestExpiry) &&
+            !result.accessExpiry!.isAfter(latestExpiry),
+        isTrue,
       );
     });
 

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:dart_acdc/src/auth/custom_token_refresh_strategy.dart';
 import 'package:dart_acdc/src/auth/token_provider.dart';
@@ -464,7 +465,7 @@ void main() {
         final mockDio = _createSuccessfulOAuthDioWithDateHeader(
           accessToken: 'new-token',
           expiresIn: expiresIn,
-          serverTime: serverTime.toIso8601String(),
+          serverTime: HttpDate.format(serverTime),
         );
 
         interceptor = AuthInterceptor(

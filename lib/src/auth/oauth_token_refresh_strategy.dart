@@ -87,7 +87,7 @@ class OAuthTokenRefreshStrategy implements TokenRefreshStrategy {
             // Parse HTTP date format (RFC 1123)
             final serverTime = HttpDate.parse(dateHeader);
             accessExpiry = serverTime.add(Duration(seconds: expiresIn));
-          } on FormatException {
+          } on HttpException {
             // Fall back to local time if parsing fails
             accessExpiry =
                 DateTime.now().toUtc().add(Duration(seconds: expiresIn));
