@@ -1,0 +1,26 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|NotebookEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "dart format $CLAUDE_FILE_PATHS 2>/dev/null || true"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo \"$CLAUDE_FILE_PATHS\" | tr ' ' '\\n' | grep -qE '(\\.env|pubspec\\.lock|test/security/certs/)' && echo 'BLOCK: Do not edit lock files, .env, or test certificates directly' && exit 2 || exit 0"
+          }
+        ]
+      }
+    ]
+  }
+}
