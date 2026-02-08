@@ -425,6 +425,46 @@ void main() {
 
         expect(interceptor, isA<AcdcCacheInterceptor>());
       });
+
+      test('uses default staleIfErrorCodes (server errors only)', () {
+        const config = CacheConfig();
+
+        // Verify default is server errors only [500, 502, 503, 504]
+        expect(config.staleIfErrorCodes, [500, 502, 503, 504]);
+
+        final interceptor = AcdcCacheInterceptor(
+          config: config,
+          store: MemCacheStore(),
+        );
+
+        expect(interceptor, isA<AcdcCacheInterceptor>());
+      });
+
+      test('respects custom staleIfErrorCodes', () {
+        const customCodes = [500, 502, 503, 504, 408];
+        final interceptor = AcdcCacheInterceptor(
+          config: const CacheConfig(
+            staleIfError: true,
+            staleIfErrorCodes: customCodes,
+          ),
+          store: MemCacheStore(),
+        );
+
+        expect(interceptor, isA<AcdcCacheInterceptor>());
+      });
+
+      test('staleIfErrorCodes can include auth codes if explicitly set', () {
+        const customCodes = [401, 403, 500, 502, 503, 504];
+        final interceptor = AcdcCacheInterceptor(
+          config: const CacheConfig(
+            staleIfError: true,
+            staleIfErrorCodes: customCodes,
+          ),
+          store: MemCacheStore(),
+        );
+
+        expect(interceptor, isA<AcdcCacheInterceptor>());
+      });
     });
 
     group('HTTP Directive Support', () {

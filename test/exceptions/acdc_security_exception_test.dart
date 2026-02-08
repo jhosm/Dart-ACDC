@@ -89,5 +89,213 @@ void main() {
 
       expect(exception, isA<AcdcSecurityException>());
     });
+
+    group('fromDioException', () {
+      test('preserves DioException type and error fields', () {
+        final originalError = Exception('Certificate validation error');
+        final dioException = DioException(
+          requestOptions: RequestOptions(
+            path: '/api/data',
+            baseUrl: 'https://example.com',
+          ),
+          type: DioExceptionType.badCertificate,
+          error: originalError,
+        );
+
+        final securityException =
+            AcdcSecurityException.fromDioException(dioException);
+
+        expect(securityException.type, equals(DioExceptionType.badCertificate));
+        expect(securityException.error, equals(originalError));
+        expect(securityException.hostname, equals('example.com'));
+        expect(
+          securityException.message,
+          equals('Certificate validation failed for example.com'),
+        );
+      });
+
+      test('creates message for badCertificate type', () {
+        final dioException = DioException(
+          requestOptions: RequestOptions(
+            path: '/test',
+            baseUrl: 'https://secure.example.com',
+          ),
+          type: DioExceptionType.badCertificate,
+        );
+
+        final exception = AcdcSecurityException.fromDioException(dioException);
+
+        expect(
+          exception.message,
+          equals('Certificate validation failed for secure.example.com'),
+        );
+        expect(exception.type, equals(DioExceptionType.badCertificate));
+      });
+
+      test('creates default message for non-badCertificate types', () {
+        final dioException = DioException(
+          requestOptions: RequestOptions(
+            path: '/test',
+            baseUrl: 'https://example.com',
+          ),
+          type: DioExceptionType.connectionError,
+        );
+
+        final exception = AcdcSecurityException.fromDioException(dioException);
+
+        expect(exception.message, equals('Security check failed'));
+        expect(exception.type, equals(DioExceptionType.connectionError));
+      });
+
+      test('preserves originalException reference', () {
+        final dioException = DioException(
+          requestOptions: RequestOptions(path: '/test'),
+          type: DioExceptionType.badCertificate,
+        );
+
+        final exception = AcdcSecurityException.fromDioException(dioException);
+
+        expect(exception.originalException, equals(dioException));
+      });
+
+      test('redacts sensitive URL information', () {
+        final dioException = DioException(
+          requestOptions: RequestOptions(
+            path: '/api/users',
+            baseUrl: 'https://example.com',
+            queryParameters: {
+              'token': 'secret123',
+              'apiKey': 'key456',
+            },
+          ),
+          type: DioExceptionType.badCertificate,
+        );
+
+        final exception = AcdcSecurityException.fromDioException(dioException);
+
+        // URL should be redacted (specific redaction logic from AcdcException.redactUrl)
+        expect(exception.requestUrl, isNotNull);
+        // Sensitive parameters should be masked (check for URL-encoded or plain REDACTED)
+        expect(
+          exception.requestUrl,
+          anyOf(
+            contains('***REDACTED***'),
+            contains('%2A%2A%2AREDACTED%2A%2A%2A'),
+          ),
+        );
+        // Original sensitive values should not appear
+        expect(exception.requestUrl, isNot(contains('secret123')));
+        expect(exception.requestUrl, isNot(contains('key456')));
+      });
+
+      test('handles empty hostname gracefully', () {
+        final dioException = DioException(
+          requestOptions: RequestOptions(
+            path: '/api/data',
+            baseUrl: '',
+          ),
+          type: DioExceptionType.badCertificate,
+        );
+
+        final exception = AcdcSecurityException.fromDioException(dioException);
+
+        // Should handle empty hostname without crashing
+        expect(exception.hostname, isNotNull);
+        expect(exception.message, isNotNull);
+      });
+
+      test('preserves stack trace from DioException', () {
+        final stackTrace = StackTrace.current;
+        final dioException = DioException(
+          requestOptions: RequestOptions(
+            path: '/test',
+            baseUrl: 'https://example.com',
+          ),
+          type: DioExceptionType.badCertificate,
+          stackTrace: stackTrace,
+        );
+
+        final exception = AcdcSecurityException.fromDioException(dioException);
+
+        expect(exception.stackTrace, equals(stackTrace));
+      });
+
+      test('handles RequestOptions without baseUrl', () {
+        final dioException = DioException(
+          requestOptions: RequestOptions(path: '/relative/path'),
+          type: DioExceptionType.badCertificate,
+        );
+
+        final exception = AcdcSecurityException.fromDioException(dioException);
+
+        // Should not crash when accessing hostname
+        expect(exception.hostname, isNotNull);
+        expect(exception.message, isNotNull);
+      });
+
+      test('handles all DioExceptionType values consistently', () {
+        final types = [
+          DioExceptionType.sendTimeout,
+          DioExceptionType.receiveTimeout,
+          DioExceptionType.badResponse,
+          DioExceptionType.cancel,
+          DioExceptionType.unknown,
+        ];
+
+        for (final type in types) {
+          final exception = AcdcSecurityException.fromDioException(
+            DioException(
+              requestOptions: RequestOptions(
+                path: '/test',
+                baseUrl: 'https://example.com',
+              ),
+              type: type,
+            ),
+          );
+
+          expect(exception.type, equals(type));
+          expect(exception.message, equals('Security check failed'));
+        }
+      });
+
+      test('redacts sensitive parameters with case-insensitive matching', () {
+        final dioException = DioException(
+          requestOptions: RequestOptions(
+            path: '/api/users',
+            baseUrl: 'https://example.com',
+            queryParameters: {
+              'AccessToken': 'secret123', // uppercase
+              'user_api_key': 'key456', // compound name
+              'myPassword': 'pass789', // camelCase
+              'normal_param': 'visible', // should not be redacted
+            },
+          ),
+          type: DioExceptionType.badCertificate,
+        );
+
+        final exception = AcdcSecurityException.fromDioException(dioException);
+
+        // Sensitive values should not appear
+        expect(exception.requestUrl, isNot(contains('secret123')));
+        expect(exception.requestUrl, isNot(contains('key456')));
+        expect(exception.requestUrl, isNot(contains('pass789')));
+        // Normal parameter should be visible
+        expect(exception.requestUrl, contains('normal_param'));
+      });
+
+      test('does not set peerCertificates from DioException', () {
+        final dioException = DioException(
+          requestOptions: RequestOptions(
+            path: '/test',
+            baseUrl: 'https://example.com',
+          ),
+          type: DioExceptionType.badCertificate,
+        );
+
+        final exception = AcdcSecurityException.fromDioException(dioException);
+
+        expect(exception.peerCertificates, isNull);
+      });
+    });
   });
 }

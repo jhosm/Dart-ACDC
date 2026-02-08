@@ -18,24 +18,27 @@ import 'package:path_provider/path_provider.dart';
 /// - Key storage in platform secure storage (Keychain/KeyStore)
 /// - File-based persistence
 /// - Automatic key generation
+///
+/// **Note**: Size-based eviction is not currently implemented. The cache can
+/// grow without limit. Use [version] to invalidate and clear the cache when
+/// needed, or periodically call the [clean] method to remove entries. The
+/// [cleanStore] constructor parameter controls whether to clean on initialization.
 class EncryptedCacheStore implements CacheStore {
   /// Creates an encrypted cache store.
   ///
   /// [storePath]: Path to store cache files. If null, uses application documents directory.
   /// [storage]: Custom secure storage instance (mainly for testing).
-  /// [clean]: Whether to clean the store on opening.
-  /// Creates an encrypted cache store.
-  ///
-  /// [storePath]: Path to store cache files. If null, uses application documents directory.
-  /// [storage]: Custom secure storage instance (mainly for testing).
-  /// [clean]: Whether to clean the store on opening.
-  /// [maxSize]: Maximum cache size in bytes (currently unused for file store, standard is 10 MB).
+  /// [cleanStore]: Whether to clean the store on opening.
+  /// [maxSize]: **DEPRECATED** - Not enforced. Parameter exists for API compatibility
+  ///   but size-based eviction is not implemented. The cache can grow unbounded.
   /// [version]: Cache version string. If changes, cache is cleared.
   /// [onError]: Callback for internal errors.
   EncryptedCacheStore({
     this.storePath,
     FlutterSecureStorage? storage,
     this.cleanStore = false,
+    @Deprecated(
+        'maxSize is not enforced. Size-based eviction is not implemented.')
     this.maxSize = 10 * 1024 * 1024, // 10 MB
     this.version,
     this.onError,
@@ -50,7 +53,17 @@ class EncryptedCacheStore implements CacheStore {
   /// Whether to clean the store on opening.
   final bool cleanStore;
 
-  /// Maximum cache size (not strictly enforced by FileCacheStore wrapper currently).
+  /// Maximum cache size - **NOT ENFORCED**.
+  ///
+  /// This parameter is accepted for API compatibility but size-based eviction
+  /// is not implemented. The cache can grow without limit on disk.
+  ///
+  /// To manage cache size:
+  /// - Use [version] to invalidate and clear cache when needed
+  /// - Call [clean] manually to remove all cached entries
+  /// - Monitor disk usage externally if needed
+  @Deprecated(
+      'maxSize is not enforced. Size-based eviction is not implemented.')
   final int maxSize;
 
   /// Cache version string.
