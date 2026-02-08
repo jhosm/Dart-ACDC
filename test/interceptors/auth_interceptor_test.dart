@@ -1271,6 +1271,133 @@ void main() {
         expect(tokenProvider._refreshToken, 'refresh-token');
       });
     });
+
+    group('forceRefresh()', () {
+      test('triggers refresh when token is NOT near expiry', () async {
+        var refreshCalled = false;
+
+        interceptor = AuthInterceptor(
+          tokenProvider: tokenProvider,
+          customRefreshFn: (token) async {
+            refreshCalled = true;
+            return const TokenRefreshResult(accessToken: 'new-token');
+          },
+          refreshThreshold: const Duration(minutes: 5),
+        );
+
+        // Token expires in 10 minutes (well outside threshold, not near expiry)
+        tokenProvider
+          .._accessToken = 'old-token'
+          .._refreshToken = 'refresh-token'
+          .._accessExpiry =
+              DateTime.now().toUtc().add(const Duration(minutes: 10));
+
+        // Call forceRefresh() directly
+        await interceptor.forceRefresh();
+
+        // Should have called refresh even though token is not near expiry
+        expect(refreshCalled, true);
+        expect(tokenProvider._accessToken, 'new-token');
+      });
+
+      test('invokes the refresh strategy', () async {
+        var refreshCalled = false;
+        String? refreshedToken;
+
+        interceptor = AuthInterceptor(
+          tokenProvider: tokenProvider,
+          customRefreshFn: (token) async {
+            refreshCalled = true;
+            refreshedToken = token;
+            return const TokenRefreshResult(
+              accessToken: 'forced-new-token',
+              refreshToken: 'new-refresh-token',
+            );
+          },
+        );
+
+        tokenProvider
+          .._accessToken = 'current-token'
+          .._refreshToken = 'current-refresh-token'
+          .._accessExpiry =
+              DateTime.now().toUtc().add(const Duration(hours: 1));
+
+        // Call forceRefresh()
+        await interceptor.forceRefresh();
+
+        // Verify refresh strategy was invoked
+        expect(refreshCalled, true);
+        expect(refreshedToken, 'current-refresh-token');
+
+        // Verify tokens were updated
+        expect(tokenProvider._accessToken, 'forced-new-token');
+        expect(tokenProvider._refreshToken, 'new-refresh-token');
+      });
+
+      test('concurrent calls are deduplicated via the queue', () async {
+        var refreshCallCount = 0;
+        final completer = Completer<TokenRefreshResult>();
+
+        interceptor = AuthInterceptor(
+          tokenProvider: tokenProvider,
+          customRefreshFn: (token) async {
+            refreshCallCount++;
+            return completer.future;
+          },
+        );
+
+        tokenProvider
+          .._accessToken = 'old-token'
+          .._refreshToken = 'refresh-token'
+          .._accessExpiry =
+              DateTime.now().toUtc().add(const Duration(hours: 2));
+
+        // Start three concurrent forceRefresh() calls
+        final futures = <Future<void>>[];
+        for (var i = 0; i < 3; i++) {
+          futures.add(interceptor.forceRefresh());
+        }
+
+        // Wait a bit to ensure all calls are queued
+        await Future<void>.delayed(const Duration(milliseconds: 50));
+
+        // Complete the refresh
+        completer.complete(
+          const TokenRefreshResult(accessToken: 'deduplicated-token'),
+        );
+
+        // All calls should complete
+        await Future.wait(futures);
+
+        // Should only refresh once (deduplicated)
+        expect(refreshCallCount, 1);
+        expect(tokenProvider._accessToken, 'deduplicated-token');
+      });
+
+      test('throws AcdcAuthException when refresh fails', () async {
+        interceptor = AuthInterceptor(
+          tokenProvider: tokenProvider,
+          customRefreshFn: (token) async {
+            throw AcdcAuthException(
+              message: 'Refresh failed',
+              statusCode: 401,
+            );
+          },
+        );
+
+        tokenProvider
+          .._accessToken = 'old-token'
+          .._refreshToken = 'refresh-token'
+          .._accessExpiry =
+              DateTime.now().toUtc().add(const Duration(hours: 1));
+
+        // Call should throw the exception
+        await expectLater(
+          interceptor.forceRefresh(),
+          throwsA(isA<AcdcAuthException>()),
+        );
+      });
+    });
   });
 }
 
