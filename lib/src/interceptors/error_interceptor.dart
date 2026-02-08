@@ -99,9 +99,6 @@ class ErrorInterceptor extends Interceptor {
           }
         }
         return false;
-      case DioExceptionType.badCertificate:
-        // badCertificate is handled separately as AcdcSecurityException
-        return false;
     }
   }
 
