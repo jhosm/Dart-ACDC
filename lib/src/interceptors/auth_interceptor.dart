@@ -407,4 +407,21 @@ class AuthInterceptor extends Interceptor {
       _refreshCompleter = null;
     }
   }
+
+  /// Forces an immediate token refresh regardless of the current token's expiry state.
+  ///
+  /// Unlike proactive refresh which only triggers when the token is near expiry,
+  /// this method forces a refresh even if the current token is still valid.
+  ///
+  /// Uses the same refresh logic and queuing mechanism as normal refreshes,
+  /// so concurrent calls will be properly queued and deduplicated.
+  ///
+  /// May throw:
+  /// - [AcdcAuthException] if authentication or token validation fails.
+  /// - [AcdcNetworkException] for network-related failures during refresh.
+  /// - [AcdcServerException] for non-success responses from the auth server.
+  /// - Other exceptions as surfaced by the configured [TokenRefreshStrategy].
+  Future<void> forceRefresh() async {
+    await _refreshTokenWithQueue();
+  }
 }

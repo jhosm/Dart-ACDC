@@ -168,13 +168,9 @@ class AcdcAuthManager {
     if (_authInterceptor == null) {
       throw StateError('Authentication is disabled. Cannot refresh tokens.');
     }
-    // Trigger refresh through the auth interceptor
+    // Force an immediate token refresh regardless of expiry state
     // This reuses the same refresh logic and queuing mechanism
-    final options = RequestOptions(path: '/refresh-trigger');
-    await _authInterceptor.onRequest(
-      options,
-      RequestInterceptorHandler(),
-    );
+    await _authInterceptor.forceRefresh();
   }
 
   /// Internal helper to clear cache using the manager

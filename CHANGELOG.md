@@ -1,3 +1,11 @@
+## Unreleased
+
+> [!IMPORTANT]
+> This release introduces breaking changes to cache behavior for safer defaults.
+
+*   **BREAKING**: Changed default `staleIfErrorCodes` from `[401, 403]` to `[500, 502, 503, 504]` (server errors only). This prevents authentication failures from being masked by stale cache. If you relied on the previous behavior, explicitly set `staleIfErrorCodes: [401, 403, 500, 502, 503, 504]` in your `CacheConfig`.
+*   **NEW**: Added configurable `staleIfErrorCodes` field to `CacheConfig` to customize which HTTP status codes trigger stale cache serving when `staleIfError` is enabled.
+
 ## 0.2.0
 
 > [!IMPORTANT]
