@@ -76,11 +76,18 @@ class MockAuthInterceptor extends AuthInterceptor {
     required super.clientId,
   });
   bool cancelRefreshCalled = false;
+  bool forceRefreshCalled = false;
 
   @override
   void cancelRefresh() {
     cancelRefreshCalled = true;
     super.cancelRefresh();
+  }
+
+  @override
+  Future<void> forceRefresh() async {
+    forceRefreshCalled = true;
+    // Don't call super to avoid actual network request in tests
   }
 }
 
