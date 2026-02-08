@@ -253,7 +253,7 @@ class AcdcClientBuilder {
   /// Configures the threshold for large payload warnings.
   ///
   /// Request/response bodies larger than this size (in bytes) trigger
-  /// warning logs. Defaults to 100 KB.
+  /// warning logs. Defaults to 1 MiB (1048576 bytes).
   ///
   /// Example:
   /// ```dart

@@ -180,8 +180,8 @@
 ///
 /// ## Supported Dart/Flutter Versions
 ///
-/// - Dart SDK: >=3.0.0 <4.0.0
-/// - Flutter: >=3.10.0
+/// - Dart SDK: >=3.6.0 <4.0.0
+/// - Flutter: >=3.38.0
 ///
 /// ## License
 ///
