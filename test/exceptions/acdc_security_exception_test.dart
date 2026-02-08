@@ -175,7 +175,11 @@ void main() {
 
         // URL should be redacted (specific redaction logic from AcdcException.redactUrl)
         expect(exception.requestUrl, isNotNull);
-        // The redactUrl method should remove or mask sensitive query parameters
+        // Sensitive parameters should be masked with ***REDACTED***
+        expect(exception.requestUrl, contains('***REDACTED***'));
+        // Original sensitive values should not appear
+        expect(exception.requestUrl, isNot(contains('secret123')));
+        expect(exception.requestUrl, isNot(contains('key456')));
       });
     });
   });
