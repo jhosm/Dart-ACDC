@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:dart_acdc/src/exceptions/acdc_auth_exception.dart';
 import 'package:dart_acdc/src/exceptions/acdc_client_exception.dart';
 import 'package:dart_acdc/src/exceptions/acdc_network_exception.dart';
@@ -181,6 +183,28 @@ void main() {
       expect(
         (handler.capturedError! as AcdcNetworkException).networkErrorType,
         equals(NetworkErrorType.cancelled),
+      );
+    });
+
+    test('converts unknown type with SocketException to AcdcNetworkException',
+        () {
+      // This test verifies that DioExceptionType.unknown wrapping a SocketException
+      // is properly detected as a network error via type checking.
+      // This is critical for catching network errors that Dio may classify as "unknown"
+      // and prevents regressions if Dio changes error typing.
+      final dioException = DioException(
+        requestOptions: RequestOptions(path: '/test'),
+        type: DioExceptionType.unknown,
+        error: const SocketException('Connection refused'),
+      );
+
+      final handler = TestErrorInterceptorHandler();
+      interceptor.onError(dioException, handler);
+
+      expect(handler.capturedError, isA<AcdcNetworkException>());
+      expect(
+        (handler.capturedError! as AcdcNetworkException).networkErrorType,
+        equals(NetworkErrorType.noConnection),
       );
     });
 

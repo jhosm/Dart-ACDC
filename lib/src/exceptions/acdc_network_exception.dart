@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:dart_acdc/src/exceptions/acdc_exception.dart';
 import 'package:dio/dio.dart';
 
@@ -46,7 +48,7 @@ class AcdcNetworkException extends AcdcException {
   factory AcdcNetworkException.fromDioException(
     DioException exception,
   ) {
-    final errorType = _mapDioTypeToNetworkType(exception.type);
+    final errorType = _mapDioTypeToNetworkType(exception);
     final message = _generateMessage(errorType, exception);
 
     return AcdcNetworkException(
@@ -62,8 +64,8 @@ class AcdcNetworkException extends AcdcException {
   /// The specific network error type.
   final NetworkErrorType networkErrorType;
 
-  static NetworkErrorType _mapDioTypeToNetworkType(DioExceptionType type) {
-    switch (type) {
+  static NetworkErrorType _mapDioTypeToNetworkType(DioException exception) {
+    switch (exception.type) {
       case DioExceptionType.connectionTimeout:
         return NetworkErrorType.connectionTimeout;
       case DioExceptionType.sendTimeout:
@@ -74,7 +76,15 @@ class AcdcNetworkException extends AcdcException {
         return NetworkErrorType.cancelled;
       case DioExceptionType.connectionError:
         return NetworkErrorType.noConnection;
-      default:
+      case DioExceptionType.unknown:
+        // Check if the underlying error is a SocketException (network error)
+        if (exception.error is SocketException) {
+          return NetworkErrorType.noConnection;
+        }
+        return NetworkErrorType.other;
+      case DioExceptionType.badResponse:
+      case DioExceptionType.badCertificate:
+        // Bad responses and certificate errors are treated as other network errors
         return NetworkErrorType.other;
     }
   }
