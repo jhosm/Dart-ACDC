@@ -346,6 +346,9 @@ void main() {
           authManager.refreshNow(),
           completes,
         );
+
+        // Verify that forceRefresh was actually called on the interceptor
+        expect(authInterceptor.forceRefreshCalled, true);
       });
     });
   });
