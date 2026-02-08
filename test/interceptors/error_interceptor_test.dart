@@ -196,7 +196,7 @@ void main() {
       final dioException = DioException(
         requestOptions: RequestOptions(path: '/test'),
         type: DioExceptionType.unknown,
-        error: SocketException('Network unreachable'),
+        error: const SocketException('Network unreachable'),
       );
 
       final handler = TestErrorInterceptorHandler();
