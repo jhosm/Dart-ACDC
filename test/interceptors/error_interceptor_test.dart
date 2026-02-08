@@ -1,6 +1,7 @@
 import 'package:dart_acdc/src/exceptions/acdc_auth_exception.dart';
 import 'package:dart_acdc/src/exceptions/acdc_client_exception.dart';
 import 'package:dart_acdc/src/exceptions/acdc_network_exception.dart';
+import 'package:dart_acdc/src/exceptions/acdc_security_exception.dart';
 import 'package:dart_acdc/src/exceptions/acdc_server_exception.dart';
 import 'package:dart_acdc/src/interceptors/error_interceptor.dart';
 import 'package:dio/dio.dart';
@@ -182,6 +183,30 @@ void main() {
         (handler.capturedError! as AcdcNetworkException).networkErrorType,
         equals(NetworkErrorType.cancelled),
       );
+    });
+
+    test('converts badCertificate to AcdcSecurityException', () {
+      final dioException = DioException(
+        requestOptions: RequestOptions(
+          path: '/test',
+          baseUrl: 'https://example.com',
+        ),
+        type: DioExceptionType.badCertificate,
+        error: 'Handshake error',
+      );
+
+      final handler = TestErrorInterceptorHandler();
+      interceptor.onError(dioException, handler);
+
+      expect(handler.capturedError, isA<AcdcSecurityException>());
+      final securityException = handler.capturedError! as AcdcSecurityException;
+      expect(securityException.hostname, equals('example.com'));
+      expect(
+        securityException.message,
+        contains('Certificate validation failed'),
+      );
+      expect(securityException.type, equals(DioExceptionType.badCertificate));
+      expect(securityException.error, equals('Handshake error'));
     });
 
     group('Edge case handling', () {

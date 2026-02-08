@@ -87,7 +87,6 @@ class ErrorInterceptor extends Interceptor {
       case DioExceptionType.cancel:
         return true;
       case DioExceptionType.badResponse:
-      case DioExceptionType.badCertificate:
       case DioExceptionType.unknown:
         // Check if it's a connection error despite being marked as unknown
         if (exception.error != null) {
@@ -102,6 +101,9 @@ class ErrorInterceptor extends Interceptor {
             return true;
           }
         }
+        return false;
+      case DioExceptionType.badCertificate:
+        // badCertificate is handled separately as AcdcSecurityException
         return false;
     }
   }

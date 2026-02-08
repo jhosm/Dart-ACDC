@@ -12,6 +12,8 @@ class AcdcSecurityException extends AcdcException {
     super.originalException,
     super.requestUrl,
     super.stackTrace,
+    super.type,
+    super.error,
   });
 
   /// Factory constructor from DioException.
@@ -28,8 +30,11 @@ class AcdcSecurityException extends AcdcException {
       hostname: hostname,
       message: message,
       originalException: exception,
-      requestUrl: exception.requestOptions.uri.toString(),
+      requestUrl:
+          AcdcException.redactUrl(exception.requestOptions.uri.toString()),
       stackTrace: exception.stackTrace,
+      type: exception.type,
+      error: exception.error,
     );
   }
 
