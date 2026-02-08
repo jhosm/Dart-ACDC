@@ -29,10 +29,15 @@ abstract class TokenProvider {
 
   /// Stores new authentication tokens.
   ///
-  /// [accessToken] is required. Other parameters are optional:
-  /// - [refreshToken]: New refresh token (required for token rotation)
+  /// [accessToken] is required and always updated. Other parameters are optional:
+  /// - [refreshToken]: New refresh token (required for token rotation).
+  ///   When `null`, implementations MUST preserve the existing refresh token.
   /// - [accessExpiry]: Access token expiration time (UTC)
   /// - [refreshExpiry]: Refresh token expiration time (UTC)
+  ///
+  /// **Important**: Passing `null` for optional parameters means "keep existing value",
+  /// not "delete the value". This enables partial updates like refreshing only the
+  /// access token without rotating the refresh token.
   Future<void> setTokens({
     required String accessToken,
     String? refreshToken,
