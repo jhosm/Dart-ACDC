@@ -4,12 +4,14 @@ import 'package:dart_acdc/src/exceptions/acdc_auth_exception.dart';
 import 'package:dart_acdc/src/exceptions/acdc_client_exception.dart';
 import 'package:dart_acdc/src/exceptions/acdc_exception.dart';
 import 'package:dart_acdc/src/exceptions/acdc_network_exception.dart';
+import 'package:dart_acdc/src/exceptions/acdc_security_exception.dart';
 import 'package:dart_acdc/src/exceptions/acdc_server_exception.dart';
 import 'package:dio/dio.dart';
 
 /// Interceptor that converts DioExceptions into type-safe ACDC exceptions.
 ///
 /// Maps HTTP status codes and network errors to developer-friendly exceptions:
+/// - Certificate errors → [AcdcSecurityException]
 /// - 401/403 → [AcdcAuthException]
 /// - 4xx (others) → [AcdcClientException]
 /// - 5xx → [AcdcServerException]
@@ -33,7 +35,12 @@ class ErrorInterceptor extends Interceptor {
 
   /// Converts a DioException to the appropriate ACDC exception type.
   DioException _convertException(DioException exception) {
-    // Handle network-related errors first
+    // Handle certificate errors
+    if (exception.type == DioExceptionType.badCertificate) {
+      return AcdcSecurityException.fromDioException(exception);
+    }
+
+    // Handle network-related errors
     if (_isNetworkError(exception)) {
       return AcdcNetworkException.fromDioException(exception);
     }
@@ -82,7 +89,6 @@ class ErrorInterceptor extends Interceptor {
       case DioExceptionType.cancel:
         return true;
       case DioExceptionType.badResponse:
-      case DioExceptionType.badCertificate:
       case DioExceptionType.unknown:
         // Check if it's a connection error despite being marked as unknown
         // Use type checking instead of string matching for reliability
@@ -92,6 +98,9 @@ class ErrorInterceptor extends Interceptor {
             return true;
           }
         }
+        return false;
+      case DioExceptionType.badCertificate:
+        // badCertificate is handled separately as AcdcSecurityException
         return false;
     }
   }

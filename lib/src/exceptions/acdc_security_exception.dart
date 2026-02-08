@@ -1,4 +1,5 @@
 import 'package:dart_acdc/src/exceptions/acdc_exception.dart';
+import 'package:dio/dio.dart';
 
 /// Exception thrown when a security check fails, such as Certificate Pinning.
 class AcdcSecurityException extends AcdcException {
@@ -11,7 +12,31 @@ class AcdcSecurityException extends AcdcException {
     super.originalException,
     super.requestUrl,
     super.stackTrace,
+    super.type,
+    super.error,
   });
+
+  /// Factory constructor from DioException.
+  factory AcdcSecurityException.fromDioException(
+    DioException exception,
+  ) {
+    final hostname = exception.requestOptions.uri.host;
+    final message = exception.type == DioExceptionType.badCertificate
+        ? 'Certificate validation failed for $hostname'
+        : 'Security check failed';
+
+    return AcdcSecurityException(
+      requestOptions: exception.requestOptions,
+      hostname: hostname,
+      message: message,
+      originalException: exception,
+      requestUrl:
+          AcdcException.redactUrl(exception.requestOptions.uri.toString()),
+      stackTrace: exception.stackTrace,
+      type: exception.type,
+      error: exception.error,
+    );
+  }
 
   /// The hostname that failed validation.
   final String hostname;

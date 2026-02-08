@@ -1,8 +1,7 @@
-import 'dart:io';
-
 import 'package:dart_acdc/src/exceptions/acdc_auth_exception.dart';
 import 'package:dart_acdc/src/exceptions/acdc_client_exception.dart';
 import 'package:dart_acdc/src/exceptions/acdc_network_exception.dart';
+import 'package:dart_acdc/src/exceptions/acdc_security_exception.dart';
 import 'package:dart_acdc/src/exceptions/acdc_server_exception.dart';
 import 'package:dart_acdc/src/interceptors/error_interceptor.dart';
 import 'package:dio/dio.dart';
@@ -186,27 +185,28 @@ void main() {
       );
     });
 
-    test(
-        'converts unknown exception with SocketException to AcdcNetworkException',
-        () {
-      // This test verifies the type-based detection introduced in PR #36
-      // When DioExceptionType is unknown but contains a SocketException,
-      // it should be treated as a network error (with type 'other' since
-      // the specific error type cannot be determined from 'unknown')
+    test('converts badCertificate to AcdcSecurityException', () {
       final dioException = DioException(
-        requestOptions: RequestOptions(path: '/test'),
-        type: DioExceptionType.unknown,
-        error: const SocketException('Network unreachable'),
+        requestOptions: RequestOptions(
+          path: '/test',
+          baseUrl: 'https://example.com',
+        ),
+        type: DioExceptionType.badCertificate,
+        error: 'Handshake error',
       );
 
       final handler = TestErrorInterceptorHandler();
       interceptor.onError(dioException, handler);
 
-      expect(handler.capturedError, isA<AcdcNetworkException>());
+      expect(handler.capturedError, isA<AcdcSecurityException>());
+      final securityException = handler.capturedError! as AcdcSecurityException;
+      expect(securityException.hostname, equals('example.com'));
       expect(
-        (handler.capturedError! as AcdcNetworkException).networkErrorType,
-        equals(NetworkErrorType.other),
+        securityException.message,
+        contains('Certificate validation failed'),
       );
+      expect(securityException.type, equals(DioExceptionType.badCertificate));
+      expect(securityException.error, equals('Handshake error'));
     });
 
     group('Edge case handling', () {
