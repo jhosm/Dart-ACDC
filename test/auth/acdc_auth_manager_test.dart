@@ -117,6 +117,38 @@ class RequestCaptureInterceptor extends Interceptor {
   }
 }
 
+/// Mock AuthInterceptor that throws on forceRefresh.
+class _ThrowingAuthInterceptor extends AuthInterceptor {
+  _ThrowingAuthInterceptor({
+    required super.tokenProvider,
+    required super.refreshEndpointUrl,
+    required super.clientId,
+  });
+
+  @override
+  Future<void> forceRefresh() async {
+    throw Exception('Simulated refresh failure');
+  }
+}
+
+/// Mock AuthInterceptor that counts forceRefresh calls.
+class _CountingAuthInterceptor extends AuthInterceptor {
+  _CountingAuthInterceptor({
+    required super.tokenProvider,
+    required super.refreshEndpointUrl,
+    required super.clientId,
+    required this.onForceRefresh,
+  });
+
+  final void Function() onForceRefresh;
+
+  @override
+  Future<void> forceRefresh() async {
+    onForceRefresh();
+    // Don't call super to avoid network request
+  }
+}
+
 void main() {
   group('AcdcAuthManager', () {
     late MockTokenProvider tokenProvider;
@@ -331,21 +363,96 @@ void main() {
     });
 
     group('refreshNow()', () {
-      test('triggers token refresh through auth interceptor', () async {
+      test('calls forceRefresh on auth interceptor', () async {
         authManager = AcdcAuthManager(
           tokenProvider: tokenProvider,
           authInterceptor: authInterceptor,
         );
 
-        tokenProvider._refreshToken = 'test-refresh-token';
+        await authManager.refreshNow();
 
-        // This will attempt to trigger refresh
-        // Since we don't have a real server, we just verify it doesn't throw
-        // In a real scenario, this would trigger the interceptor's onRequest
+        expect(authInterceptor.forceRefreshCalled, true);
+      });
+
+      test('throws StateError when authentication is disabled', () async {
+        authManager = AcdcAuthManager(
+          tokenProvider: tokenProvider,
+          authInterceptor: null, // No auth configured
+        );
+
         await expectLater(
           authManager.refreshNow(),
-          completes,
+          throwsA(
+            isA<StateError>().having(
+              (e) => e.message,
+              'message',
+              contains('Authentication is disabled'),
+            ),
+          ),
         );
+      });
+
+      test('forces refresh even when access token is still valid', () async {
+        authManager = AcdcAuthManager(
+          tokenProvider: tokenProvider,
+          authInterceptor: authInterceptor,
+        );
+
+        // Set a valid token that won't expire for a long time
+        tokenProvider
+          .._accessToken = 'valid-token'
+          .._refreshToken = 'refresh-token'
+          .._accessExpiry =
+              DateTime.now().toUtc().add(const Duration(hours: 24));
+
+        await authManager.refreshNow();
+
+        // Verify that forceRefresh was called despite valid token
+        expect(authInterceptor.forceRefreshCalled, true);
+      });
+
+      test('propagates exceptions from forceRefresh', () async {
+        // Create a mock that throws on forceRefresh
+        final throwingInterceptor = _ThrowingAuthInterceptor(
+          tokenProvider: tokenProvider,
+          refreshEndpointUrl: 'https://auth.example.com/token',
+          clientId: 'test-client',
+        );
+
+        authManager = AcdcAuthManager(
+          tokenProvider: tokenProvider,
+          authInterceptor: throwingInterceptor,
+        );
+
+        await expectLater(
+          authManager.refreshNow(),
+          throwsA(isA<Exception>()),
+        );
+      });
+
+      test('queues concurrent refreshNow calls properly', () async {
+        var forceRefreshCallCount = 0;
+        final countingInterceptor = _CountingAuthInterceptor(
+          tokenProvider: tokenProvider,
+          refreshEndpointUrl: 'https://auth.example.com/token',
+          clientId: 'test-client',
+          onForceRefresh: () => forceRefreshCallCount++,
+        );
+
+        authManager = AcdcAuthManager(
+          tokenProvider: tokenProvider,
+          authInterceptor: countingInterceptor,
+        );
+
+        // Start multiple concurrent refresh calls
+        await Future.wait([
+          authManager.refreshNow(),
+          authManager.refreshNow(),
+          authManager.refreshNow(),
+        ]);
+
+        // All calls should complete and forceRefresh should be called
+        expect(forceRefreshCallCount, greaterThan(0));
       });
     });
   });

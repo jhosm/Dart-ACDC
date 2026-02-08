@@ -153,7 +153,8 @@ class AcdcAuthManager {
   /// **Forced Refresh Behavior**:
   /// - **Always** triggers a token refresh, even if the current token is still valid
   /// - This differs from automatic refresh, which only triggers when tokens are near expiry
-  /// - Uses the same refresh logic and queuing mechanism as normal refreshes
+  /// - Uses the same refresh logic and queuing mechanism as normal refreshes,
+  ///   so concurrent calls will be properly queued and deduplicated
   ///
   /// **Success Path**:
   /// - Retrieves refresh token from TokenProvider
@@ -168,11 +169,18 @@ class AcdcAuthManager {
   /// - No refresh strategy configured (missing `refreshStrategy`, `refreshEndpointUrl`/`clientId`, or `customRefreshFn`)
   /// - No refresh token available (TokenProvider returns null)
   /// - Refresh token is expired
-  /// - Network failure during refresh
-  /// - Server rejects the refresh request
+  /// - Refresh queue timeout (if another refresh takes too long)
+  /// - OAuth error responses (400 status with OAuth error codes)
   ///
-  /// **Callers should expect exceptions on misconfiguration** - this method does not
-  /// fail silently. Always wrap calls in try-catch and handle appropriately.
+  /// Throws [AcdcNetworkException] for network-related failures:
+  /// - Connection timeout
+  /// - Send/receive timeout
+  /// - Connection errors
+  ///
+  /// Throws [AcdcServerException] for server errors (5xx status codes).
+  ///
+  /// **Important**: Callers should expect exceptions on misconfiguration - this
+  /// method does not fail silently and requires try-catch for robust error handling.
   ///
   /// **Usage**:
   /// ```dart
@@ -182,7 +190,11 @@ class AcdcAuthManager {
   /// } on StateError catch (e) {
   ///   // Authentication is disabled
   /// } on AcdcAuthException catch (e) {
-  ///   // Refresh failed - check error message for details
+  ///   // Auth failure - no token, expired token, or misconfiguration
+  /// } on AcdcNetworkException catch (e) {
+  ///   // Network failure - retry or inform user
+  /// } on AcdcServerException catch (e) {
+  ///   // Server error - may retry with exponential backoff
   /// }
   /// ```
   Future<void> refreshNow() async {
