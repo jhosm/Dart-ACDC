@@ -92,8 +92,8 @@ class AcdcCacheInterceptor extends Interceptor {
             ? const Duration(days: 7)
             : null,
         hitCacheOnErrorCodes: config.staleIfError
-          ? List<int>.unmodifiable(config.staleIfErrorCodes)
-          : const <int>[],
+            ? List<int>.unmodifiable(config.staleIfErrorCodes)
+            : const <int>[],
         keyBuilder: ({required url, headers, body}) {
           // Build base key using custom builder or default
           final baseKey = config.keyBuilder != null
