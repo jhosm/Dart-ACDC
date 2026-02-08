@@ -21,7 +21,8 @@ import 'package:path_provider/path_provider.dart';
 ///
 /// **Note**: Size-based eviction is not currently implemented. The cache can
 /// grow without limit. Use [version] to invalidate and clear the cache when
-/// needed, or manually call [clean] periodically.
+/// needed, or periodically call the [clean] method to remove entries. The
+/// [cleanStore] constructor parameter controls whether to clean on initialization.
 class EncryptedCacheStore implements CacheStore {
   /// Creates an encrypted cache store.
   ///
@@ -36,7 +37,8 @@ class EncryptedCacheStore implements CacheStore {
     this.storePath,
     FlutterSecureStorage? storage,
     this.cleanStore = false,
-    @Deprecated('maxSize is not enforced. Size-based eviction is not implemented.')
+    @Deprecated(
+        'maxSize is not enforced. Size-based eviction is not implemented.')
     this.maxSize = 10 * 1024 * 1024, // 10 MB
     this.version,
     this.onError,
@@ -60,7 +62,8 @@ class EncryptedCacheStore implements CacheStore {
   /// - Use [version] to invalidate and clear cache when needed
   /// - Call [clean] manually to remove all cached entries
   /// - Monitor disk usage externally if needed
-  @Deprecated('maxSize is not enforced. Size-based eviction is not implemented.')
+  @Deprecated(
+      'maxSize is not enforced. Size-based eviction is not implemented.')
   final int maxSize;
 
   /// Cache version string.

@@ -21,6 +21,8 @@ class CacheConfig {
   /// - [userIdProvider]: Custom user ID extraction for non-JWT auth
   const CacheConfig({
     this.ttl = const Duration(hours: 1),
+    @Deprecated(
+        'maxSize is not enforced for disk cache. Size-based eviction is not implemented.')
     this.maxSize = 10 * 1024 * 1024, // 10 MB
     this.cacheAuthenticatedRequests = true,
     this.inMemory = true,
@@ -62,6 +64,8 @@ class CacheConfig {
   /// disk usage.
   ///
   /// Defaults to 10 MB (informational only).
+  @Deprecated(
+      'maxSize is not enforced for disk cache. Size-based eviction is not implemented.')
   final int maxSize;
 
   /// Whether to cache authenticated requests.
@@ -115,15 +119,19 @@ class CacheConfig {
   final void Function(Object error, StackTrace stackTrace)? onError;
 
   @override
-  String toString() => 'CacheConfig('
-      'ttl: $ttl, '
-      'maxSize: $maxSize, '
-      'cacheAuthenticatedRequests: $cacheAuthenticatedRequests, '
-      'inMemory: $inMemory, '
-      'inMemoryMaxSize: $inMemoryMaxSize, '
-      'staleWhileRevalidate: $staleWhileRevalidate, '
-      'staleIfError: $staleIfError, '
-      'hasUserIdProvider: ${userIdProvider != null}, '
-      'hasKeyBuilder: ${keyBuilder != null}, '
-      'version: $version)';
+  // ignore: prefer_expression_function_bodies
+  String toString() {
+    return 'CacheConfig('
+        'ttl: $ttl, '
+        // ignore: deprecated_member_use_from_same_package
+        'maxSize: $maxSize, '
+        'cacheAuthenticatedRequests: $cacheAuthenticatedRequests, '
+        'inMemory: $inMemory, '
+        'inMemoryMaxSize: $inMemoryMaxSize, '
+        'staleWhileRevalidate: $staleWhileRevalidate, '
+        'staleIfError: $staleIfError, '
+        'hasUserIdProvider: ${userIdProvider != null}, '
+        'hasKeyBuilder: ${keyBuilder != null}, '
+        'version: $version)';
+  }
 }
