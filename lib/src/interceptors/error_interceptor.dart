@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:dart_acdc/src/exceptions/acdc_auth_exception.dart';
 import 'package:dart_acdc/src/exceptions/acdc_client_exception.dart';
 import 'package:dart_acdc/src/exceptions/acdc_exception.dart';
@@ -89,15 +91,10 @@ class ErrorInterceptor extends Interceptor {
       case DioExceptionType.badResponse:
       case DioExceptionType.unknown:
         // Check if it's a connection error despite being marked as unknown
+        // Use type checking instead of string matching for reliability
         if (exception.error != null) {
-          final errorStr = exception.error.toString().toLowerCase();
-          // Common network error patterns
-          if (errorStr.contains('socketexception') ||
-              errorStr.contains('failed host lookup') ||
-              errorStr.contains('network is unreachable') ||
-              errorStr.contains('software caused connection abort') ||
-              errorStr.contains('connection refused') ||
-              errorStr.contains('connection reset')) {
+          // SocketException and its subclasses cover most network errors
+          if (exception.error is SocketException) {
             return true;
           }
         }
