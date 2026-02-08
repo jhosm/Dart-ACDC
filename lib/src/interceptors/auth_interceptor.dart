@@ -416,7 +416,11 @@ class AuthInterceptor extends Interceptor {
   /// Uses the same refresh logic and queuing mechanism as normal refreshes,
   /// so concurrent calls will be properly queued and deduplicated.
   ///
-  /// Throws [AcdcAuthException] if refresh fails.
+  /// May throw:
+  /// - [AcdcAuthException] if authentication or token validation fails.
+  /// - [AcdcNetworkException] for network-related failures during refresh.
+  /// - [AcdcServerException] for non-success responses from the auth server.
+  /// - Other exceptions as surfaced by the configured [TokenRefreshStrategy].
   Future<void> forceRefresh() async {
     await _refreshTokenWithQueue();
   }
