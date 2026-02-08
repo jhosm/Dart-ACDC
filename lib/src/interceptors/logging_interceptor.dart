@@ -76,7 +76,7 @@ class LoggingInterceptor extends Interceptor {
   final int? largePayloadThreshold;
 
   /// Flag to prevent circular logging dependencies
-  static bool _isLogging = false;
+  bool _isLogging = false;
 
   /// Safely invoke the logger with circular dependency prevention and timeout
   void _safeLog(
