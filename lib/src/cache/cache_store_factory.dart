@@ -33,7 +33,6 @@ class CacheStoreFactory {
 
     // Build persistent store (always encrypted)
     final persistentStore = EncryptedCacheStore(
-      maxSize: config.maxSize,
       version: config.version,
       onError: config.onError,
       storePath: config.storePath,

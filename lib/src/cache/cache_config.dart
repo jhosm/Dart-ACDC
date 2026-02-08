@@ -22,6 +22,9 @@ class CacheConfig {
   /// - [userIdProvider]: Custom user ID extraction for non-JWT auth
   const CacheConfig({
     this.ttl = const Duration(hours: 1),
+    @Deprecated(
+      'maxSize is not enforced for disk cache. Size-based eviction is not implemented.',
+    )
     this.maxSize = 10 * 1024 * 1024, // 10 MB
     this.cacheAuthenticatedRequests = true,
     this.inMemory = true,
@@ -58,8 +61,15 @@ class CacheConfig {
 
   /// Maximum cache size in bytes.
   ///
-  /// When exceeded, least recently used entries are evicted.
-  /// Defaults to 10 MB.
+  /// **Note**: Size-based eviction is not currently implemented for disk cache.
+  /// This value is passed to the cache store but not enforced. The disk cache
+  /// can grow without limit. Use cache versioning or manual cleanup to manage
+  /// disk usage.
+  ///
+  /// Defaults to 10 MB (informational only).
+  @Deprecated(
+    'maxSize is not enforced for disk cache. Size-based eviction is not implemented.',
+  )
   final int maxSize;
 
   /// Whether to cache authenticated requests.
@@ -127,16 +137,20 @@ class CacheConfig {
   final void Function(Object error, StackTrace stackTrace)? onError;
 
   @override
-  String toString() => 'CacheConfig('
-      'ttl: $ttl, '
-      'maxSize: $maxSize, '
-      'cacheAuthenticatedRequests: $cacheAuthenticatedRequests, '
-      'inMemory: $inMemory, '
-      'inMemoryMaxSize: $inMemoryMaxSize, '
-      'staleWhileRevalidate: $staleWhileRevalidate, '
-      'staleIfError: $staleIfError, '
-      'staleIfErrorCodes: $staleIfErrorCodes, '
-      'hasUserIdProvider: ${userIdProvider != null}, '
-      'hasKeyBuilder: ${keyBuilder != null}, '
-      'version: $version)';
+  // ignore: prefer_expression_function_bodies
+  String toString() {
+    return 'CacheConfig('
+        'ttl: $ttl, '
+        // ignore: deprecated_member_use_from_same_package
+        'maxSize: $maxSize, '
+        'cacheAuthenticatedRequests: $cacheAuthenticatedRequests, '
+        'inMemory: $inMemory, '
+        'inMemoryMaxSize: $inMemoryMaxSize, '
+        'staleWhileRevalidate: $staleWhileRevalidate, '
+        'staleIfError: $staleIfError, '
+        'staleIfErrorCodes: $staleIfErrorCodes, '
+        'hasUserIdProvider: ${userIdProvider != null}, '
+        'hasKeyBuilder: ${keyBuilder != null}, '
+        'version: $version)';
+  }
 }
