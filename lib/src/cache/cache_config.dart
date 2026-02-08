@@ -56,8 +56,12 @@ class CacheConfig {
 
   /// Maximum cache size in bytes.
   ///
-  /// When exceeded, least recently used entries are evicted.
-  /// Defaults to 10 MB.
+  /// **Note**: Size-based eviction is not currently implemented for disk cache.
+  /// This value is passed to the cache store but not enforced. The disk cache
+  /// can grow without limit. Use cache versioning or manual cleanup to manage
+  /// disk usage.
+  ///
+  /// Defaults to 10 MB (informational only).
   final int maxSize;
 
   /// Whether to cache authenticated requests.
