@@ -144,24 +144,45 @@ class AcdcAuthManager {
     _currentUserId = null;
   }
 
-  /// Forces an immediate token refresh.
+  /// Forces an immediate token refresh, regardless of current token expiry state.
   ///
   /// **When to use**: Typically not needed - the auth interceptor handles
   /// refresh automatically. Use only when you need to ensure tokens are
   /// fresh before a specific operation.
   ///
-  /// **Behavior**:
-  /// - Triggers token refresh immediately
-  /// - Throws exception if refresh fails
-  /// - Updates stored tokens on success
+  /// **Forced Refresh Behavior**:
+  /// - **Always** triggers a token refresh, even if the current token is still valid
+  /// - This differs from automatic refresh, which only triggers when tokens are near expiry
+  /// - Uses the same refresh logic and queuing mechanism as normal refreshes
+  ///
+  /// **Success Path**:
+  /// - Retrieves refresh token from TokenProvider
+  /// - Calls configured refresh strategy (OAuth or custom)
+  /// - Updates stored tokens via TokenProvider
+  ///
+  /// **Exception Handling**:
+  ///
+  /// Throws [StateError] if authentication is disabled (no auth interceptor configured).
+  ///
+  /// Throws [AcdcAuthException] in the following cases:
+  /// - No refresh strategy configured (missing `refreshStrategy`, `refreshEndpointUrl`/`clientId`, or `customRefreshFn`)
+  /// - No refresh token available (TokenProvider returns null)
+  /// - Refresh token is expired
+  /// - Network failure during refresh
+  /// - Server rejects the refresh request
+  ///
+  /// **Callers should expect exceptions on misconfiguration** - this method does not
+  /// fail silently. Always wrap calls in try-catch and handle appropriately.
   ///
   /// **Usage**:
   /// ```dart
   /// try {
   ///   await dio.auth.refreshNow();
   ///   // Tokens are now refreshed
-  /// } catch (e) {
-  ///   // Handle refresh failure
+  /// } on StateError catch (e) {
+  ///   // Authentication is disabled
+  /// } on AcdcAuthException catch (e) {
+  ///   // Refresh failed - check error message for details
   /// }
   /// ```
   Future<void> refreshNow() async {
