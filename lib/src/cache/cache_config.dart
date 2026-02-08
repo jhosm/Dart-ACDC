@@ -18,17 +18,20 @@ class CacheConfig {
   /// - [inMemoryMaxSize]: Maximum in-memory cache size in bytes (default: 5 MB)
   /// - [staleWhileRevalidate]: Serve stale cache while refreshing (default: false)
   /// - [staleIfError]: Serve stale cache on network errors (default: true)
+  /// - [staleIfErrorCodes]: HTTP status codes that trigger stale cache (default: server errors only)
   /// - [userIdProvider]: Custom user ID extraction for non-JWT auth
   const CacheConfig({
     this.ttl = const Duration(hours: 1),
     @Deprecated(
-        'maxSize is not enforced for disk cache. Size-based eviction is not implemented.')
+      'maxSize is not enforced for disk cache. Size-based eviction is not implemented.',
+    )
     this.maxSize = 10 * 1024 * 1024, // 10 MB
     this.cacheAuthenticatedRequests = true,
     this.inMemory = true,
     this.inMemoryMaxSize = 5 * 1024 * 1024, // 5 MB
     this.staleWhileRevalidate = false,
     this.staleIfError = true,
+    this.staleIfErrorCodes = const [500, 502, 503, 504],
     this.userIdProvider,
     this.keyBuilder,
     this.version,
@@ -65,7 +68,8 @@ class CacheConfig {
   ///
   /// Defaults to 10 MB (informational only).
   @Deprecated(
-      'maxSize is not enforced for disk cache. Size-based eviction is not implemented.')
+    'maxSize is not enforced for disk cache. Size-based eviction is not implemented.',
+  )
   final int maxSize;
 
   /// Whether to cache authenticated requests.
@@ -100,6 +104,20 @@ class CacheConfig {
   /// Defaults to true.
   final bool staleIfError;
 
+  /// HTTP status codes that trigger stale cache when [staleIfError] is true.
+  ///
+  /// Only applies when [staleIfError] is enabled. When the server responds
+  /// with one of these status codes, the cache interceptor will serve stale
+  /// cached content instead of propagating the error.
+  ///
+  /// Defaults to server errors only: `[500, 502, 503, 504]`.
+  ///
+  /// **Important**: Including client errors like 401 (Unauthorized) or
+  /// 403 (Forbidden) may mask authentication failures and prevent proper
+  /// token refresh. Only include auth-related codes if you understand the
+  /// implications for your auth flow.
+  final List<int> staleIfErrorCodes;
+
   /// Custom user ID provider for non-JWT authentication.
   ///
   /// Used to extract user ID from access tokens that aren't JWTs.
@@ -130,6 +148,7 @@ class CacheConfig {
         'inMemoryMaxSize: $inMemoryMaxSize, '
         'staleWhileRevalidate: $staleWhileRevalidate, '
         'staleIfError: $staleIfError, '
+        'staleIfErrorCodes: $staleIfErrorCodes, '
         'hasUserIdProvider: ${userIdProvider != null}, '
         'hasKeyBuilder: ${keyBuilder != null}, '
         'version: $version)';
