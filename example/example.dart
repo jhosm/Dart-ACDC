@@ -156,7 +156,7 @@ class MyTokenProvider implements TokenProvider {
 /// Example log delegate implementation
 class MyLogDelegate implements AcdcLogDelegate {
   @override
-  void log(String message, LogLevel level, [Map<String, dynamic>? metadata]) {
+  void log(String message, LogLevel level, Map<String, dynamic> metadata) {
     // Send logs to your logging system
     // In production, use a proper logging framework
   }
