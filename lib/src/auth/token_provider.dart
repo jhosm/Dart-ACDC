@@ -32,12 +32,18 @@ abstract class TokenProvider {
   /// [accessToken] is required and always updated. Other parameters are optional:
   /// - [refreshToken]: New refresh token (required for token rotation).
   ///   When `null`, implementations MUST preserve the existing refresh token.
-  /// - [accessExpiry]: Access token expiration time (UTC)
-  /// - [refreshExpiry]: Refresh token expiration time (UTC)
+  /// - [accessExpiry]: Access token expiration time (UTC).
+  ///   When non-null, this MUST overwrite any previously stored access-token expiry.
+  ///   When `null`, implementations MUST treat the access-token expiry as unknown
+  ///   (i.e. clear any previously stored expiry rather than preserving it).
+  /// - [refreshExpiry]: Refresh token expiration time (UTC).
+  ///   When non-null, this MUST overwrite any previously stored refresh-token expiry.
+  ///   When `null`, implementations MUST treat the refresh-token expiry as unknown
+  ///   (i.e. clear any previously stored expiry rather than preserving it).
   ///
-  /// **Important**: Passing `null` for optional parameters means "keep existing value",
-  /// not "delete the value". This enables partial updates like refreshing only the
-  /// access token without rotating the refresh token.
+  /// This enables partial updates like refreshing only the access token without
+  /// rotating the refresh token, while still allowing expiry to be cleared by
+  /// passing `null`.
   Future<void> setTokens({
     required String accessToken,
     String? refreshToken,
