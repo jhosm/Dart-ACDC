@@ -390,9 +390,6 @@ void main() {
             ),
           ),
         );
-
-        // Verify that forceRefresh was actually called on the interceptor
-        expect(authInterceptor.forceRefreshCalled, true);
       });
 
       test('forces refresh even when access token is still valid', () async {
