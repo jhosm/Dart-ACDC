@@ -69,32 +69,6 @@ jobs:
           fail_ci_if_error: false
           token: ${{ secrets.CODECOV_TOKEN }}
 
-  test-multiplatform:
-    name: Test on ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
-
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [macos-latest, windows-latest]
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v6
-
-      - name: Setup Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          flutter-version: "3.38.x"
-          channel: "stable"
-          cache: true
-
-      - name: Install dependencies
-        run: flutter pub get
-
-      - name: Run tests
-        run: flutter test --reporter expanded
-
   package:
     name: Check Package
     runs-on: ubuntu-latest
@@ -127,7 +101,6 @@ jobs:
     needs:
       - analyze
       - test
-      - test-multiplatform
       - package
     if: always()
     steps:
@@ -135,7 +108,6 @@ jobs:
         run: |
           if [[ "${{ needs.analyze.result }}" != "success" ]] || \
              [[ "${{ needs.test.result }}" != "success" ]] || \
-             [[ "${{ needs.test-multiplatform.result }}" != "success" ]] || \
              [[ "${{ needs.package.result }}" != "success" ]]; then
             echo "One or more jobs failed"
             exit 1

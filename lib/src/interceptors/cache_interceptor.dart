@@ -54,7 +54,9 @@ class AcdcCacheInterceptor extends Interceptor {
       maxStale: (config.staleIfError || config.staleWhileRevalidate)
           ? const Duration(days: 7)
           : null,
-      hitCacheOnErrorCodes: config.staleIfError ? [401, 403] : [],
+      hitCacheOnErrorCodes: config.staleIfError
+          ? List<int>.unmodifiable(config.staleIfErrorCodes)
+          : const <int>[],
       keyBuilder: ({required url, headers, body}) {
         // Build base key using custom builder or default
         final baseKey = config.keyBuilder != null
@@ -89,7 +91,9 @@ class AcdcCacheInterceptor extends Interceptor {
         maxStale: (config.staleIfError || config.staleWhileRevalidate)
             ? const Duration(days: 7)
             : null,
-        hitCacheOnErrorCodes: config.staleIfError ? [401, 403] : [],
+        hitCacheOnErrorCodes: config.staleIfError
+            ? List<int>.unmodifiable(config.staleIfErrorCodes)
+            : const <int>[],
         keyBuilder: ({required url, headers, body}) {
           // Build base key using custom builder or default
           final baseKey = config.keyBuilder != null
