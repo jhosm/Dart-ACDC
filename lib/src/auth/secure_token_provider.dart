@@ -61,16 +61,21 @@ class SecureTokenProvider implements TokenProvider {
       _storage.write(key: _keyAccessToken, value: accessToken),
       if (refreshToken != null)
         _storage.write(key: _keyRefreshToken, value: refreshToken),
+      // Per TokenProvider contract: null expiry means "unknown" → clear stored value
       if (accessExpiry != null)
         _storage.write(
           key: _keyAccessExpiry,
           value: accessExpiry.toIso8601String(),
-        ),
+        )
+      else
+        _storage.delete(key: _keyAccessExpiry),
       if (refreshExpiry != null)
         _storage.write(
           key: _keyRefreshExpiry,
           value: refreshExpiry.toIso8601String(),
-        ),
+        )
+      else
+        _storage.delete(key: _keyRefreshExpiry),
     ]);
   }
 

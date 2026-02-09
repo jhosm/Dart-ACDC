@@ -344,7 +344,10 @@ class TestTokenProvider implements TokenProvider {
     DateTime? refreshExpiry,
   }) async {
     _accessToken = accessToken;
-    _refreshToken = refreshToken;
+    // Preserve existing refresh token when null (partial update)
+    if (refreshToken != null) {
+      _refreshToken = refreshToken;
+    }
     _accessExpiry = accessExpiry;
     _refreshExpiry = refreshExpiry;
   }
