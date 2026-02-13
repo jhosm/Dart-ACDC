@@ -1379,6 +1379,7 @@ void main() {
           tokenProvider: tokenProvider,
           customRefreshFn: (token) async {
             throw AcdcAuthException(
+              requestOptions: RequestOptions(path: '/token/refresh'),
               message: 'Refresh failed',
               statusCode: 401,
             );
