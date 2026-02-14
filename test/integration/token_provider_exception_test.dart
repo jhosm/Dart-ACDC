@@ -358,7 +358,10 @@ class ThrowingTokenProvider implements TokenProvider {
       throw Exception('TokenProvider storage error: cannot write tokens');
     }
     this.accessToken = accessToken;
-    this.refreshToken = refreshToken;
+    // Preserve existing refresh token when null (partial update)
+    if (refreshToken != null) {
+      this.refreshToken = refreshToken;
+    }
     this.accessExpiry = accessExpiry;
     this.refreshExpiry = refreshExpiry;
   }

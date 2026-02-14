@@ -248,13 +248,10 @@ class TestTokenProvider implements TokenProvider {
     if (refreshToken != null) {
       _refreshToken = refreshToken;
     }
-    // Only update expiry fields if provided (preserves existing when null)
-    if (accessExpiry != null) {
-      _accessExpiry = accessExpiry;
-    }
-    if (refreshExpiry != null) {
-      _refreshExpiry = refreshExpiry;
-    }
+    // Expiry fields are always overwritten per TokenProvider contract:
+    // null means "unknown" (clear), non-null overwrites
+    _accessExpiry = accessExpiry;
+    _refreshExpiry = refreshExpiry;
   }
 
   @override

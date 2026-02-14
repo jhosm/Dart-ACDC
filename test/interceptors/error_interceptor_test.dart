@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:dart_acdc/src/exceptions/acdc_auth_exception.dart';
 import 'package:dart_acdc/src/exceptions/acdc_client_exception.dart';
 import 'package:dart_acdc/src/exceptions/acdc_network_exception.dart';
@@ -207,6 +209,24 @@ void main() {
       );
       expect(securityException.type, equals(DioExceptionType.badCertificate));
       expect(securityException.error, equals('Handshake error'));
+    });
+
+    test('converts unknown type with SocketException to AcdcNetworkException',
+        () {
+      final dioException = DioException(
+        requestOptions: RequestOptions(path: '/test'),
+        type: DioExceptionType.unknown,
+        error: const SocketException('Connection refused'),
+      );
+
+      final handler = TestErrorInterceptorHandler();
+      interceptor.onError(dioException, handler);
+
+      expect(handler.capturedError, isA<AcdcNetworkException>());
+      expect(
+        (handler.capturedError! as AcdcNetworkException).networkErrorType,
+        equals(NetworkErrorType.noConnection),
+      );
     });
 
     group('Edge case handling', () {
